@@ -1,4 +1,6 @@
 
+using be.Infrastructure.Persistence;
+
 namespace be
 {
     public class Program
@@ -10,6 +12,7 @@ namespace be
             // Add services to the container.
 
             builder.Services.AddControllers();
+            builder.Services.AddPersistence(builder.Configuration);
             builder.Services.AddHealthChecks();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();

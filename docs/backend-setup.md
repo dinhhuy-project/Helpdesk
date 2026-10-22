@@ -1,6 +1,6 @@
 # Khởi tạo backend với Docker Compose
 
-Đây là bước hạ tầng local cho backend ASP.NET Core .NET 8 hiện có. Chưa triển khai EF Core, schema/migration, Redis client, MinIO client hoặc các API nghiệp vụ. Những key cấu hình truyền vào API là chuẩn bị cho bước tích hợp tiếp theo; API chưa sử dụng chúng.
+Hạ tầng local cho backend ASP.NET Core .NET 8 hiện có. Backend đã có Domain, EF Core/Npgsql DbContext + mapping và migration InitialCreate; xem [hướng dẫn persistence](backend-persistence.md) và [review migration](initial-create-review.md). Migration chưa apply vào database Helpdesk local. Chưa có Redis client, MinIO client hoặc API nghiệp vụ. ConnectionStrings__Helpdesk đã được đăng ký cho DbContext; các key Redis/MinIO vẫn là cấu hình chuẩn bị.
 
 ## Chuẩn bị
 
@@ -79,4 +79,4 @@ docker compose --profile backend down
 
 Lệnh `down` giữ nguyên dữ liệu volumes. Không dùng `down -v` để dừng thông thường. `POSTGRES_*` chỉ khởi tạo tài khoản/database khi volume còn trống; thay mật khẩu trong `.env` không tự đổi mật khẩu database đã tồn tại. Không xóa volume để khắc phục lỗi credentials.
 
-Domain đã được khởi tạo trong `be/Domain`; xem [quy ước Domain](backend-domain.md). Bước tiếp theo: tích hợp EF Core/Npgsql 8.x và thiết kế migration Identity/Organization, sau đó triển khai Authentication và RBAC theo `guides.md`. Hiện chưa có migration cần chạy và chưa có test project.
+Domain đã được khởi tạo trong `be/Domain`; xem [quy ước Domain](backend-domain.md). DbContext, Fluent API và InitialCreate đã có cho 18 entity cùng model/integration tests. Xem [review và cách áp dụng migration](initial-create-review.md) trước khi cập nhật database đích, sau đó triển khai Authentication và RBAC theo `guides.md`.

@@ -20,6 +20,7 @@
 **/node_modules
 **/npm-debug.log
 **/obj
+tests/
 **/secrets.dev.yaml
 **/values.dev.yaml
 LICENSE

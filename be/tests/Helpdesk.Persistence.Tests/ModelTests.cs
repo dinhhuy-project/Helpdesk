@@ -1,0 +1,77 @@
+using be.Domain.Entities;
+using be.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
+using Xunit;
+
+namespace Helpdesk.Persistence.Tests;
+
+public class ModelTests
+{
+    [Fact]
+    public void ModelHasExplicitSchemasKeysAndNoShadowForeignKeys()
+    {
+        using var context = CreateContext();
+        var entities = context.Model.GetEntityTypes().ToArray();
+        Assert.Equal(18, entities.Length);
+        Assert.Equal(new[] { "communication", "helpdesk", "identity", "organization" },
+            entities.Select(x => x.GetSchema()).Distinct().OrderBy(x => x));
+        foreach (var entity in entities)
+        {
+            Assert.NotNull(entity.FindPrimaryKey());
+            Assert.Matches("^[a-z_]+$", entity.GetTableName()!);
+            var table = StoreObjectIdentifier.Table(entity.GetTableName()!, entity.GetSchema());
+            foreach (var property in entity.GetProperties())
+            {
+                Assert.False(property.IsShadowProperty());
+                Assert.Matches("^[a-z_]+$", property.GetColumnName(table)!);
+                if ((Nullable.GetUnderlyingType(property.ClrType) ?? property.ClrType) == typeof(DateTime))
+                    Assert.Equal("timestamp with time zone", property.GetColumnType());
+            }
+            Assert.All(entity.GetForeignKeys(), fk => Assert.Equal(DeleteBehavior.Restrict, fk.DeleteBehavior));
+        }
+    }
+
+    [Fact]
+    public void TicketUsesDatabaseIdentityAndXminWithoutCreatingASystemColumn()
+    {
+        using var context = CreateContext();
+        var ticket = context.Model.FindEntityType(typeof(Ticket))!;
+        var version = ticket.FindProperty(nameof(Ticket.Version))!;
+        Assert.True(version.IsConcurrencyToken);
+        Assert.Equal(ValueGenerated.OnAddOrUpdate, version.ValueGenerated);
+        Assert.Equal("xmin", version.GetColumnName());
+        var sql = context.Database.GenerateCreateScript();
+        Assert.Contains("GENERATED ALWAYS AS IDENTITY", sql);
+        Assert.DoesNotContain("xmin xid", sql);
+        Assert.Contains("jsonb", sql);
+        Assert.Contains("ck_tickets_status", sql);
+    }
+
+    [Fact]
+    public void MigrationSnapshotAndReviewedSqlMatchCurrentModel()
+    {
+        using var context = CreateContext();
+        Assert.False(context.Database.HasPendingModelChanges());
+        var migrationId = Assert.Single(context.Database.GetMigrations());
+        Assert.EndsWith("_InitialCreate", migrationId);
+        var migrator = context.GetService<IMigrator>();
+        var forward = migrator.GenerateScript("0", migrationId, MigrationsSqlGenerationOptions.Idempotent);
+        var rollback = migrator.GenerateScript(migrationId, "0");
+        Assert.Equal(NormalizeSql(forward), NormalizeSql(ReadSql("InitialCreate.sql")));
+        Assert.Equal(NormalizeSql(rollback), NormalizeSql(ReadSql("InitialCreate.Rollback.sql")));
+    }
+
+    internal static string ReadSql(string fileName) =>
+        File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Sql", fileName));
+
+    private static string NormalizeSql(string sql) => sql.Replace("\r\n", "\n").Trim();
+
+    internal static HelpdeskDbContext CreateContext(string? connectionString = null) =>
+        new(new DbContextOptionsBuilder<HelpdeskDbContext>()
+            .UseNpgsql(connectionString ?? "Host=localhost;Database=unused;Username=unused",
+                postgres => postgres.MigrationsHistoryTable("__ef_migrations_history", "helpdesk"))
+            .Options);
+}

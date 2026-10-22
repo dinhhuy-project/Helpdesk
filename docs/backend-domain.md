@@ -26,6 +26,6 @@
 
 Đây là mô hình dữ liệu khởi tạo với properties có thể cập nhật. Chưa triển khai domain workflow, kiểm tra phân công, SLA calculation, authorization, audit transaction hay endpoint mới. Không được trả các entity này trực tiếp ra API. Khi triển khai use case, bổ sung validation/domain rules và tests cho chuyển trạng thái, quyền truy cập và các bất biến liên quan.
 
-## Bước tiếp theo
+## Persistence hiện tại và bước tiếp theo
 
-Tạo `HelpdeskDbContext` và `IEntityTypeConfiguration<T>` với EF Core/Npgsql 8.x; cấu hình khóa, FK, unique indexes (email, role name, permission code, provider + subject, token hash, ticket number), giới hạn độ dài và check constraints. Review migration/SQL trước khi apply. Domain hiện chưa tạo hoặc thay đổi database và không cần env var mới.
+Đã có `HelpdeskDbContext` và 18 lớp `IEntityTypeConfiguration<T>` với EF Core/Npgsql 8.x. Các mô tả “chờ mapping” ở trên là trách nhiệm đã được triển khai tại Infrastructure; xem [mapping và kiểm thử persistence](backend-persistence.md). Migration InitialCreate và SQL đã có; xem [review migration](initial-create-review.md). Chưa apply vào database Helpdesk local. Các bước tiếp theo là áp dụng migration vào database đã xác định, rồi triển khai use cases và validation nghiệp vụ.
