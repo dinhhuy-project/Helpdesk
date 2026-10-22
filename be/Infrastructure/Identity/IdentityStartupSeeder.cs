@@ -10,12 +10,15 @@ public sealed class IdentityStartupSeeder(
     ILogger<IdentityStartupSeeder> logger) : IHostedService
 {
     public const string ConfigurationKey = "Identity:SeedOnStartup";
+    public const string BootstrapConfigurationKey = "Identity:BootstrapAdminOnStartup";
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        if (!configuration.GetValue<bool>(ConfigurationKey)) return;
+        var seed = configuration.GetValue<bool>(ConfigurationKey);
+        var bootstrapAdmin = configuration.GetValue<bool>(BootstrapConfigurationKey);
+        if (!seed && !bootstrapAdmin) return;
         if (!environment.IsDevelopment())
-            throw new IdentityInitializationException("Identity:SeedOnStartup is supported only in Development.");
+            throw new IdentityInitializationException("Startup Identity seeding and admin bootstrap are supported only in Development.");
 
         try
         {
@@ -23,6 +26,13 @@ public sealed class IdentityStartupSeeder(
             var initializer = scope.ServiceProvider.GetRequiredService<IdentityInitializer>();
             await initializer.SeedAsync(cancellationToken);
             logger.LogInformation("Startup Identity seed completed. Existing data and role permissions were preserved.");
+            if (bootstrapAdmin)
+            {
+                var settings = configuration.GetSection(BootstrapAdminOptions.SectionName).Get<BootstrapAdminOptions>()
+                    ?? new BootstrapAdminOptions();
+                var created = await initializer.BootstrapAdminAsync(settings, cancellationToken);
+                logger.LogInformation(created ? "Initial administrator created at startup." : "An administrator already exists. No account was changed.");
+            }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -46,7 +56,7 @@ public sealed class IdentityStartupSeeder(
         for (Exception? cause = exception; cause is not null; cause = cause.InnerException)
         {
             if (cause is IdentityInitializationException)
-                return "Identity initialization prerequisites are not met. Check applied migrations and Identity configuration.";
+                return "Identity initialization prerequisites are not met. Check applied migrations and BootstrapAdmin:Email, DisplayName, Password in user-secrets. An existing user cannot be promoted by bootstrap.";
             if (cause is PostgresException postgres)
                 return postgres.SqlState switch
                 {

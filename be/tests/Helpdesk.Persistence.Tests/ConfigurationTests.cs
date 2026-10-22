@@ -38,6 +38,7 @@ public class ConfigurationTests
     [InlineData("Cors:AllowedOrigins:0", "https://example.test/path")]
     [InlineData("AuthRateLimit:PermitLimit", "0")]
     [InlineData("Jwt:SigningKey", "short-key")]
+    [InlineData("Jwt:RequireConfiguration", "true")]
     public void InvalidConfigurationIsRejected(string key, string value)
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { [key] = value }).Build();

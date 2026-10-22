@@ -39,7 +39,6 @@ public sealed class IdentityInitializer(HelpdeskDbContext database, IPasswordHas
     // True only when a new account was created. Never modifies an existing account.
     public async Task<bool> BootstrapAdminAsync(BootstrapAdminOptions options, CancellationToken cancellationToken = default)
     {
-        options.Validate();
         await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
         await LockAndCheckMigrationsAsync(cancellationToken);
         var adminRole = await database.Roles.SingleOrDefaultAsync(x => x.Name == RoleNames.SystemAdmin, cancellationToken)
@@ -52,6 +51,7 @@ public sealed class IdentityInitializer(HelpdeskDbContext database, IPasswordHas
             return false;
         }
 
+        options.Validate();
         var email = options.Email.Trim().ToLowerInvariant();
         if (await database.Users.AnyAsync(x => x.Email.ToLower() == email, cancellationToken))
             throw new IdentityInitializationException("The bootstrap email already belongs to an account. No account was changed.");

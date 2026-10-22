@@ -49,7 +49,7 @@ Swagger: `http://localhost:5000/swagger`. Endpoint `GET /health/live` trả `200
 
 Chọn project `be` làm Startup Project, chọn profile **Container (Dockerfile)** và nhấn F5. Profile cố định HTTP host port `5000` ánh xạ vào port `8080` trong container; Swagger mở tại `http://localhost:5000/swagger`.
 
-Profile này cũng bật `Identity__SeedOnStartup=true`: backend bổ sung role/permission còn thiếu trước khi phục vụ API, giữ nguyên dữ liệu/quyền đã có. Không tự chạy migration hoặc tạo admin. Xem [seed Identity khi startup](backend-identity-foundation.md). Cần PostgreSQL sẵn sàng và connection string đúng cho container.
+Profile này bật seed role/permission và bootstrap admin đầu tiên, giữ nguyên dữ liệu/quyền/tài khoản đã có. Trước F5 trên máy mới, chạy `& ./be/scripts/Initialize-DevelopmentSecrets.ps1` từ root để chuẩn bị credentials admin và JWT trong user-secrets; xem [hướng dẫn Identity/JWT](backend-identity-foundation.md). Không tự chạy migration. Cần PostgreSQL sẵn sàng và connection string đúng cho container.
 
 Profile đặt `Database__HostOverride=host.docker.internal` để thay riêng host trong connection string: `localhost` trong appsettings của máy host không dùng trực tiếp từ container được. Database, port, username và password được giữ nguyên. Nếu PostgreSQL chạy ở máy khác, sửa host override cho phù hợp. Các profile chạy trực tiếp và Compose không đặt override này.
 

@@ -51,6 +51,19 @@ public class IdentityStartupSeederTests
         await Assert.ThrowsAsync<IdentityInitializationException>(() => seeder.StartAsync(CancellationToken.None));
     }
 
+    [Fact]
+    public async Task ProductionCannotEnableStartupAdminBootstrap()
+    {
+        using var provider = new ServiceCollection().BuildServiceProvider();
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [IdentityStartupSeeder.BootstrapConfigurationKey] = "true"
+        }).Build();
+        var seeder = new IdentityStartupSeeder(provider.GetRequiredService<IServiceScopeFactory>(), configuration,
+            new TestEnvironment { EnvironmentName = "Production" }, NullLogger<IdentityStartupSeeder>.Instance);
+        await Assert.ThrowsAsync<IdentityInitializationException>(() => seeder.StartAsync(CancellationToken.None));
+    }
+
     private static IdentityStartupSeeder CreateSeeder(IServiceProvider provider, string environment, bool enabled) =>
         new(provider.GetRequiredService<IServiceScopeFactory>(),
             new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>

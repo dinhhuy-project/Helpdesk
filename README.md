@@ -44,7 +44,7 @@ Tài liệu này mô tả **phạm vi và thiết kế mục tiêu của hệ th
 | SignalR / Redis / MinIO nghiệp vụ                  | Dự kiến                              | Hạ tầng có thể chạy bằng Docker; chức năng cần được tích hợp                |
 | AI                                                 | Sau MVP, nếu còn thời gian           | Không phải yêu cầu bắt buộc                                                 |
 
-**Backend hiện đã khởi tạo:** Domain, DbContext/Fluent API, InitialCreate (người dùng đã xác nhận apply), nền tảng lỗi/cấu hình API và lệnh seed Identity/bootstrap admin. Xem [nền tảng Identity/API](docs/backend-identity-foundation.md), [persistence](docs/backend-persistence.md) và [review migration](docs/initial-create-review.md). Chưa có API đăng nhập hoặc workflow Ticket.
+**Backend hiện đã khởi tạo:** Domain, DbContext/Fluent API, InitialCreate (người dùng đã xác nhận apply), nền tảng lỗi/cấu hình API và seed Identity/bootstrap admin. Profile Container (Dockerfile) tự seed/bootstrap admin đầu tiên và yêu cầu cấu hình JWT trong user-secrets. Xem [nền tảng Identity/API](docs/backend-identity-foundation.md), [persistence](docs/backend-persistence.md) và [review migration](docs/initial-create-review.md). Chưa có API đăng nhập hoặc workflow Ticket.
 
 > **Quan trọng:** Không sử dụng trực tiếp package EF Core 10 trong project `net8.0`. Phải chuyển project cũ từ `net10.0` sang `net8.0` và thay các gói EF Core/Npgsql/NamingConventions bằng phiên bản **8.x tương thích** trước khi tạo migration. Mọi ví dụ endpoint/cấu trúc module ở README đều là **đề xuất thiết kế**, cần điều chỉnh theo source code thực tế khi triển khai.
 

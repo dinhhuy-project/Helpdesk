@@ -74,17 +74,14 @@ public class IdentityInitializationTests(PostgresFixture fixture)
 
         var email = $"{Guid.NewGuid():N}@example.test";
         var settings = new BootstrapAdminOptions { Email = email.ToUpperInvariant(), DisplayName = "Initial admin", Password = password };
-        await using (var first = CreateContext())
-        await using (var second = CreateContext())
-        {
-            var results = await Task.WhenAll(CreateInitializer(first).BootstrapAdminAsync(settings), CreateInitializer(second).BootstrapAdminAsync(settings));
-            Assert.Single(results, x => x);
-        }
+        await Task.WhenAll(StartSeededApiAsync(settings), StartSeededApiAsync(settings));
         context.ChangeTracker.Clear();
         var admin = await context.Users.SingleAsync(x => x.Email == email);
         Assert.NotEqual(password, admin.PasswordHash);
         Assert.Equal(PasswordVerificationResult.Success, CreateHasher().VerifyHashedPassword(admin, admin.PasswordHash!, password));
         var originalHash = admin.PasswordHash;
+        // Once an admin exists, startup must not require the original bootstrap password anymore.
+        await StartSeededApiAsync(new BootstrapAdminOptions());
         await using (var rerun = CreateContext())
         {
             Assert.False(await CreateInitializer(rerun).BootstrapAdminAsync(new()
@@ -99,13 +96,21 @@ public class IdentityInitializationTests(PostgresFixture fixture)
     }
 
     private HelpdeskDbContext CreateContext() => ModelTests.CreateContext(fixture.ConnectionString);
-    private async Task StartSeededApiAsync()
+    private async Task StartSeededApiAsync(BootstrapAdminOptions? bootstrap = null)
     {
         await using var factory = new ApiFactory().WithWebHostBuilder(builder =>
             builder.ConfigureAppConfiguration((_, configuration) =>
                 configuration.AddInMemoryCollection(new Dictionary<string, string?>
                 {
                     [IdentityStartupSeeder.ConfigurationKey] = "true",
+                    [IdentityStartupSeeder.BootstrapConfigurationKey] = (bootstrap is not null).ToString(),
+                    ["BootstrapAdmin:Email"] = bootstrap?.Email,
+                    ["BootstrapAdmin:DisplayName"] = bootstrap?.DisplayName,
+                    ["BootstrapAdmin:Password"] = bootstrap?.Password,
+                    ["Jwt:RequireConfiguration"] = "true",
+                    ["Jwt:Issuer"] = "Helpdesk.Test.Api",
+                    ["Jwt:Audience"] = "Helpdesk.Test.Web",
+                    ["Jwt:SigningKey"] = "test-only-key-at-least-32-bytes-long-for-validation",
                     ["ConnectionStrings:Helpdesk"] = fixture.ConnectionString
                 })));
         using var client = factory.CreateClient();

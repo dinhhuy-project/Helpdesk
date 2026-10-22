@@ -36,6 +36,8 @@
         "ASPNETCORE_ENVIRONMENT": "Development",
         "ASPNETCORE_HTTP_PORTS": "8080",
         "Identity__SeedOnStartup": "true",
+        "Identity__BootstrapAdminOnStartup": "true",
+        "Jwt__RequireConfiguration": "true",
         "Database__HostOverride": "host.docker.internal"
       },
       "httpPort": 5000,
