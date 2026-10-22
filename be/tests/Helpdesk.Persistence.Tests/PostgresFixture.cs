@@ -4,6 +4,9 @@ using Xunit;
 
 namespace Helpdesk.Persistence.Tests;
 
+[CollectionDefinition("Postgres")]
+public sealed class PostgresCollection : ICollectionFixture<PostgresFixture>;
+
 public sealed class PostgresFactAttribute : FactAttribute
 {
     public PostgresFactAttribute()

@@ -1,14 +1,14 @@
 # Persistence với EF Core / PostgreSQL
 
-`be/Infrastructure/Persistence` chứa `HelpdeskDbContext`, đăng ký DI và 18 lớp `IEntityTypeConfiguration<T>`. Domain giữ nguyên C# thuần. Không gọi `EnsureCreated`, `Migrate` hoặc seed tự động khi API khởi động.
+`be/Infrastructure/Persistence` chứa `HelpdeskDbContext`, đăng ký DI và 18 lớp `IEntityTypeConfiguration<T>`. Domain giữ nguyên C# thuần. Không gọi `EnsureCreated` hoặc `Migrate` khi API khởi động. Profile Container (Dockerfile) có seed catalog Identity tùy chọn như [hướng dẫn Identity](backend-identity-foundation.md).
 
 ## Packages và cấu hình
 
-- Microsoft.EntityFrameworkCore, Relational và Design: **8.0.32**; Design là dependency phát triển (`PrivateAssets=all`).
+- Microsoft.EntityFrameworkCore, Relational, Design và Tools: **8.0.32**; Design/Tools là dependency phát triển (`PrivateAssets=all`).
 - Npgsql.EntityFrameworkCore.PostgreSQL: **8.0.11**.
 - EFCore.NamingConventions: **8.0.3**, chuyển tên cột/khóa/index sang snake_case.
 
-DbContext đọc `ConnectionStrings:Helpdesk`. Compose đã truyền `ConnectionStrings__Helpdesk` với host `postgres`. Khi chạy trực tiếp trên máy, cấu hình bằng user-secrets, thay placeholder bằng mật khẩu trong `.env`:
+DbContext ưu tiên `ConnectionStrings:Helpdesk`, fallback `ConnectionStrings:DefaultConnection` nếu key chính trống. Compose đã truyền `ConnectionStrings__Helpdesk` với host `postgres`. Khi chạy trực tiếp trên máy, cấu hình bằng user-secrets, thay placeholder bằng mật khẩu trong `.env`:
 
 ```powershell
 dotnet user-secrets set 'ConnectionStrings:Helpdesk' 'Host=localhost;Port=5432;Database=helpdesk;Username=helpdesk;Password=<local-password>' --project be/be.csproj
@@ -48,7 +48,7 @@ dotnet build be/be.sln --no-restore -warnaserror
 dotnet test be/be.sln --no-build --no-restore
 ```
 
-Lệnh test thông thường chạy 3 model/migration tests; 9 integration tests được đánh dấu skip khi chưa có `HELPDESK_TEST_CONNECTION`.
+Lệnh test thông thường chạy model/migration, API/configuration tests; PostgreSQL integration tests được đánh dấu skip khi chưa có `HELPDESK_TEST_CONNECTION`. Xem thêm [nền tảng Identity/API](backend-identity-foundation.md).
 
 Để chạy đầy đủ trên PostgreSQL 16 thật:
 
@@ -62,6 +62,6 @@ Test kiểm tra đủ schema/khóa/FK, snake_case, UTC, identity, enum/jsonb rou
 
 ## Migration InitialCreate
 
-Đã tạo `20261022150705_InitialCreate`, snapshot và SQL áp dụng/rollback trong `Infrastructure/Persistence/Migrations`. Tool manifest root pin dotnet-ef **8.0.32**; chạy `dotnet tool restore` để dùng đúng tool local. Xem [kết quả review và hướng dẫn migration](initial-create-review.md). Migration chưa áp dụng vào database Helpdesk local.
+Đã tạo `20261022150705_InitialCreate`, snapshot và SQL áp dụng/rollback trong `Infrastructure/Persistence/Migrations`. Tool manifest root pin dotnet-ef **8.0.32**; chạy `dotnet tool restore` để dùng đúng tool local. Xem [kết quả review và hướng dẫn migration](initial-create-review.md). Người dùng đã xác nhận áp dụng migration vào database Helpdesk; không chạy lại bước tạo InitialCreate.
 
 Migration history đã cấu hình là `helpdesk.__ef_migrations_history`. Chỉ apply vào database đã xác định; không tự chạy migration lúc startup và không xóa volume để xử lý lỗi schema.

@@ -44,7 +44,7 @@ Tài liệu này mô tả **phạm vi và thiết kế mục tiêu của hệ th
 | SignalR / Redis / MinIO nghiệp vụ                  | Dự kiến                              | Hạ tầng có thể chạy bằng Docker; chức năng cần được tích hợp                |
 | AI                                                 | Sau MVP, nếu còn thời gian           | Không phải yêu cầu bắt buộc                                                 |
 
-**Backend hiện đã khởi tạo:** 18 entity C# thuần, enum và hằng số trong `be/Domain`; `HelpdeskDbContext`, Fluent API cho 4 schema, migration InitialCreate và bộ kiểm thử persistence. Xem [quy ước Domain](docs/backend-domain.md), [cấu hình persistence](docs/backend-persistence.md) và [review SQL migration](docs/initial-create-review.md). Migration chưa apply vào database Helpdesk local; chưa có workflow nghiệp vụ.
+**Backend hiện đã khởi tạo:** Domain, DbContext/Fluent API, InitialCreate (người dùng đã xác nhận apply), nền tảng lỗi/cấu hình API và lệnh seed Identity/bootstrap admin. Xem [nền tảng Identity/API](docs/backend-identity-foundation.md), [persistence](docs/backend-persistence.md) và [review migration](docs/initial-create-review.md). Chưa có API đăng nhập hoặc workflow Ticket.
 
 > **Quan trọng:** Không sử dụng trực tiếp package EF Core 10 trong project `net8.0`. Phải chuyển project cũ từ `net10.0` sang `net8.0` và thay các gói EF Core/Npgsql/NamingConventions bằng phiên bản **8.x tương thích** trước khi tạo migration. Mọi ví dụ endpoint/cấu trúc module ở README đều là **đề xuất thiết kế**, cần điều chỉnh theo source code thực tế khi triển khai.
 

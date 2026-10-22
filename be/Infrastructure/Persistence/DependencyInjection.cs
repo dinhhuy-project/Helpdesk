@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace be.Infrastructure.Persistence;
 
@@ -8,11 +9,20 @@ public static class DependencyInjection
     {
         services.AddDbContext<HelpdeskDbContext>(options =>
         {
-            var connectionString = configuration.GetConnectionString("DefaultConnection");
+            var connectionString = configuration.GetConnectionString("Helpdesk");
+            if (string.IsNullOrWhiteSpace(connectionString))
+                connectionString = configuration.GetConnectionString("DefaultConnection");
             if (string.IsNullOrWhiteSpace(connectionString))
             {
                 throw new InvalidOperationException(
                     "Configure ConnectionStrings:Helpdesk using environment variables or user-secrets.");
+            }
+
+            var hostOverride = configuration["Database:HostOverride"];
+            if (!string.IsNullOrWhiteSpace(hostOverride))
+            {
+                var settings = new NpgsqlConnectionStringBuilder(connectionString) { Host = hostOverride };
+                connectionString = settings.ConnectionString;
             }
 
             options.UseNpgsql(connectionString, postgres =>

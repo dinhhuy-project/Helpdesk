@@ -22,10 +22,10 @@
 - Comment/Attachment có `IsInternal`; attachment có `TicketId`, `CommentId` và người upload. Các field này chưa tự bảo đảm ACL hoặc comment thuộc cùng ticket: cần enforce trong use case và constraints phù hợp.
 - Activity dùng `Action` dạng chuỗi vì danh sách action chưa được chốt; `OldValue`/`NewValue` là chuỗi JSON, chờ mapping `jsonb`. `ActorId` nullable cho hành động hệ thống.
 - Notification dùng `ReadAt` nullable để xác định chưa đọc; không lưu thêm boolean trùng trạng thái.
-- Role constants dùng tên máy `Requester`, `SupportAgent`, `TeamLeader`, `SystemAdmin`. Đây là mã role dự kiến để dùng thống nhất khi seed; hiện chưa có seed hoặc chính sách cấp quyền mặc định.
+- Role constants dùng tên máy `Requester`, `SupportAgent`, `TeamLeader`, `SystemAdmin`; [lệnh seed Identity](backend-identity-foundation.md) dùng chung các mã này và định nghĩa bộ grant ban đầu cho role mới.
 
 Đây là mô hình dữ liệu khởi tạo với properties có thể cập nhật. Chưa triển khai domain workflow, kiểm tra phân công, SLA calculation, authorization, audit transaction hay endpoint mới. Không được trả các entity này trực tiếp ra API. Khi triển khai use case, bổ sung validation/domain rules và tests cho chuyển trạng thái, quyền truy cập và các bất biến liên quan.
 
 ## Persistence hiện tại và bước tiếp theo
 
-Đã có `HelpdeskDbContext` và 18 lớp `IEntityTypeConfiguration<T>` với EF Core/Npgsql 8.x. Các mô tả “chờ mapping” ở trên là trách nhiệm đã được triển khai tại Infrastructure; xem [mapping và kiểm thử persistence](backend-persistence.md). Migration InitialCreate và SQL đã có; xem [review migration](initial-create-review.md). Chưa apply vào database Helpdesk local. Các bước tiếp theo là áp dụng migration vào database đã xác định, rồi triển khai use cases và validation nghiệp vụ.
+Đã có `HelpdeskDbContext` và 18 lớp `IEntityTypeConfiguration<T>` với EF Core/Npgsql 8.x. Các mô tả “chờ mapping” ở trên là trách nhiệm đã được triển khai tại Infrastructure; xem [mapping và kiểm thử persistence](backend-persistence.md). Người dùng đã xác nhận apply InitialCreate. Có lệnh seed Identity/bootstrap admin; bước tiếp theo là Authentication, RBAC và use cases với validation nghiệp vụ.

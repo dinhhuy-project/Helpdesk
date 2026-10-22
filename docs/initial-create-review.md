@@ -1,6 +1,6 @@
 # Review migration InitialCreate
 
-Migration: `20261022150705_InitialCreate`, EF Core và dotnet-ef **8.0.32**, provider Npgsql **8.0.11**. Migration được tạo từ model hiện tại, chưa áp dụng vào database Helpdesk local hoặc production.
+Migration: `20261022150705_InitialCreate`, EF Core và dotnet-ef **8.0.32**, provider Npgsql **8.0.11**. Người dùng đã xác nhận áp dụng migration vào database Helpdesk sau đợt review này. Tài liệu giữ lại kết quả review và cách vận hành; không tạo lại InitialCreate hoặc sửa migration đã apply.
 
 ## Artifacts
 

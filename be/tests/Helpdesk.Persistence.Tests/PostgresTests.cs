@@ -8,7 +8,8 @@ using Xunit;
 namespace Helpdesk.Persistence.Tests;
 
 [Trait("Category", "Integration")]
-public class PostgresTests(PostgresFixture fixture) : IClassFixture<PostgresFixture>
+[Collection("Postgres")]
+public class PostgresTests(PostgresFixture fixture)
 {
     [PostgresFact]
     public async Task RoundTripsIdentityEnumsJsonAndUtc()
