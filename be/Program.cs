@@ -10,6 +10,7 @@ namespace be
             // Add services to the container.
 
             builder.Services.AddControllers();
+            builder.Services.AddHealthChecks();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
@@ -23,12 +24,17 @@ namespace be
                 app.UseSwaggerUI();
             }
 
-            app.UseHttpsRedirection();
+            // Local Docker uses HTTP; production must terminate TLS at its proxy.
+            if (!app.Environment.IsDevelopment())
+            {
+                app.UseHttpsRedirection();
+            }
 
             app.UseAuthorization();
 
 
             app.MapControllers();
+            app.MapHealthChecks("/health/live");
 
             app.Run();
         }

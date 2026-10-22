@@ -44,6 +44,8 @@ Tài liệu này mô tả **phạm vi và thiết kế mục tiêu của hệ th
 | SignalR / Redis / MinIO nghiệp vụ                  | Dự kiến                              | Hạ tầng có thể chạy bằng Docker; chức năng cần được tích hợp                |
 | AI                                                 | Sau MVP, nếu còn thời gian           | Không phải yêu cầu bắt buộc                                                 |
 
+**Domain backend hiện đã khởi tạo:** 18 entity C# thuần, enum trạng thái/ưu tiên và hằng số role/permission trong `be/Domain`. Xem [quy ước Domain](docs/backend-domain.md). Chưa có EF Core mapping, migration hoặc workflow nghiệp vụ.
+
 > **Quan trọng:** Không sử dụng trực tiếp package EF Core 10 trong project `net8.0`. Phải chuyển project cũ từ `net10.0` sang `net8.0` và thay các gói EF Core/Npgsql/NamingConventions bằng phiên bản **8.x tương thích** trước khi tạo migration. Mọi ví dụ endpoint/cấu trúc module ở README đều là **đề xuất thiết kế**, cần điều chỉnh theo source code thực tế khi triển khai.
 
 ## 3. Công nghệ sử dụng
@@ -375,6 +377,8 @@ Helpdesk/
 Cấu trúc trên là **đích kiến trúc**, không phải cấu trúc đã có sẵn trong bộ Schema Starter cũ. Có thể bắt đầu với 1 project ASP.NET Core đơn giản rồi tách thành các project khi nghiệp vụ ổn định.
 
 ## 11. Thiết lập môi trường phát triển
+
+**Hạ tầng local đã có:** dùng `docker-compose.yml` tại root và làm theo [hướng dẫn backend](docs/backend-setup.md) để chạy PostgreSQL, Redis, MinIO và API .NET 8. Các ví dụ Schema Starter dưới đây là tham khảo; hướng dẫn mới phản ánh cấu hình thực tế hiện tại. Backend chưa tích hợp EF Core hoặc các client Redis/MinIO.
 
 ### 11.1. Yêu cầu
 
