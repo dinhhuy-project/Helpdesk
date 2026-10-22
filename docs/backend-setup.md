@@ -43,6 +43,8 @@ docker compose --profile backend up -d --build --wait
 Invoke-WebRequest http://localhost:5000/health/live
 ```
 
+Trước khi bật API Compose, bổ sung `JWT_SIGNING_KEY` (ngẫu nhiên, ít nhất 32 byte) vào `.env`; issuer/audience mặc định `Helpdesk.Api`/`Helpdesk.Web`. User-secrets của Visual Studio không tự có trong Compose. Xem [hướng dẫn login/JWT](backend-authentication.md). Chạy riêng các service hạ tầng không yêu cầu key này.
+
 Swagger: `http://localhost:5000/swagger`. Endpoint `GET /health/live` trả `200 Healthy` khi tiến trình API hoạt động; **không kiểm tra kết nối PostgreSQL/Redis/MinIO**. Compose chờ healthcheck của ba dịch vụ trước khi khởi động API; chưa có readiness check cho API hoặc dependency sau khởi động.
 
 ### Debug bằng Visual Studio: Container (Dockerfile)

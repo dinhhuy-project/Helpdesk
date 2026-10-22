@@ -38,10 +38,16 @@ public class ConfigurationTests
     [InlineData("Cors:AllowedOrigins:0", "https://example.test/path")]
     [InlineData("AuthRateLimit:PermitLimit", "0")]
     [InlineData("Jwt:SigningKey", "short-key")]
-    [InlineData("Jwt:RequireConfiguration", "true")]
+    [InlineData("Jwt:Audience", "")]
     public void InvalidConfigurationIsRejected(string key, string value)
     {
-        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { [key] = value }).Build();
+        var values = new Dictionary<string, string?>
+        {
+            ["Jwt:Issuer"] = "Test.Api", ["Jwt:Audience"] = "Test.Web",
+            ["Jwt:SigningKey"] = "test-only-key-at-least-32-bytes-long-for-validation"
+        };
+        values[key] = value;
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(values).Build();
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddApiFoundation(configuration);

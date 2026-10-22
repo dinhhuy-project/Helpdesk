@@ -6,7 +6,7 @@
 
 - API có ProblemDetails/ValidationProblemDetails, traceId, xử lý lỗi tập trung, CORS allowlist và policy rate limit chuẩn bị cho Authentication.
 - Có lệnh seed Identity và bootstrap admin chủ động. Profile Visual Studio **Container (Dockerfile)** bật seed catalog và bootstrap admin đầu tiên khi startup qua `Identity__SeedOnStartup=true` và `Identity__BootstrapAdminOnStartup=true`; các profile khác mặc định tắt. Không tự chạy migration.
-- Chưa có login, phát hành/validate JWT, refresh cookie, authentication middleware hoặc permission authorization. Có dữ liệu role không đồng nghĩa endpoint đã được bảo vệ.
+- Đã có login, phát hành/validate access token JWT, authentication middleware và `/api/v1/users/me`; xem [API Authentication](backend-authentication.md). Chưa có refresh/logout, cookie hoặc permission authorization cho các module nghiệp vụ.
 
 ## Cấu hình
 
@@ -19,12 +19,11 @@ Profile Container (Dockerfile) đặt `Database__HostOverride=host.docker.intern
 | `Cors:AllowedOrigins` | Rỗng: không cho cross-origin; Development có `http://localhost:5173` |
 | `AuthRateLimit:PermitLimit` | 5 request mỗi window, hợp lệ 1–1000 |
 | `AuthRateLimit:WindowSeconds` | 60 giây, hợp lệ 1–3600 |
-| `Jwt:Issuer`, `Audience`, `SigningKey` | Chưa bắt buộc khi cả ba chưa cấu hình; cấu hình một phần bị từ chối |
-| `Jwt:RequireConfiguration` | Mặc định false; profile Docker đặt true, bắt buộc issuer/audience/key đầy đủ |
+| `Jwt:Issuer`, `Audience`, `SigningKey` | Bắt buộc đầy đủ khi chạy API ở mọi môi trường |
 | `Jwt:AccessTokenMinutes` | 15, hợp lệ 1–60 |
 | `Jwt:RefreshTokenDays` | 7, hợp lệ 1–30 |
 
-Khi cấu hình JWT, issuer/audience phải có và key ít nhất 32 byte UTF-8; dùng key ngẫu nhiên qua user-secrets/environment, không đưa vào source. Các options này chỉ định nghĩa cấu hình cho bước auth sau, chưa bật xác thực. Options CORS/rate limit/JWT được kiểm tra khi server khởi động; sai cấu hình dừng startup. CLI initializer chỉ kiểm tra cấu hình cần cho lệnh tương ứng.
+JWT issuer/audience phải có và key ít nhất 32 byte UTF-8; dùng key ngẫu nhiên qua user-secrets/environment, không đưa vào source. Options CORS/rate limit/JWT được kiểm tra khi server khởi động; sai cấu hình dừng startup. API đã dùng options này để ký và xác thực access token. CLI initializer chỉ kiểm tra cấu hình cần cho lệnh tương ứng.
 
 ### Chuẩn bị secrets cho profile Docker
 
@@ -38,11 +37,11 @@ Script bổ sung các key còn thiếu trong user-secrets của `be`, không ghi
 
 Trong Visual Studio, chuột phải project **be → Manage User Secrets** để xem `BootstrapAdmin:Email` và `BootstrapAdmin:Password`, hoặc chỉnh credentials trước lần bootstrap đầu. Script cũng hỗ trợ `-AdminEmail` và `-AdminDisplayName` khi các key chưa tồn tại. Giữ file secrets ngoài Git; user-secrets dành cho local development. Visual Studio Container Tools mount secrets cho app development; nếu vừa tạo secrets, Stop Debugging rồi F5 lại để nhận cấu hình mới.
 
-Không có password/signing key mặc định trong launchSettings. Nếu chuyển sang máy mới, chạy script trước F5. JWT được cấu hình sẵn nhưng **chưa có API login/phát token hoặc middleware xác thực** ở bước này.
+Không có password/signing key mặc định trong launchSettings. Nếu chuyển sang máy mới, chạy script trước F5. Login và `/users/me` đã có; dùng [hướng dẫn Swagger và contract](backend-authentication.md).
 
 CORS yêu cầu origin HTTP(S) chính xác, không wildcard, path hoặc dấu `/` cuối. Chưa bật `AllowCredentials`; cần review thêm cookie/CSRF trước bước refresh. Có thể override bằng `Cors__AllowedOrigins__0`.
 
-Policy `authentication` giới hạn theo `RemoteIpAddress`, hàng đợi bằng 0, trả 429 ProblemDetails và Retry-After. Chỉ áp dụng khi endpoint được gắn `[EnableRateLimiting(ApiPolicies.AuthenticationRateLimit)]`; hiện chưa có endpoint login nên chưa áp dụng lên endpoint nghiệp vụ nào. Không tin trực tiếp header X-Forwarded-For; khi triển khai proxy cần cấu hình trusted proxies riêng. Rate limit hiện lưu trong bộ nhớ từng process.
+Policy `authentication` giới hạn theo `RemoteIpAddress`, hàng đợi bằng 0, trả 429 ProblemDetails và Retry-After. Đã áp dụng vào endpoint login. Không tin trực tiếp header X-Forwarded-For; khi triển khai proxy cần cấu hình trusted proxies riêng. Rate limit hiện lưu trong bộ nhớ từng process.
 
 ## Lỗi API
 
@@ -111,7 +110,7 @@ Email được trim/lowercase và kiểm tra định dạng; display name 1–20
 
 Lệnh và startup chỉ tạo **admin đầu tiên**. Nếu đã có bất kỳ UserRole SystemAdmin nào (kể cả account inactive), bootstrap no-op mà không yêu cầu lại credentials, không reset password/activate hoặc tạo thêm admin. Nếu chưa có admin nhưng email đã thuộc một user, bootstrap từ chối và không nâng quyền user đó. Đổi password trong secrets sau khi tạo admin không đổi password trong database. Phục hồi tài khoản và tạo admin bổ sung cần luồng quản trị riêng.
 
-Exit code: 0 thành công/no-op; 1 cấu hình/điều kiện/DB lỗi; 2 truyền thêm tham số bị từ chối. Lỗi điều kiện đã biết có thông báo hướng dẫn cố định; lỗi DB bất ngờ chỉ log loại lỗi, không log raw exception. Chạy initializer thành công chưa cho phép đăng nhập vì Auth API chưa triển khai.
+Exit code: 0 thành công/no-op; 1 cấu hình/điều kiện/DB lỗi; 2 truyền thêm tham số bị từ chối. Lỗi điều kiện đã biết có thông báo hướng dẫn cố định; lỗi DB bất ngờ chỉ log loại lỗi, không log raw exception. Sau bootstrap, admin có thể gọi API login và `/users/me`.
 
 ## Kiểm thử
 
@@ -127,4 +126,4 @@ PostgreSQL test dùng container riêng: kiểm tra seed đồng thời không tr
 
 Tham khảo: [user-secrets cho development](https://learn.microsoft.com/aspnet/core/security/app-secrets?view=aspnetcore-8.0), [mount secrets của Visual Studio Container Tools](https://learn.microsoft.com/visualstudio/containers/container-volume-mapping).
 
-Bước tiếp theo: triển khai Login + `/users/me`, JWT validation và permission policies; sau đó refresh/logout với rotation và cookie/CSRF strategy đã chốt.
+Bước tiếp theo: permission policies và refresh/logout với rotation, cookie/CSRF strategy được chốt trước khi tích hợp frontend.

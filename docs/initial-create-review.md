@@ -82,7 +82,7 @@ Chọn **một** cách:
 - Dùng EF CLI: `dotnet ef database update InitialCreate --project be/be.csproj --context HelpdeskDbContext`.
 - Dùng psql kết nối đúng database: `psql -X --set ON_ERROR_STOP=1 --file be/Infrastructure/Persistence/Migrations/Sql/InitialCreate.sql` (cấp host/database/user/password qua cấu hình psql an toàn).
 
-Sau đó kiểm tra `SELECT migration_id, product_version FROM helpdesk.__ef_migrations_history;`: dự kiến có `20261022150705_InitialCreate` và `8.0.32`. Chưa có dữ liệu seed để đăng nhập hoặc dùng API nghiệp vụ. API startup vẫn không tự chạy migration.
+Sau đó kiểm tra `SELECT migration_id, product_version FROM helpdesk.__ef_migrations_history;`: dự kiến có `20261022150705_InitialCreate` và `8.0.32`. Migration chỉ tạo schema; role/admin được chuẩn bị ở [bước Identity](backend-identity-foundation.md) để dùng [API login](backend-authentication.md). API startup vẫn không tự chạy migration.
 
 ## Rollback
 

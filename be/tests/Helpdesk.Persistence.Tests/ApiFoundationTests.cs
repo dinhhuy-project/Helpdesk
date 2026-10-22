@@ -25,7 +25,10 @@ public sealed class ApiFactory(string environment = "Development") : WebApplicat
         {
             ["Cors:AllowedOrigins:0"] = "http://localhost:5173",
             ["AuthRateLimit:PermitLimit"] = "2",
-            ["AuthRateLimit:WindowSeconds"] = "60"
+            ["AuthRateLimit:WindowSeconds"] = "60",
+            ["Jwt:Issuer"] = AuthTestSettings.Issuer,
+            ["Jwt:Audience"] = AuthTestSettings.Audience,
+            ["Jwt:SigningKey"] = AuthTestSettings.SigningKey
         }));
         builder.ConfigureTestServices(services => services.AddControllers().AddApplicationPart(typeof(FoundationTestController).Assembly));
     }

@@ -63,6 +63,11 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_HTTP_PORTS: "8080"
+      Jwt__Issuer: ${JWT_ISSUER:-Helpdesk.Api}
+      Jwt__Audience: ${JWT_AUDIENCE:-Helpdesk.Web}
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:-}
+      Jwt__AccessTokenMinutes: ${JWT_ACCESS_TOKEN_MINUTES:-15}
+      Jwt__RefreshTokenDays: ${JWT_REFRESH_TOKEN_DAYS:-7}
       # DbContext uses Helpdesk; Redis/MinIO clients will be wired in subsequent features.
       ConnectionStrings__Helpdesk: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-helpdesk};Username=${POSTGRES_USER:-helpdesk};Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}"
       Redis__Configuration: "redis:6379,password=${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}"

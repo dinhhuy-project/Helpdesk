@@ -16,6 +16,15 @@ public sealed class PostgresFactAttribute : FactAttribute
     }
 }
 
+public sealed class PostgresTheoryAttribute : TheoryAttribute
+{
+    public PostgresTheoryAttribute()
+    {
+        if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("HELPDESK_TEST_CONNECTION")))
+            Skip = "Set HELPDESK_TEST_CONNECTION to an isolated helpdesk_mapping_test_* database.";
+    }
+}
+
 public sealed class PostgresFixture : IAsyncLifetime
 {
     public string ConnectionString => Environment.GetEnvironmentVariable("HELPDESK_TEST_CONNECTION")

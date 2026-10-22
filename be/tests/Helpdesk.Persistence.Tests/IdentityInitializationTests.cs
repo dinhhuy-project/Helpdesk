@@ -107,7 +107,6 @@ public class IdentityInitializationTests(PostgresFixture fixture)
                     ["BootstrapAdmin:Email"] = bootstrap?.Email,
                     ["BootstrapAdmin:DisplayName"] = bootstrap?.DisplayName,
                     ["BootstrapAdmin:Password"] = bootstrap?.Password,
-                    ["Jwt:RequireConfiguration"] = "true",
                     ["Jwt:Issuer"] = "Helpdesk.Test.Api",
                     ["Jwt:Audience"] = "Helpdesk.Test.Web",
                     ["Jwt:SigningKey"] = "test-only-key-at-least-32-bytes-long-for-validation",

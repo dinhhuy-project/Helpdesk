@@ -1,0 +1,145 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend build and tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+      DOTNET_NOLOGO: 'true'
+      # Public credentials for this disposable CI database only.
+      HELPDESK_TEST_CONNECTION: Host=127.0.0.1;Port=5432;Database=helpdesk_mapping_test_ci;Username=postgres;Password=ci-test-only
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: helpdesk_mapping_test_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-test-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d helpdesk_mapping_test_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Select .NET 8 SDK on the runner
+        # Hosted runners also contain newer SDKs. This file exists only in CI.
+        run: |
+          printf '%s\n' '{"sdk":{"version":"8.0.100","rollForward":"latestFeature","allowPrerelease":false}}' > global.json
+          dotnet --version
+
+      - name: Restore
+        run: dotnet restore be/be.sln
+
+      - name: Build Release
+        run: dotnet build be/be.sln --configuration Release --no-restore -warnaserror
+
+      - name: Run all tests with PostgreSQL
+        run: >-
+          dotnet test be/be.sln --configuration Release --no-build --no-restore
+          --logger "trx;LogFileName=backend.trx" --results-directory artifacts/test-results
+
+      - name: Smoke test Identity seed CLI
+        env:
+          ConnectionStrings__Helpdesk: ${{ env.HELPDESK_TEST_CONNECTION }}
+        run: >-
+          dotnet run --project be/be.csproj --configuration Release
+          --no-build --no-launch-profile -- seed-identity
+
+      - name: Verify publish
+        run: >-
+          dotnet publish be/be.csproj --configuration Release --no-build --no-restore
+          --output "${{ runner.temp }}/helpdesk-api"
+
+      - name: Upload test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: backend-test-results
+          path: artifacts/test-results/*.trx
+          if-no-files-found: ignore
+          retention-days: 7
+
+  frontend:
+    name: Frontend lint and build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: fe
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '24.x'
+          cache: npm
+          cache-dependency-path: fe/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build and check TypeScript
+        run: npm run build
+
+      - name: Upload frontend build
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: frontend-dist
+          path: fe/dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  docker:
+    name: Docker and Compose validation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Validate Compose
+        # Values are only used to interpolate config; no services are started.
+        env:
+          POSTGRES_PASSWORD: ci-test-only
+          REDIS_PASSWORD: ci-test-only
+          MINIO_ROOT_PASSWORD: ci-test-only
+          JWT_SIGNING_KEY: ci-compose-validation-only-not-a-runtime-signing-key
+        run: docker compose --env-file .env.example --profile backend config --quiet
+
+      - name: Build backend image
+        run: docker build --file be/Dockerfile --tag helpdesk-api:ci be

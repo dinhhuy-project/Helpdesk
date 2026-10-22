@@ -2,6 +2,8 @@
 using be.Infrastructure.Persistence;
 using be.Infrastructure.Identity;
 using be.Api;
+using be.Infrastructure.Authentication;
+using Microsoft.OpenApi.Models;
 
 namespace be
 {
@@ -17,12 +19,22 @@ namespace be
             builder.Services.AddApiFoundation(builder.Configuration);
             builder.Services.AddPersistence(builder.Configuration);
             builder.Services.AddIdentityInitialization();
+            builder.Services.AddHelpdeskAuthentication();
             // Framework diagnostics include raw exceptions; our handler emits safe trace-based logs.
             builder.Logging.AddFilter("Microsoft.AspNetCore.Diagnostics.ExceptionHandlerMiddleware", LogLevel.None);
+            builder.Logging.AddFilter("Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerHandler", LogLevel.None);
             builder.Services.AddHealthChecks();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+            builder.Services.AddSwaggerGen(options =>
+            {
+                options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    Type = SecuritySchemeType.Http, Scheme = "bearer", BearerFormat = "JWT",
+                    Description = "Dán accessToken nhận từ POST /api/v1/auth/login."
+                });
+                options.OperationFilter<AuthenticationOperationFilter>();
+            });
 
             var app = builder.Build();
 
@@ -51,6 +63,7 @@ namespace be
             app.UseRouting();
             app.UseCors(ApiPolicies.Cors);
             app.UseRateLimiter();
+            app.UseAuthentication();
             app.UseAuthorization();
 
 
