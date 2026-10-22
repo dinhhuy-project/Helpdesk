@@ -3,6 +3,7 @@ using be.Infrastructure.Persistence;
 using be.Infrastructure.Identity;
 using be.Api;
 using be.Infrastructure.Authentication;
+using be.Infrastructure.Authorization;
 using Microsoft.OpenApi.Models;
 
 namespace be
@@ -20,6 +21,7 @@ namespace be
             builder.Services.AddPersistence(builder.Configuration);
             builder.Services.AddIdentityInitialization();
             builder.Services.AddHelpdeskAuthentication();
+            builder.Services.AddHelpdeskAuthorization();
             // Framework diagnostics include raw exceptions; our handler emits safe trace-based logs.
             builder.Logging.AddFilter("Microsoft.AspNetCore.Diagnostics.ExceptionHandlerMiddleware", LogLevel.None);
             builder.Logging.AddFilter("Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerHandler", LogLevel.None);

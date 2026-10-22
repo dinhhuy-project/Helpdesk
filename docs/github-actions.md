@@ -12,7 +12,7 @@ Workflow [CI](../.github/workflows/ci.yml) chạy khi push lên bất kỳ branc
 
 Backend dùng SDK .NET 8 được chọn bằng `global.json` tạo riêng trên runner. File này không được thêm vào repository và không thay cách chọn SDK trên máy phát triển. Frontend dùng cache npm theo `fe/package-lock.json`. Hiện frontend chưa có test runner nên CI chỉ chạy các script lint/build đang tồn tại.
 
-PostgreSQL là service container mới cho từng job, không mount volume và dùng database `helpdesk_mapping_test_ci`, phù hợp điều kiện an toàn của bộ test. Bộ test tự kiểm tra migration, rollback SQL, constraint, Identity và HTTP authentication trên database này. CLI seed chạy sau test trên cùng database để kiểm tra tính idempotent. Không gọi script PowerShell tạo container lồng nhau và không cần Redis/MinIO để chạy các test hiện có.
+PostgreSQL là service container mới cho từng job, không mount volume và dùng database `helpdesk_mapping_test_ci`, phù hợp điều kiện an toàn của bộ test. Bộ test tự kiểm tra migration, rollback SQL, constraint, Identity, HTTP authentication, quản lý phiên (rotation/reuse/logout/concurrency) và permission policies/quyền hiện tại trên database này. CLI seed chạy sau test trên cùng database để kiểm tra tính idempotent. Không gọi script PowerShell tạo container lồng nhau và không cần Redis/MinIO để chạy các test hiện có.
 
 ## Secrets và artifact
 

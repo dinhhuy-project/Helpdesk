@@ -13,4 +13,10 @@ public static class PermissionCodes
     public const string TicketManageSla = "ticket.manage.sla";
     public const string UserManage = "user.manage";
     public const string TeamManage = "team.manage";
+
+    public static IReadOnlyList<string> All { get; } = Array.AsReadOnly(new[]
+    {
+        TicketCreate, TicketReadOwn, TicketReadTeam, TicketReadAll, TicketAssign, TicketUpdateStatus,
+        TicketCommentPublic, TicketCommentInternal, TicketManageSla, UserManage, TeamManage
+    });
 }

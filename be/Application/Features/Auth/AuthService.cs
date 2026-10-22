@@ -1,6 +1,7 @@
 namespace be.Application.Features.Auth;
 
-public sealed class AuthService(IAuthUserStore users, IPasswordVerifier passwords, IAccessTokenIssuer tokens)
+public sealed class AuthService(
+    IAuthUserStore users, IPasswordVerifier passwords, IAccessTokenIssuer tokens, IAuthSessionStore sessions)
 {
     public async Task<LoginResult?> LoginAsync(string email, string password, CancellationToken cancellationToken)
     {
@@ -17,11 +18,32 @@ public sealed class AuthService(IAuthUserStore users, IPasswordVerifier password
 
         var profile = await users.GetProfileAsync(user.Id, cancellationToken);
         if (profile is null) return null;
-        return new LoginResult(tokens.Issue(user.Id), profile);
+        var session = await sessions.CreateAsync(user.Id, cancellationToken);
+        return session is null ? null : CreateResult(session, profile);
     }
+
+    public async Task<LoginResult?> RefreshAsync(string refreshToken, CancellationToken cancellationToken)
+    {
+        var session = await sessions.RotateAsync(refreshToken, cancellationToken);
+        if (session is null) return null;
+        var profile = await users.GetProfileAsync(session.UserId, cancellationToken);
+        if (profile is null)
+        {
+            await sessions.RevokeAsync(session.Value, cancellationToken);
+            return null;
+        }
+        return CreateResult(session, profile);
+    }
+
+    public Task LogoutAsync(string refreshToken, CancellationToken cancellationToken) =>
+        sessions.RevokeAsync(refreshToken, cancellationToken);
+
+    private LoginResult CreateResult(RefreshSession session, UserProfile profile) =>
+        new(tokens.Issue(session.UserId, session.SessionId), profile, session.Value, session.ExpiresAt);
 
     public Task<UserProfile?> GetCurrentUserAsync(Guid userId, CancellationToken cancellationToken) =>
         users.GetProfileAsync(userId, cancellationToken);
 }
 
-public sealed record LoginResult(IssuedAccessToken Token, UserProfile User);
+public sealed record LoginResult(
+    IssuedAccessToken Token, UserProfile User, string RefreshToken, DateTime RefreshTokenExpiresAt);

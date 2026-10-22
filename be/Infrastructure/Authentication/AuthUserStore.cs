@@ -15,9 +15,6 @@ public sealed class AuthUserStore(HelpdeskDbContext database) : IAuthUserStore
         return matches.Count == 1 ? matches[0] : null;
     }
 
-    public Task<bool> IsActiveAsync(Guid userId, CancellationToken cancellationToken) =>
-        database.Users.AnyAsync(x => x.Id == userId && x.IsActive, cancellationToken);
-
     public async Task<UserProfile?> GetProfileAsync(Guid userId, CancellationToken cancellationToken)
     {
         var user = await database.Users.AsNoTracking().Where(x => x.Id == userId && x.IsActive)

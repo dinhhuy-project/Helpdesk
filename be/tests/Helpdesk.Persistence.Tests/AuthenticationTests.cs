@@ -58,6 +58,7 @@ public class AuthenticationTests(PostgresFixture fixture)
         Assert.Equal(user.Id.ToString(), token.Subject);
         Assert.DoesNotContain(token.Claims, x => x.Type is "role" or "permission" or "email");
         Assert.False(string.IsNullOrEmpty(token.Id));
+        Assert.True(Guid.TryParse(token.Claims.Single(x => x.Type == "sid").Value, out _));
 
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", result.AccessToken);
         using var me = await client.GetAsync("/api/v1/users/me");
@@ -132,6 +133,9 @@ public class AuthenticationTests(PostgresFixture fixture)
     [InlineData("invalid-sub")]
     [InlineData("missing-jti")]
     [InlineData("missing-iat")]
+    [InlineData("missing-sid")]
+    [InlineData("invalid-sid")]
+    [InlineData("unknown-sid")]
     [InlineData("missing-exp")]
     [InlineData("unsigned")]
     [InlineData("algorithm")]
@@ -141,12 +145,16 @@ public class AuthenticationTests(PostgresFixture fixture)
     [InlineData("absent")]
     public async Task InvalidOrMissingBearerTokensAreRejected(string failure)
     {
-        var (user, _) = await CreateUserAsync();
+        var (user, password) = await CreateUserAsync();
         await using var factory = CreateFactory();
         using var client = factory.CreateClient();
+        using var login = await client.PostAsJsonAsync("/api/v1/auth/login", new { email = user.Email, password });
+        var session = await login.Content.ReadFromJsonAsync<LoginResponse>();
+        Assert.NotNull(session);
+        var sessionId = new JwtSecurityTokenHandler().ReadJwtToken(session.AccessToken).Claims.Single(x => x.Type == "sid").Value;
         if (failure != "absent")
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer",
-                failure == "malformed" ? "not-a-token" : CreateToken(user.Id, failure));
+                failure == "malformed" ? "not-a-token" : CreateToken(user.Id, sessionId, failure));
         using var response = await client.GetAsync("/api/v1/users/me");
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         Assert.Contains(response.Headers.WwwAuthenticate, x => x.Scheme == "Bearer" && string.IsNullOrEmpty(x.Parameter));
@@ -224,12 +232,13 @@ public class AuthenticationTests(PostgresFixture fixture)
     private static PasswordHasher<User> CreateHasher(int iterations = 210_000) =>
         new(Options.Create(new PasswordHasherOptions { IterationCount = iterations }));
 
-    private static string CreateToken(Guid userId, string failure)
+    private static string CreateToken(Guid userId, string sessionId, string failure)
     {
         var now = DateTime.UtcNow;
         var claims = new List<Claim>();
         if (failure != "missing-sub") claims.Add(new("sub", failure == "invalid-sub" ? "invalid" : (failure == "missing-user" ? Guid.NewGuid() : userId).ToString()));
         if (failure != "missing-jti") claims.Add(new("jti", Guid.NewGuid().ToString("N")));
+        if (failure != "missing-sid") claims.Add(new("sid", failure == "invalid-sid" ? "invalid" : failure == "unknown-sid" ? Guid.NewGuid().ToString() : sessionId));
         if (failure != "missing-iat") claims.Add(new("iat", EpochTime.GetIntDate(now).ToString(CultureInfo.InvariantCulture), ClaimValueTypes.Integer64));
         var key = failure == "signature" ? new string('x', 64) : AuthTestSettings.SigningKey;
         var credentials = failure == "unsigned" ? null : new SigningCredentials(

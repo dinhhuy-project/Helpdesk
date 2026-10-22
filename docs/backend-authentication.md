@@ -1,6 +1,6 @@
 # Đăng nhập và thông tin người dùng
 
-Đã có login email/mật khẩu, phát hành/validate access token JWT và hồ sơ user hiện tại. Giữ .NET 8, thêm `Microsoft.AspNetCore.Authentication.JwtBearer` 8.0.32. Không có thay đổi schema hoặc migration mới. Chưa triển khai refresh/logout, OIDC, cookie hay permission policies cho các module nghiệp vụ.
+Đã có login email/mật khẩu, phát hành/validate access token JWT, hồ sơ user hiện tại, [quản lý phiên với refresh rotation/logout](backend-sessions.md) và [permission policies đọc database](backend-authorization.md). Giữ .NET 8 và `Microsoft.AspNetCore.Authentication.JwtBearer` 8.0.32. Không có thay đổi schema hoặc migration mới. Chưa triển khai OIDC hoặc cookie.
 
 ## Chạy và cấu hình
 
@@ -11,7 +11,7 @@ Từ bước này, mọi chế độ **chạy API** đều yêu cầu JWT config
 - `Jwt:Issuer` và `Jwt:Audience`: không rỗng.
 - `Jwt:SigningKey`: ít nhất 32 byte UTF-8, lấy từ user-secrets/environment/secret manager; key development hiện được sinh ngẫu nhiên từ 64 byte.
 - `Jwt:AccessTokenMinutes`: 1–60, mặc định 15.
-- `Jwt:RefreshTokenDays`: 1–30, mặc định 7, hiện là cấu hình chuẩn bị cho bước refresh, chưa tạo refresh token.
+- `Jwt:RefreshTokenDays`: 1–30, mặc định 7, thời hạn tuyệt đối của phiên; rotation không kéo dài thời hạn này.
 
 Không còn cờ `Jwt:RequireConfiguration` để cho phép API chạy thiếu key. Các lệnh seed/bootstrap và thao tác EF design-time không khởi chạy HTTP server nên không bắt buộc JWT config chỉ để thao tác database.
 
@@ -39,6 +39,8 @@ Thành công trả HTTP 200:
   "accessToken": "<JWT được cấp>",
   "tokenType": "Bearer",
   "expiresAt": "<thời điểm UTC dạng ISO 8601>",
+  "refreshToken": "<credential ngẫu nhiên dùng một lần>",
+  "refreshTokenExpiresAt": "<thời hạn tuyệt đối của phiên, UTC ISO 8601>",
   "user": {
     "id": "<UUID>",
     "email": "admin@helpdesk.local",
@@ -51,7 +53,7 @@ Thành công trả HTTP 200:
 }
 ```
 
-Đây là hình dạng response minh họa, không phải token/credential thật. Response thành công có `Cache-Control: no-store`. Trình duyệt nên giữ access token trong bộ nhớ; hiện cần login lại khi token hết hạn.
+Đây là hình dạng response minh họa, không phải token/credential thật. Response thành công có `Cache-Control: no-store`. Trình duyệt nên giữ token trong bộ nhớ; khi access token hết hạn, dùng refresh token để lấy cặp mới theo [contract quản lý phiên](backend-sessions.md). Không lưu token dài hạn trong localStorage. API nhận credentials bằng JSON và không tự đặt cookie.
 
 Lỗi trả ProblemDetails/ValidationProblemDetails có `traceId`:
 
@@ -74,11 +76,11 @@ Authorization: Bearer <accessToken nhận từ login>
 
 Endpoint yêu cầu xác thực, lấy user ID từ claim `sub`. Không nhận requester/user ID hoặc role từ client để quyết định danh tính. Trả HTTP 200 với cấu trúc `user` ở trên, lấy role/permission hiện tại trực tiếp từ database và loại trùng. Không trả password hash, refresh-token hash hoặc EF entity. Response có `Cache-Control: no-store`.
 
-JWT được ký HS256, type `at+jwt`, có `sub`, `jti`, `iat`, `nbf`, `exp`, `iss`, `aud`. Token không chứa email, role hay permission. Backend validate chữ ký, thuật toán, type, issuer, audience, thời hạn (clock skew 30 giây), GUID user ID và sự hiện diện của các claim bắt buộc. Mỗi request có token hợp lệ còn kiểm tra user tồn tại/active trong database; deactivate có hiệu lực ngay trên request tiếp theo.
+JWT được ký HS256, type `at+jwt`, có `sub`, `sid`, `jti`, `iat`, `nbf`, `exp`, `iss`, `aud`. `sid` là ID bản ghi refresh token đi cùng access token đó. Token không chứa email, role hay permission. Backend validate chữ ký, thuật toán, type, issuer, audience, thời hạn (clock skew 30 giây), GUID user/session ID và sự hiện diện của các claim bắt buộc. Mỗi request có token hợp lệ còn kiểm tra phiên chưa hết hạn/thu hồi, thuộc đúng user và user active trong database. Deactivate, logout hoặc rotation có hiệu lực với access token cũ ngay trên request tiếp theo.
 
-Thiếu/sai/hết hạn token, user đã bị xóa hoặc inactive trả 401 ProblemDetails và `WWW-Authenticate: Bearer`, không trả chi tiết lỗi JWT. Middleware có xử lý 403 cho authorization sau này; chưa có permission policies hoặc tài nguyên Ticket trong đợt này. Token chỉ chứng minh danh tính; các API nghiệp vụ tiếp theo vẫn phải kiểm tra permission và phạm vi tài nguyên.
+Thiếu/sai/hết hạn token, user đã bị xóa hoặc inactive trả 401 ProblemDetails và `WWW-Authenticate: Bearer`, không trả chi tiết lỗi JWT. Permission policies kiểm tra trạng thái tài khoản/phiên và grant hiện tại từ database; thiếu quyền trả 403 chung. `/users/me` chỉ yêu cầu xác thực, không yêu cầu quyền quản trị. Các API nghiệp vụ tiếp theo gắn `[RequirePermission]` và bổ sung kiểm tra phạm vi tài nguyên Ticket theo use case; xem [hướng dẫn phân quyền](backend-authorization.md).
 
-Không có logout/revoke access token từng phiên ở bước này. Token còn dùng được tới hạn nếu user vẫn active; rotation key ảnh hưởng mọi token, không dùng thay cho luồng logout. Refresh token/cookie/CSRF là bước tiếp theo.
+Có `POST /api/v1/auth/refresh` và `POST /api/v1/auth/logout`, đều nhận JSON `{ "refreshToken": "<giá trị hiện tại>" }` và không yêu cầu access token còn hạn. Refresh trả cùng cấu trúc như login; logout trả 204. Refresh token dùng lại sau rotation gây thu hồi chuỗi token liên quan; xem [hành vi khi hết hạn, tái sử dụng và refresh đồng thời](backend-sessions.md). JWT cũ không có `sid` bị từ chối sau khi cập nhật code, cần login lại một lần.
 
 ## Thử trong Swagger
 
@@ -88,7 +90,7 @@ Không có logout/revoke access token từng phiên ở bước này. Token còn
 4. Copy `accessToken`, chọn **Authorize** và dán token (không cần thêm tiền tố Bearer với scheme HTTP bearer).
 5. Gọi `GET /api/v1/users/me`; kiểm tra hồ sơ, role và permission.
 
-Swagger đánh dấu bearer cho endpoint có `[Authorize]`; login vẫn được mô tả anonymous. Frontend hiện còn là starter template, chưa có UI đăng nhập hoặc API client auth; response contract được ghi ở đây để tích hợp sau.
+Swagger đánh dấu bearer cho endpoint có `[Authorize]`; login/refresh/logout được mô tả anonymous vì tự kiểm tra credentials trong JSON. Frontend hiện còn là starter template, chưa có UI đăng nhập hoặc API client auth; response contract được ghi ở đây để tích hợp sau.
 
 ## Cấu trúc code và kiểm thử
 

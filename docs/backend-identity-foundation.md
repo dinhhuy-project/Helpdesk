@@ -6,7 +6,7 @@
 
 - API có ProblemDetails/ValidationProblemDetails, traceId, xử lý lỗi tập trung, CORS allowlist và policy rate limit chuẩn bị cho Authentication.
 - Có lệnh seed Identity và bootstrap admin chủ động. Profile Visual Studio **Container (Dockerfile)** bật seed catalog và bootstrap admin đầu tiên khi startup qua `Identity__SeedOnStartup=true` và `Identity__BootstrapAdminOnStartup=true`; các profile khác mặc định tắt. Không tự chạy migration.
-- Đã có login, phát hành/validate access token JWT, authentication middleware và `/api/v1/users/me`; xem [API Authentication](backend-authentication.md). Chưa có refresh/logout, cookie hoặc permission authorization cho các module nghiệp vụ.
+- Đã có login, phát hành/validate access token JWT, authentication middleware, `/api/v1/users/me`, [refresh rotation/logout](backend-sessions.md) và [permission policies](backend-authorization.md); xem [API Authentication](backend-authentication.md). Cookie và phân quyền từng tài nguyên Ticket sẽ được bổ sung theo use case.
 
 ## Cấu hình
 
@@ -39,9 +39,9 @@ Trong Visual Studio, chuột phải project **be → Manage User Secrets** để
 
 Không có password/signing key mặc định trong launchSettings. Nếu chuyển sang máy mới, chạy script trước F5. Login và `/users/me` đã có; dùng [hướng dẫn Swagger và contract](backend-authentication.md).
 
-CORS yêu cầu origin HTTP(S) chính xác, không wildcard, path hoặc dấu `/` cuối. Chưa bật `AllowCredentials`; cần review thêm cookie/CSRF trước bước refresh. Có thể override bằng `Cors__AllowedOrigins__0`.
+CORS yêu cầu origin HTTP(S) chính xác, không wildcard, path hoặc dấu `/` cuối. Chưa bật `AllowCredentials`; login/refresh/logout nhận credentials qua JSON, không dùng cookie. Nếu bổ sung cookie cần review CSRF và CORS credentials riêng. Có thể override bằng `Cors__AllowedOrigins__0`.
 
-Policy `authentication` giới hạn theo `RemoteIpAddress`, hàng đợi bằng 0, trả 429 ProblemDetails và Retry-After. Đã áp dụng vào endpoint login. Không tin trực tiếp header X-Forwarded-For; khi triển khai proxy cần cấu hình trusted proxies riêng. Rate limit hiện lưu trong bộ nhớ từng process.
+Policy `authentication` giới hạn theo `RemoteIpAddress`, hàng đợi bằng 0, trả 429 ProblemDetails và Retry-After. Login, refresh và logout dùng chung giới hạn này. Không tin trực tiếp header X-Forwarded-For; khi triển khai proxy cần cấu hình trusted proxies riêng. Rate limit hiện lưu trong bộ nhớ từng process.
 
 ## Lỗi API
 
@@ -126,4 +126,4 @@ PostgreSQL test dùng container riêng: kiểm tra seed đồng thời không tr
 
 Tham khảo: [user-secrets cho development](https://learn.microsoft.com/aspnet/core/security/app-secrets?view=aspnetcore-8.0), [mount secrets của Visual Studio Container Tools](https://learn.microsoft.com/visualstudio/containers/container-volume-mapping).
 
-Bước tiếp theo: permission policies và refresh/logout với rotation, cookie/CSRF strategy được chốt trước khi tích hợp frontend.
+Bước tiếp theo: áp dụng permission theo use case quản trị/Ticket, bổ sung resource authorization khi xây dựng Ticket và tích hợp frontend theo contract auth hiện tại. Nếu chuyển sang cookie HttpOnly, cần bổ sung CSRF và cấu hình production HTTPS tương ứng.

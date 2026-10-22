@@ -17,6 +17,7 @@ public static class DependencyInjection
         services.AddSingleton<DummyPasswordCredential>();
         services.AddScoped<IPasswordVerifier, PasswordVerifier>();
         services.AddScoped<IAuthUserStore, AuthUserStore>();
+        services.AddScoped<IAuthSessionStore, AuthSessionStore>();
         services.AddScoped<IAccessTokenIssuer, JwtAccessTokenIssuer>();
         services.AddScoped<AuthService>();
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
@@ -47,6 +48,8 @@ public static class DependencyInjection
                         var principal = context.Principal;
                         if (!Guid.TryParse(principal?.FindFirst(JwtRegisteredClaimNames.Sub)?.Value, out var userId) ||
                             userId == Guid.Empty ||
+                            !Guid.TryParse(principal?.FindFirst(JwtAccessTokenIssuer.SessionIdClaim)?.Value, out var sessionId) ||
+                            sessionId == Guid.Empty ||
                             string.IsNullOrWhiteSpace(principal?.FindFirst(JwtRegisteredClaimNames.Jti)?.Value) ||
                             !long.TryParse(principal?.FindFirst(JwtRegisteredClaimNames.Iat)?.Value,
                                 NumberStyles.Integer, CultureInfo.InvariantCulture, out var issuedAt) || issuedAt <= 0)
@@ -54,8 +57,8 @@ public static class DependencyInjection
                             context.Fail("Invalid access token.");
                             return;
                         }
-                        var users = context.HttpContext.RequestServices.GetRequiredService<IAuthUserStore>();
-                        if (!await users.IsActiveAsync(userId, context.HttpContext.RequestAborted))
+                        var sessions = context.HttpContext.RequestServices.GetRequiredService<IAuthSessionStore>();
+                        if (!await sessions.IsActiveAsync(userId, sessionId, context.HttpContext.RequestAborted))
                             context.Fail("Invalid access token.");
                     },
                     OnChallenge = async context =>

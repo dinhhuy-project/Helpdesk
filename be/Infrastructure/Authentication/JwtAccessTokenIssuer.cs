@@ -9,7 +9,9 @@ namespace be.Infrastructure.Authentication;
 
 public sealed class JwtAccessTokenIssuer(IOptions<JwtOptions> options, TimeProvider timeProvider) : IAccessTokenIssuer
 {
-    public IssuedAccessToken Issue(Guid userId)
+    public const string SessionIdClaim = "sid";
+
+    public IssuedAccessToken Issue(Guid userId, Guid sessionId)
     {
         var settings = options.Value;
         var now = timeProvider.GetUtcNow().UtcDateTime;
@@ -23,6 +25,7 @@ public sealed class JwtAccessTokenIssuer(IOptions<JwtOptions> options, TimeProvi
             Claims = new Dictionary<string, object>
             {
                 [JwtRegisteredClaimNames.Sub] = userId.ToString(),
+                [SessionIdClaim] = sessionId.ToString(),
                 [JwtRegisteredClaimNames.Jti] = Guid.NewGuid().ToString("N")
             },
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(

@@ -44,7 +44,7 @@ Tài liệu này mô tả **phạm vi và thiết kế mục tiêu của hệ th
 | SignalR / Redis / MinIO nghiệp vụ                  | Dự kiến                              | Hạ tầng có thể chạy bằng Docker; chức năng cần được tích hợp                |
 | AI                                                 | Sau MVP, nếu còn thời gian           | Không phải yêu cầu bắt buộc                                                 |
 
-**Backend hiện đã khởi tạo:** Domain, persistence/migration, nền tảng API, seed Identity/bootstrap admin, login email/mật khẩu, JWT validation và `/api/v1/users/me`. Profile Docker tiếp tục tự seed/bootstrap admin khi cần. Xem [API Authentication](docs/backend-authentication.md), [nền tảng Identity](docs/backend-identity-foundation.md) và [persistence](docs/backend-persistence.md). Chưa có refresh/logout, UI đăng nhập hoặc workflow Ticket.
+**Backend hiện đã khởi tạo:** Domain, persistence/migration, nền tảng API, seed Identity/bootstrap admin, login email/mật khẩu, JWT validation, `/api/v1/users/me`, refresh token rotation/logout và permission policies đọc trạng thái tài khoản/quyền hiện tại từ database. Profile Docker tiếp tục tự seed/bootstrap admin khi cần. Xem [API Authentication](docs/backend-authentication.md), [quản lý phiên](docs/backend-sessions.md), [phân quyền](docs/backend-authorization.md), [nền tảng Identity](docs/backend-identity-foundation.md) và [persistence](docs/backend-persistence.md). Chưa có UI đăng nhập hoặc workflow Ticket.
 
 **CI:** GitHub Actions kiểm tra backend với PostgreSQL riêng, lint/build frontend và build Docker khi push hoặc mở pull request. Xem [cấu hình và cách sử dụng](docs/github-actions.md).
 
