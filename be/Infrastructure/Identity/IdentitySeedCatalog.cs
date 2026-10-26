@@ -8,13 +8,15 @@ internal static class IdentitySeedCatalog
     [
         PermissionCodes.TicketCreate, PermissionCodes.TicketReadOwn, PermissionCodes.TicketReadTeam,
         PermissionCodes.TicketReadAll, PermissionCodes.TicketAssign, PermissionCodes.TicketUpdateStatus,
+        PermissionCodes.TicketConfirm, PermissionCodes.TicketReopen, PermissionCodes.TicketCancel,
         PermissionCodes.TicketCommentPublic, PermissionCodes.TicketCommentInternal,
         PermissionCodes.TicketManageSla, PermissionCodes.UserManage, PermissionCodes.RoleManage, PermissionCodes.TeamManage,
         PermissionCodes.DepartmentManage, PermissionCodes.CategoryManage
     ];
 
     private static readonly string[] RequesterPermissions =
-        [PermissionCodes.TicketCreate, PermissionCodes.TicketReadOwn, PermissionCodes.TicketCommentPublic];
+        [PermissionCodes.TicketCreate, PermissionCodes.TicketReadOwn, PermissionCodes.TicketCommentPublic,
+         PermissionCodes.TicketConfirm, PermissionCodes.TicketReopen, PermissionCodes.TicketCancel];
     private static readonly string[] AgentPermissions =
         [.. RequesterPermissions, PermissionCodes.TicketReadTeam, PermissionCodes.TicketUpdateStatus, PermissionCodes.TicketCommentInternal];
 

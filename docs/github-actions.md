@@ -14,6 +14,10 @@ Backend dùng SDK .NET 8 được chọn bằng `global.json` tạo riêng trên
 
 PostgreSQL là service container mới cho từng job, không mount volume và dùng database `helpdesk_mapping_test_ci`, phù hợp điều kiện an toàn của bộ test. Suite kiểm tra migration/rollback, constraint, Identity/auth/session/permission, quản trị tài khoản (scope, version, audit, last-admin race, password revoke), Department, SupportTeam/membership (leader scope, version, deactivate/remove giữ lịch sử), TicketCategory (active ancestors, tên sibling/root, reparent/cycle race) và ACL Ticket (list/detail/checker cùng scope, negative writes/destination, quyền thay đổi, version race). Migration tests tạo thêm database con tạm trong chính service PostgreSQL để kiểm tra dữ liệu legacy; dùng tài khoản postgres của service test. CLI seed chạy sau test trên cùng database để kiểm tra tính idempotent. Không gọi script PowerShell tạo container lồng nhau và không cần Redis/MinIO để chạy các test hiện có.
 
+Phần 11 thêm test tạo Ticket (danh tính từ phiên, từ chối field server, category/ancestor, số database sinh khi tạo đồng thời, activity và rollback), filter UTC/sort/phân trang trong read scope và input không hợp lệ. Workflow tự chạy các test mới, không cần secret hoặc job mới.
+
+Phần 12 thêm unit tests bảng transition và integration tests route assign/transition: permission/resource scope, current assignment inactive, resolution/confirm/reopen, cùng version cạnh tranh, activity/SLA rollback sau SQL save và grant workflow chủ động/idempotent. Catalog hiện có 17 policy. Script PowerShell local còn smoke test grant-ticket-workflow trên PostgreSQL tạm; CI chạy các integration tests tương ứng cùng smoke seed hiện có.
+
 ## Secrets và artifact
 
 Không cần tạo GitHub Actions Secrets cho workflow CI hiện tại. Mật khẩu `ci-test-only` là dữ liệu công khai chỉ dùng cho PostgreSQL tạm và việc kiểm tra cú pháp Compose; JWT trong test do test suite cung cấp. Workflow không đọc `.env` hay user-secrets trên máy phát triển, không bootstrap admin thật và không kết nối database Helpdesk đang dùng.

@@ -51,6 +51,8 @@ public class TicketAssignmentScopeTests(PostgresFixture fixture)
         Assert.False(await checker.CanAssignToAsync(Actor(client), ticket.Id, new(teamId, agentId), CancellationToken.None));
         using var response = await AssignAsync(client, ticket, teamId, agentId);
         await ErrorAsync(response, HttpStatusCode.BadRequest, "InvalidAssignment");
+        using var production = await client.PostAsJsonAsync($"/api/v1/tickets/{ticket.Id}/assign", new { TeamId = teamId, AgentId = agentId, ticket.Version });
+        await ErrorAsync(production, HttpStatusCode.BadRequest, failure is "empty-team" or "empty-agent" ? "InvalidInput" : "InvalidAssignment");
         var stored = await test.StoredAsync(ticket.Id);
         Assert.Equal(ticket.AssignedTeamId, stored.AssignedTeamId);
         Assert.Equal(ticket.Version, stored.Version);

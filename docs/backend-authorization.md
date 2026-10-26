@@ -1,6 +1,6 @@
 # Phân quyền theo permission hiện tại
 
-Đã đăng ký policy cho 14 mã trong `PermissionCodes.All`, gồm `role.manage`, `department.manage`, `category.manage` tách khỏi `user.manage`, với helper `[RequirePermission(...)]` và permission checker đọc PostgreSQL. Giữ .NET 8, EF/Npgsql 8.x. Phần 9 đã được người dùng xác nhận apply; phần 10 thêm [scope Ticket dùng chung](backend-ticket-access.md), không có migration, permission hoặc secret mới.
+Đã đăng ký policy cho **17 mã** trong `PermissionCodes.All`, gồm `role.manage`, `department.manage`, `category.manage` tách khỏi `user.manage`, và ticket.confirm/reopen/cancel tách ticket.update.status. Dùng helper `[RequirePermission(...)]` và permission checker đọc PostgreSQL; giữ .NET 8, EF/Npgsql 8.x. Phần 12 thêm [workflow](backend-ticket-workflow.md), không có migration/secret mới, có lệnh grant chủ động cho role cũ.
 
 ## Luồng quyết định truy cập
 
@@ -44,6 +44,9 @@ Các policy hiện có:
 | `TicketReadAll` | `ticket.read.all` |
 | `TicketAssign` | `ticket.assign` |
 | `TicketUpdateStatus` | `ticket.update.status` |
+| `TicketConfirm` | `ticket.confirm` |
+| `TicketReopen` | `ticket.reopen` |
+| `TicketCancel` | `ticket.cancel` |
 | `TicketCommentPublic` | `ticket.comment.public` |
 | `TicketCommentInternal` | `ticket.comment.internal` |
 | `TicketManageSla` | `ticket.manage.sla` |
@@ -85,6 +88,10 @@ Application có abstraction `IPermissionChecker` tại `Application/Common/Autho
 
 Policy xác nhận user có quyền thực hiện loại thao tác. Ticket đã có [TicketScope và guard](backend-ticket-access.md) kiểm tra requester/assignee/member/leader hiện tại. GET Ticket dùng Authorize và hợp các read permission bằng OR trong resource query, không đặt nhiều attribute AND. Scope lọc trước count/page/detail; không có read grant trả 403, Ticket ngoài scope hoặc không tồn tại cùng trả 404. Có ticket.update.status không đồng nghĩa được sửa mọi Ticket hoặc mọi field. Comment/internal/file tiếp tục cần rule riêng khi triển khai.
 
+[POST tạo Ticket phần 11](backend-tickets.md) dùng ticket.create và kiểm tra lại session/account/grant trong transaction. RequesterId và CreatedByUserId lấy từ phiên, chưa mở tạo hộ kể cả SystemAdmin; field ngoài DTO bị từ chối. ticket.create không thay thế read.own/team/all. Không thêm permission hoặc grant mới trong phần 11.
+
+POST assign phần 12 dùng ticket.assign và kiểm tra scope nguồn/đích qua guard. POST transition dùng Authorize; server chọn operation từ status đích trong transaction: xử lý dùng ticket.update.status, Closed dùng ticket.confirm, Reopened dùng ticket.reopen, Cancelled dùng ticket.cancel. Không gắn ticket.update.status vào cả endpoint vì requester không có quyền xử lý; mỗi nhánh đều qua guard đọc database. Ba action requester cần là requester hoặc có read.all, cùng read scope và permission riêng; role hay leader không thay thế điều kiện này. Catalog mới không tự cấp grant vào role cũ, xem grant-ticket-workflow trong [hướng dẫn nâng cấp](backend-ticket-workflow.md).
+
 Thay đổi quyền/deactivate không hủy request đọc đã vượt qua kiểm tra trước lúc transaction quản trị commit. TicketWriteGuard dùng transaction lock chung, khóa user/Ticket và kiểm tra lại session/quyền/scope/version trước khi thay đổi, cùng cơ chế đồng bộ với quản trị quyền/tổ chức. Use case ghi vẫn phải validate workflow, ghi TicketActivity và save/commit trong transaction đó. Cờ access trả về cho UI không được dùng thay guard.
 
 Khi thêm permission mới: khai báo constant và đưa vào `PermissionCodes.All`, bổ sung catalog seed và policy usage/tests tương ứng. Seed tiếp tục bảo toàn grant đã chỉnh của role có sẵn; việc cấp quyền mới cho role có sẵn cần thao tác quản trị được xác định rõ.
@@ -96,7 +103,7 @@ dotnet build be/be.sln --no-restore -warnaserror
 & ./be/tests/Run-PersistenceTests.ps1
 ```
 
-Các test kiểm tra 14 policy với bốn role mặc định, thêm/gỡ role membership và grant trên JWT đang dùng, nhiều role, kết hợp class/action policy, SystemAdmin mất grant, claim/header không cấp quyền, 401/403 và Swagger. Permission checker được kiểm tra trực tiếp với user inactive, phiên hết hạn/thu hồi/sai owner và permission không đăng ký. API quản trị có tests scope/grant và last-admin riêng; [SupportTeam](backend-support-teams.md) có scope leader theo nhóm, lọc trước phân trang; [Category](backend-ticket-categories.md) tách category.manage khỏi ticket.create. Mutation recheck trong transaction; lỗi tra quyền giữ response sanitized.
+Các test kiểm tra 17 policy với bốn role mặc định, thêm/gỡ role membership và grant trên JWT đang dùng, nhiều role, kết hợp class/action policy, SystemAdmin mất grant, claim/header không cấp quyền, 401/403 và Swagger. Permission checker được kiểm tra trực tiếp với user inactive, phiên hết hạn/thu hồi/sai owner và permission không đăng ký. API quản trị có tests scope/grant và last-admin riêng; [SupportTeam](backend-support-teams.md) có scope leader theo nhóm, lọc trước phân trang; [Category](backend-ticket-categories.md) tách category.manage khỏi ticket.create. Workflow kiểm tra requester/global/leader scope và các quyền mới, mutation recheck trong transaction; lỗi tra quyền giữ response sanitized.
 
 Endpoint `__tests/permissions`, `__tests/team-permissions` và harness ghi `__tests/ticket-scope` chỉ nằm trong assembly test, được TestServer đăng ký; không xuất hiện trong API production. Harness dùng production guard và save/activity thật để kiểm tra không ghi ngoài scope. Toàn bộ test database chạy trên PostgreSQL tạm, không sửa grant hay tài khoản thật. GitHub Actions hiện có tự chạy suite này; không cần thêm secret hoặc thay workflow.
 

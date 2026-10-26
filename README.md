@@ -44,7 +44,7 @@ Tài liệu này mô tả **phạm vi và thiết kế mục tiêu của hệ th
 | SignalR / Redis / MinIO nghiệp vụ                  | Dự kiến                              | Hạ tầng có thể chạy bằng Docker; chức năng cần được tích hợp                |
 | AI                                                 | Sau MVP, nếu còn thời gian           | Không phải yêu cầu bắt buộc                                                 |
 
-**Backend hiện đã khởi tạo:** Domain, persistence/migration, nền tảng API, seed Identity/bootstrap admin, login email/mật khẩu, JWT validation, `/api/v1/users/me`, refresh token rotation/logout và permission policies đọc trạng thái tài khoản/quyền hiện tại từ database. Profile Docker tiếp tục tự seed/bootstrap admin khi cần. Xem [API Authentication](docs/backend-authentication.md), [quản lý phiên](docs/backend-sessions.md), [phân quyền](docs/backend-authorization.md), [nền tảng Identity](docs/backend-identity-foundation.md) và [persistence](docs/backend-persistence.md). Chưa có UI đăng nhập hoặc workflow Ticket.
+**Backend hiện đã khởi tạo:** Domain, persistence/migration, nền tảng API, seed Identity/bootstrap admin, login email/mật khẩu, JWT validation, `/api/v1/users/me`, refresh token rotation/logout và permission policies đọc trạng thái tài khoản/quyền hiện tại từ database. Profile Docker tiếp tục tự seed/bootstrap admin khi cần. Xem [API Authentication](docs/backend-authentication.md), [quản lý phiên](docs/backend-sessions.md), [phân quyền](docs/backend-authorization.md), [nền tảng Identity](docs/backend-identity-foundation.md) và [persistence](docs/backend-persistence.md). Chưa có UI đăng nhập.
 
 **CI:** GitHub Actions kiểm tra backend với PostgreSQL riêng, lint/build frontend và build Docker khi push hoặc mở pull request. Xem [cấu hình và cách sử dụng](docs/github-actions.md).
 
@@ -56,9 +56,13 @@ Tài liệu này mô tả **phạm vi và thiết kế mục tiêu của hệ th
 
 **Danh mục Ticket:** Đã có cây danh mục duyệt từng cấp, tạo/sửa/đổi parent/activate/deactivate với `category.manage`, chống vòng lặp và lookup khả dụng với `ticket.create`. Xem [API danh mục](docs/backend-ticket-categories.md) và [SQL TicketCategoryAdministration cần review/apply](docs/ticket-category-administration-review.md). Người dùng đã xác nhận nâng cấp phần 8; phần 9 có migration mới, không tự apply khi F5.
 
-**Phạm vi Ticket:** Đã có scope đọc/cập nhật trạng thái/phân công dùng chung, API GET danh sách/chi tiết/access, lọc theo quyền trước phân trang và guard ghi có transaction/version. Xem [ma trận và hướng dẫn tích hợp](docs/backend-ticket-access.md). Phần 9 đã được người dùng xác nhận nâng cấp; phần 10 không cần migration hoặc grant mới. Command tạo Ticket/workflow triển khai ở phần 11–12.
+**Phạm vi Ticket:** Đã có scope đọc/cập nhật trạng thái/phân công dùng chung, API GET danh sách/chi tiết/access, lọc theo quyền trước phân trang và guard ghi có transaction/version. Xem [ma trận và hướng dẫn tích hợp](docs/backend-ticket-access.md). Phần 9 đã được người dùng xác nhận nâng cấp; phần 10 không cần migration hoặc grant mới.
 
-**Kế hoạch tiếp theo:** [Lộ trình backend](docs/backend-roadmap.md); bước 11 triển khai tạo Ticket và hoàn thiện truy vấn, sau đó phân công/workflow.
+**Ticket cơ bản:** Phần 11 đã có POST tạo cho chính mình bằng ticket.create, TicketNumber do PostgreSQL sinh và TicketCreated activity cùng transaction. GET hỗ trợ mã/requester/agent/ngày, sort và phân trang trong scope. Xem [contract và cách thử API](docs/backend-tickets.md). Không cần migration/grant mới; Ticket mới chưa có SLA snapshot. Chưa mở tạo hộ.
+
+**Phân công và workflow:** Phần 12 đã có POST assign/transition, kiểm tra team/agent, bảng chuyển trạng thái, summary khi resolve, Version/xmin và activity cùng transaction. Confirm/reopen/cancel có quyền riêng; database có role cũ cần seed rồi chủ động grant theo [hướng dẫn workflow](docs/backend-ticket-workflow.md). Không có migration mới. SLA hiện có chỉ đồng bộ mốc resolved, chưa phát notification.
+
+**Kế hoạch tiếp theo:** [Lộ trình backend](docs/backend-roadmap.md); bước 13 triển khai comment công khai và internal note.
 
 > **Quan trọng:** Không sử dụng trực tiếp package EF Core 10 trong project `net8.0`. Phải chuyển project cũ từ `net10.0` sang `net8.0` và thay các gói EF Core/Npgsql/NamingConventions bằng phiên bản **8.x tương thích** trước khi tạo migration. Mọi ví dụ endpoint/cấu trúc module ở README đều là **đề xuất thiết kế**, cần điều chỉnh theo source code thực tế khi triển khai.
 
@@ -250,7 +254,7 @@ flowchart LR
 1. Requester nhập yêu cầu trên React, đính kèm file nếu cần.
 2. React gọi REST API kèm thông tin xác thực.
 3. Backend kiểm tra quyền, dữ liệu, category và quy tắc phân công.
-4. Backend tạo ticket, SLA snapshot và activity trong PostgreSQL transaction.
+4. Backend tạo ticket và activity trong PostgreSQL transaction. Phần 11 hiện chưa tạo SLA snapshot; tích hợp snapshot ở bước SLA theo quy tắc riêng, không tự gán deadline hồi tố.
 5. Backend hoàn tất lưu file/metadata theo chiến lược xử lý lỗi đã thiết kế.
 6. Sau khi commit thành công, backend tạo/đẩy notification cho các đối tượng liên quan.
 7. React cập nhật giao diện và timeline. Nếu cần giao nhận sự kiện tin cậy, bổ sung **Transactional Outbox**.

@@ -278,7 +278,13 @@ public class TicketAccessTests(PostgresFixture fixture)
         var operation = paths.GetProperty("/api/v1/tickets").GetProperty("get");
         Assert.True(operation.TryGetProperty("security", out _));
         Assert.True(operation.GetProperty("responses").TryGetProperty("403", out _));
-        Assert.False(paths.GetProperty("/api/v1/tickets").TryGetProperty("post", out _));
+        Assert.True(paths.GetProperty("/api/v1/tickets").GetProperty("post").GetProperty("responses").TryGetProperty("201", out _));
         Assert.False(paths.TryGetProperty("/api/v1/tickets/{id}/status", out _));
+        foreach (var route in new[] { "/api/v1/tickets/{id}/assign", "/api/v1/tickets/{id}/transition" })
+        {
+            var command = paths.GetProperty(route).GetProperty("post");
+            Assert.True(command.TryGetProperty("security", out _));
+            Assert.True(command.GetProperty("responses").TryGetProperty("409", out _));
+        }
     }
 }

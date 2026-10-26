@@ -1,6 +1,7 @@
 using be.Application.Features.Accounts;
 using be.Application.Features.Auth;
 using be.Application.Features.Tickets;
+using be.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace be.Infrastructure.Tickets;
@@ -17,8 +18,26 @@ public sealed class TicketReadStore(TicketScope scope, IAuthSessionStore session
         if (search.Priority is not null) query = query.Where(x => x.Priority == search.Priority);
         if (search.TeamId is not null) query = query.Where(x => x.AssignedTeamId == search.TeamId);
         if (search.CategoryId is not null) query = query.Where(x => x.CategoryId == search.CategoryId);
+        if (search.TicketNumber is not null) query = query.Where(x => x.TicketNumber == search.TicketNumber);
+        if (search.RequesterId is not null) query = query.Where(x => x.RequesterId == search.RequesterId);
+        if (search.AgentId is not null) query = query.Where(x => x.AssignedAgentId == search.AgentId);
+        if (search.Unassigned is not null) query = query.Where(x => (x.AssignedAgentId == null) == search.Unassigned);
+        if (search.CreatedFrom is not null) query = query.Where(x => x.CreatedAt >= search.CreatedFrom.Value.UtcDateTime);
+        if (search.CreatedTo is not null) query = query.Where(x => x.CreatedAt < search.CreatedTo.Value.UtcDateTime);
         var count = await query.CountAsync(cancellationToken);
-        var items = await query.OrderByDescending(x => x.CreatedAt).ThenBy(x => x.Id)
+        // Priority is stored as text. Sort by its explicit rank rather than lexical enum names.
+        var ordered = (search.SortBy, search.Descending) switch
+        {
+            ("ticketNumber", false) => query.OrderBy(x => x.TicketNumber),
+            ("ticketNumber", true) => query.OrderByDescending(x => x.TicketNumber),
+            ("updatedAt", false) => query.OrderBy(x => x.UpdatedAt ?? x.CreatedAt),
+            ("updatedAt", true) => query.OrderByDescending(x => x.UpdatedAt ?? x.CreatedAt),
+            ("priority", false) => query.OrderBy(x => x.Priority == TicketPriority.Urgent ? 4 : x.Priority == TicketPriority.High ? 3 : x.Priority == TicketPriority.Normal ? 2 : 1),
+            ("priority", true) => query.OrderByDescending(x => x.Priority == TicketPriority.Urgent ? 4 : x.Priority == TicketPriority.High ? 3 : x.Priority == TicketPriority.Normal ? 2 : 1),
+            (_, false) => query.OrderBy(x => x.CreatedAt),
+            _ => query.OrderByDescending(x => x.CreatedAt)
+        };
+        var items = await ordered.ThenBy(x => x.Id)
             .Skip((search.Page - 1) * search.PageSize).Take(search.PageSize)
             .Select(x => new TicketSummary(x.Id, x.TicketNumber, x.Title, x.Status, x.Priority, x.RequesterId,
                 x.CategoryId, x.AssignedTeamId, x.AssignedAgentId, x.CreatedAt, x.UpdatedAt, x.Version)).ToListAsync(cancellationToken);

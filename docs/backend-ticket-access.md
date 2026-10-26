@@ -1,6 +1,6 @@
 # Phạm vi truy cập Ticket
 
-Phần 10 triển khai scope dùng chung cho đọc và xử lý Ticket, dựa trên permission, phiên, requester, assignment và membership hiện tại từ PostgreSQL. Người dùng đã xác nhận apply TicketCategoryAdministration của phần 9. Phần này **không đổi schema, migration, package, permission catalog hoặc secret**; vẫn có 14 permission đã đăng ký.
+Phần 10 triển khai scope dùng chung cho đọc và xử lý Ticket, dựa trên permission, phiên, requester, assignment và membership hiện tại từ PostgreSQL. Người dùng đã xác nhận apply TicketCategoryAdministration của phần 9. Phần 10 không đổi schema/migration/package/permission/secret. Hiện phần 12 thêm [workflow và ba quyền requester](backend-ticket-workflow.md), catalog tổng 17 mã; giữ ma trận read/update/assign dưới đây.
 
 ## Ma trận quyền
 
@@ -17,7 +17,7 @@ Write scope luôn yêu cầu **đọc được Ticket đó**, không chỉ có m
 
 Assignee cần membership còn active trong nhóm/department active để có phạm vi xử lý theo nhóm; ID assignee lịch sử không đủ. Nếu cũng là requester thì read.own vẫn giữ quyền xem lịch sử, nhưng không tự cho quyền xử lý. IsLeader được đọc từ SupportTeamMember của đúng AssignedTeam; role TeamLeader toàn user không tự cấp phạm vi. `team.manage` quản trị tổ chức là permission độc lập: không thay thế read.team, ticket.assign hoặc ticket.update.status.
 
-`Closed` và `Cancelled` chỉ được đọc, scope UpdateStatus/Assign đều false, kể cả read.all. Với các trạng thái khác, scope xử lý chỉ là điều kiện đầu vào; **chưa đồng nghĩa được chuyển đến mọi trạng thái**. Quy tắc transition, summary khi resolve, confirm/reopen/cancel và sửa nội dung sẽ được chốt trong các use case phần 11–12. Không dùng ticket.update.status như quyền sửa tùy ý title/description/requester/category.
+`Closed` và `Cancelled` chỉ được đọc, mọi write scope đều false, kể cả read.all. Với các trạng thái khác, scope xử lý chỉ là điều kiện đầu vào; **chưa đồng nghĩa được chuyển đến mọi trạng thái**. Phần 12 đã chốt [bảng transition, summary và permission confirm/reopen/cancel](backend-ticket-workflow.md). Không dùng ticket.update.status như quyền sửa tùy ý title/description/requester/category. Ba operation Confirm/Reopen/Cancel dùng read scope + quyền riêng + requester hoặc read.all; membership leader không tự cấp quyền này trên Ticket người khác.
 
 ## API đọc đã nối scope
 
@@ -29,13 +29,13 @@ Assignee cần membership còn active trong nhóm/department active để có ph
 
 Mọi endpoint yêu cầu Bearer. Không có read grant nào trả 403; có read grant nhưng Ticket không nằm trong phạm vi hoặc không tồn tại trả cùng 404 `NotFound`, không echo nội dung Ticket. Thiếu/sai/hết hạn/thu hồi phiên hoặc user inactive trả 401. `/access` cũng yêu cầu đọc được Ticket, không dùng để dò ID ngoài phạm vi. Những cờ này chỉ hỗ trợ UI tại thời điểm kiểm tra, không phải token cấp quyền dùng cho request ghi sau đó.
 
-Danh sách nhận `page=1`, `pageSize=20` (1–100), `search` theo title tối đa 200 ký tự, `status`, `priority`, `teamId`, `categoryId`. Sort cố định createdAt giảm dần, tie-break ID; không cần field do client khai để chọn scope. Các filter chỉ thu hẹp kết quả đã được authorize. Query requesterId/userId/role/permission lạ hoặc header X-User-Id/X-Role không thay thế danh tính server. Response trang là `{items,page,pageSize,totalCount}`; count/items là các query đọc thông thường, không có snapshot chung khi cập nhật đồng thời.
+Danh sách nhận `page=1`, `pageSize=20` (1–100), `search` theo title tối đa 200 ký tự, `status`, `priority`, `teamId`, `categoryId`. Phần 11 bổ sung ticketNumber/requesterId/agentId/unassigned/createdFrom/createdTo và sort allowlist; xem [contract truy vấn](backend-tickets.md). Mặc định createdAt giảm dần, tie-break ID. Các filter chỉ thu hẹp kết quả đã được authorize; requesterId là filter, không thay thế danh tính server. Query userId/role/permission lạ hoặc header X-User-Id/X-Role không chọn được scope. Response trang là `{items,page,pageSize,totalCount}`; count/items là các query đọc thông thường, không có snapshot chung khi cập nhật đồng thời.
 
 Status/priority nhận tên enum hoặc giá trị hợp lệ trong query; response JSON hiện dùng enum số theo serializer mặc định: status New=1, InProgress=2, WaitingForRequester=3, Resolved=4, Closed=5, Cancelled=6, Reopened=7; priority Low=1, Normal=2, High=3, Urgent=4. Giá trị enum không đăng ký, page sai hoặc Guid.Empty trong filter trả 400.
 
 DTO summary gồm ID/number/title/status/priority, requester/category/assigned team/agent ID, timestamps và Version. Detail bổ sung Description, ResolutionSummary và resolved/closed timestamps. Không trả EF entity, email, token/hash, comment/activity/internal note hoặc dữ liệu file. Comment/internal attachment phải thêm scope và permission riêng ở phần 13–14; đọc được Ticket không tự cho đọc internal notes. Response dùng no-store; Swagger mô tả Bearer và 401/403/404 tương ứng.
 
-Phần này có API đọc để kiểm chứng predicate thực tế. Chưa có POST tạo Ticket hoặc endpoint production cho đổi status/phân công. Phần 11 tiếp tục use case tạo Ticket và mở rộng truy vấn; phần 12 nối các command vào guard đã có.
+Phần 11 đã bổ sung [POST tạo cho chính mình](backend-tickets.md) bằng ticket.create và mở rộng truy vấn; create không tự cấp read grant. Phần 12 đã có POST assign/transition dùng guard, kiểm tra destination/workflow/current assignment và ghi activity trong cùng transaction. `/access` vẫn giữ ba cờ hiện có, không đại diện các action requester hoặc thay thế bảng transition.
 
 ## Phạm vi đích phân công
 
@@ -80,4 +80,4 @@ dotnet build be/be.sln --no-restore -warnaserror
 
 Negative tests kiểm tra list/detail/checker cùng kết quả; scope trước count/page; creator, assignee mất membership, cùng department, role/claim/header không cấp quyền; thu hồi quyền/phiên, user/team/department inactive, demote/reassign với cùng JWT; destination ngoài scope/agent sai quyền; Closed/Cancelled; transaction/version và hai write đồng thời. Các harness route `__tests/ticket-scope` chỉ được TestServer đăng ký từ assembly test, dùng production guard với save/activity/rollback thật để chứng minh request bị từ chối không sửa Ticket hoặc ghi activity. Không có những route này trong API production.
 
-Phần 10 không cần migration hoặc lệnh grant mới. Sau khi phần 9 đã áp dụng và quyền cũ đã cấp như mong muốn, F5 profile Container (Dockerfile) vẫn port 5000. Dùng Ticket có sẵn để thử GET; API tạo dữ liệu Ticket sẽ triển khai ở phần 11, không seed Ticket giả để bỏ qua ACL.
+Phần 10–11 không cần migration hoặc lệnh grant mới. Sau khi phần 9 đã áp dụng và quyền cũ đã cấp như mong muốn, F5 profile Container (Dockerfile) vẫn port 5000. Có thể tạo dữ liệu qua POST phần 11 rồi thử GET bằng user có read.own/team/all phù hợp; không seed Ticket giả để bỏ qua ACL.

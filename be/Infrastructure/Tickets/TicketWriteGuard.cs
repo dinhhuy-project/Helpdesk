@@ -15,7 +15,7 @@ public sealed class TicketWriteGuard(HelpdeskDbContext database, TicketScope sco
     {
         if (database.Database.CurrentTransaction is null)
             throw new InvalidOperationException("Ticket mutations require an explicit transaction before acquiring the write guard.");
-        if (operation is not (TicketOperation.UpdateStatus or TicketOperation.Assign) || version == 0)
+        if (operation is not (TicketOperation.UpdateStatus or TicketOperation.Assign or TicketOperation.Confirm or TicketOperation.Reopen or TicketOperation.Cancel) || version == 0)
             throw Error(TicketError.InvalidInput);
         if (database.ChangeTracker.Entries<Ticket>().Any(x => x.Entity.Id == id && x.State != EntityState.Unchanged))
             throw new InvalidOperationException("Acquire the Ticket write guard before editing or deleting a tracked Ticket.");

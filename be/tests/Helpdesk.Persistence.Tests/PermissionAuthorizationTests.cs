@@ -320,7 +320,8 @@ public class PermissionAuthorizationTests(PostgresFixture fixture)
         if (role == RoleNames.SystemAdmin) return PermissionCodes.All.ToHashSet(StringComparer.Ordinal);
         var permissions = new HashSet<string>(StringComparer.Ordinal)
         {
-            PermissionCodes.TicketCreate, PermissionCodes.TicketReadOwn, PermissionCodes.TicketCommentPublic
+            PermissionCodes.TicketCreate, PermissionCodes.TicketReadOwn, PermissionCodes.TicketCommentPublic,
+            PermissionCodes.TicketConfirm, PermissionCodes.TicketReopen, PermissionCodes.TicketCancel
         };
         if (role is RoleNames.SupportAgent or RoleNames.TeamLeader)
             permissions.UnionWith(new[] { PermissionCodes.TicketReadTeam, PermissionCodes.TicketUpdateStatus, PermissionCodes.TicketCommentInternal });

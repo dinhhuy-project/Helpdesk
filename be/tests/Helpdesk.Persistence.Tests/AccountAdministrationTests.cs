@@ -201,7 +201,8 @@ public class AccountAdministrationTests(PostgresFixture fixture)
         await using var test = await TestAccounts.CreateAsync(fixture.ConnectionString);
         var delegated = await test.NewUserAsync();
         await test.AssignAsync(delegated.Id, await test.CustomRoleAsync(PermissionCodes.RoleManage,
-            PermissionCodes.TicketCreate, PermissionCodes.TicketReadOwn, PermissionCodes.TicketCommentPublic));
+            PermissionCodes.TicketCreate, PermissionCodes.TicketReadOwn, PermissionCodes.TicketCommentPublic,
+            PermissionCodes.TicketConfirm, PermissionCodes.TicketReopen, PermissionCodes.TicketCancel));
         using var client = await test.ClientAsync(delegated);
         var target = await test.NewUserAsync();
         var current = await test.GetAsync(target.Id);

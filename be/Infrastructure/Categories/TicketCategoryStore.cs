@@ -118,13 +118,7 @@ public sealed class TicketCategoryStore(HelpdeskDbContext database, IPermissionC
 
     // Start at active roots and walk only active edges: no inactive-ancestor descendants,
     // or rootless legacy cycles, can enter lookup. UNION also bounds malformed repeated paths.
-    private IQueryable<Guid> AvailableIds() => database.Database.SqlQueryRaw<Guid>("""
-        WITH RECURSIVE available(id) AS (
-            SELECT id FROM helpdesk.ticket_categories WHERE parent_id IS NULL AND is_active
-            UNION
-            SELECT child.id FROM helpdesk.ticket_categories child JOIN available parent ON child.parent_id = parent.id WHERE child.is_active
-        ) SELECT id AS "Value" FROM available
-        """);
+    private IQueryable<Guid> AvailableIds() => TicketCategoryAvailability.Query(database);
 
     private async Task CheckParentAsync(Guid? id, Guid? parentId, CancellationToken cancellationToken)
     {

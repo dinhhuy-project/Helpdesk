@@ -21,6 +21,8 @@ namespace Helpdesk.Persistence.Tests;
 internal sealed class TicketAccessTestContext(TestAccounts accounts) : IAsyncDisposable
 {
     private readonly List<Guid> _tickets = [];
+    private readonly List<Guid> _categories = [];
+    private readonly List<Guid> _slaPolicies = [];
     public TestAccounts Accounts { get; } = accounts;
     public string Prefix { get; } = Guid.NewGuid().ToString("N") + "-";
     public Guid DepartmentA { get; private set; }
@@ -28,6 +30,9 @@ internal sealed class TicketAccessTestContext(TestAccounts accounts) : IAsyncDis
     public Guid TeamA { get; private set; }
     public Guid TeamB { get; private set; }
     public Guid Category { get; private set; }
+    public void OwnTicket(Guid id) => _tickets.Add(id);
+    public void OwnCategory(Guid id) => _categories.Add(id);
+    public void OwnSlaPolicy(Guid id) => _slaPolicies.Add(id);
     public static async Task<TicketAccessTestContext> CreateAsync(string connection)
     {
         var test = new TicketAccessTestContext(await TestAccounts.CreateAsync(connection));
@@ -40,6 +45,7 @@ internal sealed class TicketAccessTestContext(TestAccounts accounts) : IAsyncDis
         database.AddRange(first, second, teamA, teamB, category);
         await database.SaveChangesAsync();
         (test.DepartmentA, test.DepartmentB, test.TeamA, test.TeamB, test.Category) = (first.Id, second.Id, teamA.Id, teamB.Id, category.Id);
+        test.OwnCategory(category.Id);
         return test;
     }
     public async Task<TestUser> UserAsync(string role)
@@ -98,20 +104,27 @@ internal sealed class TicketAccessTestContext(TestAccounts accounts) : IAsyncDis
     {
         await using var database = Accounts.Database();
         await database.TicketActivities.Where(x => _tickets.Contains(x.TicketId)).ExecuteDeleteAsync();
+        await database.TicketSlas.Where(x => _tickets.Contains(x.TicketId)).ExecuteDeleteAsync();
         await database.Tickets.Where(x => _tickets.Contains(x.Id)).ExecuteDeleteAsync();
+        await database.SlaPolicies.Where(x => _slaPolicies.Contains(x.Id)).ExecuteDeleteAsync();
         await database.SupportTeamMembers.Where(x => x.SupportTeamId == TeamA || x.SupportTeamId == TeamB).ExecuteDeleteAsync();
         await database.SupportTeams.Where(x => x.Id == TeamA || x.Id == TeamB).ExecuteDeleteAsync();
         // Users may still have department links deliberately set by a scope test.
         await database.Users.Where(x => x.DepartmentId == DepartmentA || x.DepartmentId == DepartmentB)
             .ExecuteUpdateAsync(s => s.SetProperty(x => x.DepartmentId, (Guid?)null));
         await database.Departments.Where(x => x.Id == DepartmentA || x.Id == DepartmentB).ExecuteDeleteAsync();
-        await database.TicketCategories.Where(x => x.Id == Category).ExecuteDeleteAsync();
+        while (await database.TicketCategories.AnyAsync(x => _categories.Contains(x.Id)))
+        {
+            var removed = await database.TicketCategories.Where(x => _categories.Contains(x.Id) &&
+                !database.TicketCategories.Any(child => child.ParentId == x.Id)).ExecuteDeleteAsync();
+            if (removed == 0) throw new InvalidOperationException("Test-owned category tree could not be cleaned safely.");
+        }
         await Accounts.DisposeAsync();
     }
 }
 
 // TestServer-only mutation harness: exercises the production guard with real saves/activity/rollback.
-// Production deliberately has no status/assignment commands until the workflow phase.
+// Guard tests deliberately bypass workflow rules; production commands use TicketMutationService.
 [ApiController]
 [Authorize]
 [Route("__tests/ticket-scope")]

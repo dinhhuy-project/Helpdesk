@@ -44,6 +44,10 @@ namespace be
             builder.Services.AddScoped<ITicketAccessChecker, TicketAccessChecker>();
             builder.Services.AddScoped<ITicketReadStore, TicketReadStore>();
             builder.Services.AddScoped<TicketReadService>();
+            builder.Services.AddScoped<ITicketCreateStore, TicketCreateStore>();
+            builder.Services.AddScoped<TicketCreateService>();
+            builder.Services.AddScoped<ITicketMutationStore, TicketMutationStore>();
+            builder.Services.AddScoped<TicketMutationService>();
             builder.Services.AddScoped<TicketWriteGuard>();
             // Framework diagnostics include raw exceptions; our handler emits safe trace-based logs.
             builder.Logging.AddFilter("Microsoft.AspNetCore.Diagnostics.ExceptionHandlerMiddleware", LogLevel.None);

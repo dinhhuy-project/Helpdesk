@@ -84,7 +84,7 @@ dotnet run --project be/be.csproj --no-launch-profile -- seed-identity
 dotnet run --project be/be.csproj --no-launch-profile -- grant-category-administration
 ```
 
-Catalog hiện có 14 mã. SystemAdmin mới nhận đủ mặc định; role đã tồn tại giữ grant cũ. Lệnh grant riêng bổ sung đúng category.manage vào SystemAdmin, bump version role và audit CategoryAdministrationEnabled nếu thực sự thêm; lặp an toàn, không đổi user/password/grant khác. Operator có thể dùng API quản trị grant phần 6 thay lệnh này. Startup chỉ seed/bootstrap theo cấu hình hiện có, không tự migrate hoặc gọi lệnh grant. Profile Container (Dockerfile) giữ port 5000.
+Catalog ở phần 9 có 14 mã; hiện phần 12 bổ sung [ba quyền workflow](backend-ticket-workflow.md), tổng 17. SystemAdmin mới nhận đủ mặc định; role đã tồn tại giữ grant cũ. Lệnh grant riêng bổ sung đúng category.manage vào SystemAdmin, bump version role và audit CategoryAdministrationEnabled nếu thực sự thêm; lặp an toàn, không đổi user/password/grant khác. Operator có thể dùng API quản trị grant phần 6 thay lệnh này. Startup chỉ seed/bootstrap theo cấu hình hiện có, không tự migrate hoặc gọi lệnh grant. Profile Container (Dockerfile) giữ port 5000.
 
 ## Kiểm tra
 

@@ -42,6 +42,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Team leadership grant CLI smoke check failed.' }
     dotnet run --project (Join-Path $PSScriptRoot '../be.csproj') --no-build --no-launch-profile -- grant-category-administration
     if ($LASTEXITCODE -ne 0) { throw 'Category administration grant CLI smoke check failed.' }
+    dotnet run --project (Join-Path $PSScriptRoot '../be.csproj') --no-build --no-launch-profile -- grant-ticket-workflow
+    if ($LASTEXITCODE -ne 0) { throw 'Ticket workflow grant CLI smoke check failed.' }
 }
 finally {
     if ($testContainerStarted) {

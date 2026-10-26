@@ -8,6 +8,9 @@ public static class PermissionCodes
     public const string TicketReadAll = "ticket.read.all";
     public const string TicketAssign = "ticket.assign";
     public const string TicketUpdateStatus = "ticket.update.status";
+    public const string TicketConfirm = "ticket.confirm";
+    public const string TicketReopen = "ticket.reopen";
+    public const string TicketCancel = "ticket.cancel";
     public const string TicketCommentPublic = "ticket.comment.public";
     public const string TicketCommentInternal = "ticket.comment.internal";
     public const string TicketManageSla = "ticket.manage.sla";
@@ -19,7 +22,7 @@ public static class PermissionCodes
 
     public static IReadOnlyList<string> All { get; } = Array.AsReadOnly(new[]
     {
-        TicketCreate, TicketReadOwn, TicketReadTeam, TicketReadAll, TicketAssign, TicketUpdateStatus,
+        TicketCreate, TicketReadOwn, TicketReadTeam, TicketReadAll, TicketAssign, TicketUpdateStatus, TicketConfirm, TicketReopen, TicketCancel,
         TicketCommentPublic, TicketCommentInternal, TicketManageSla, UserManage, RoleManage, TeamManage, DepartmentManage, CategoryManage
     });
 }

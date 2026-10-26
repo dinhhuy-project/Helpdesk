@@ -22,7 +22,7 @@ public sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger) : I
                 TicketError.NotFound => 404,
                 TicketError.Unauthenticated => 401,
                 TicketError.Forbidden => 403,
-                TicketError.InvalidInput or TicketError.InvalidAssignment => 400,
+                TicketError.InvalidInput or TicketError.InvalidAssignment or TicketError.InvalidCategory or TicketError.ResolutionRequired => 400,
                 _ => 409
             },
             CategoryOperationException category => category.Error switch
@@ -100,7 +100,10 @@ public sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger) : I
         TicketError.Unauthenticated => "Yêu cầu xác thực.",
         TicketError.Forbidden => "Thao tác vượt quá phạm vi được cấp quyền.",
         TicketError.InvalidInput => "Yêu cầu Ticket không hợp lệ.",
+        TicketError.InvalidCategory => "Danh mục không tồn tại hoặc không còn khả dụng trong cây danh mục.",
         TicketError.InvalidAssignment => "Nhóm hoặc nhân viên được chọn không hợp lệ trong phạm vi phân công.",
+        TicketError.InvalidTransition => "Không thể chuyển Ticket từ trạng thái hiện tại sang trạng thái được yêu cầu.",
+        TicketError.ResolutionRequired => "Cần nhập nội dung kết quả giải quyết trước khi resolve Ticket.",
         _ => "Ticket đã thay đổi. Vui lòng tải lại dữ liệu."
     };
 

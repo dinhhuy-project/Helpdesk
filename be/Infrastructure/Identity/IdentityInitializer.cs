@@ -77,6 +77,29 @@ public sealed class IdentityInitializer(HelpdeskDbContext database, IPasswordHas
     public async Task GrantCategoryAdministrationAsync(CancellationToken cancellationToken = default)
         => await GrantAdministrationAsync([PermissionCodes.CategoryManage], "CategoryAdministrationEnabled", cancellationToken);
 
+    public async Task GrantTicketWorkflowAsync(CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
+        await LockAndCheckMigrationsAsync(cancellationToken);
+        string[] codes = [PermissionCodes.TicketConfirm, PermissionCodes.TicketReopen, PermissionCodes.TicketCancel];
+        var permissions = await database.Permissions.Where(x => codes.Contains(x.Code)).ToListAsync(cancellationToken);
+        var roles = await database.Roles.Where(x => x.Name == RoleNames.Requester || x.Name == RoleNames.SupportAgent ||
+            x.Name == RoleNames.TeamLeader || x.Name == RoleNames.SystemAdmin).ToListAsync(cancellationToken);
+        if (permissions.Count != codes.Length || roles.Count != 4) throw new IdentityInitializationException("Run seed-identity first.");
+        foreach (var role in roles)
+        {
+            var existing = await database.RolePermissions.Where(x => x.RoleId == role.Id).Select(x => x.PermissionId).ToListAsync(cancellationToken);
+            var missing = permissions.Where(x => !existing.Contains(x.Id)).ToArray();
+            if (missing.Length == 0) continue;
+            database.RolePermissions.AddRange(missing.Select(x => new RolePermission { RoleId = role.Id, PermissionId = x.Id }));
+            role.UpdatedAt = DateTime.UtcNow;
+            database.IdentityAuditLogs.Add(new IdentityAuditLog { Action = "TicketWorkflowEnabled", TargetRoleId = role.Id,
+                Data = System.Text.Json.JsonSerializer.Serialize(new { Permissions = missing.Select(x => x.Code).ToArray() }) });
+        }
+        await database.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+    }
+
     private async Task GrantAdministrationAsync(string[] codes, string action, CancellationToken cancellationToken, string roleName = RoleNames.SystemAdmin)
     {
         await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
