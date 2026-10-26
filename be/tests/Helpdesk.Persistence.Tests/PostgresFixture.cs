@@ -71,6 +71,18 @@ public sealed class PostgresFixture : IAsyncLifetime
         await using var undoDepartments = new NpgsqlCommand(ModelTests.ReadSql("DepartmentAdministration.Rollback.sql"), connection);
         await undoDepartments.ExecuteNonQueryAsync(); // Empty database only.
         await departments.ExecuteNonQueryAsync();
+        await using var teams = new NpgsqlCommand(ModelTests.ReadSql("SupportTeamAdministration.sql"), connection);
+        await teams.ExecuteNonQueryAsync();
+        await teams.ExecuteNonQueryAsync();
+        await using var undoTeams = new NpgsqlCommand(ModelTests.ReadSql("SupportTeamAdministration.Rollback.sql"), connection);
+        await undoTeams.ExecuteNonQueryAsync(); // Empty database only.
+        await teams.ExecuteNonQueryAsync();
+        await using var categories = new NpgsqlCommand(ModelTests.ReadSql("TicketCategoryAdministration.sql"), connection);
+        await categories.ExecuteNonQueryAsync();
+        await categories.ExecuteNonQueryAsync();
+        await using var undoCategories = new NpgsqlCommand(ModelTests.ReadSql("TicketCategoryAdministration.Rollback.sql"), connection);
+        await undoCategories.ExecuteNonQueryAsync(); // Empty database only.
+        await categories.ExecuteNonQueryAsync();
         await context.Database.MigrateAsync(); // already applied: must be a no-op
         Assert.Empty(await context.Database.GetPendingMigrationsAsync());
     }

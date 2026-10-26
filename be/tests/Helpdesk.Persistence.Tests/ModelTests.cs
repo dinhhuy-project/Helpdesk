@@ -56,10 +56,12 @@ public class ModelTests
         using var context = CreateContext();
         Assert.False(context.Database.HasPendingModelChanges());
         var migrations = context.Database.GetMigrations().ToArray();
-        Assert.Equal(3, migrations.Length);
+        Assert.Equal(5, migrations.Length);
         Assert.EndsWith("_InitialCreate", migrations[0]);
         Assert.EndsWith("_AccountAdministration", migrations[1]);
         Assert.EndsWith("_DepartmentAdministration", migrations[2]);
+        Assert.EndsWith("_SupportTeamAdministration", migrations[3]);
+        Assert.EndsWith("_TicketCategoryAdministration", migrations[4]);
         var migrator = context.GetService<IMigrator>();
         var forward = migrator.GenerateScript("0", migrations[0], MigrationsSqlGenerationOptions.Idempotent);
         var rollback = migrator.GenerateScript(migrations[0], "0");
@@ -73,6 +75,14 @@ public class ModelTests
             NormalizeSql(ReadSql("DepartmentAdministration.sql")));
         Assert.Equal(NormalizeSql(migrator.GenerateScript(migrations[2], migrations[1])),
             NormalizeSql(ReadSql("DepartmentAdministration.Rollback.sql")));
+        Assert.Equal(NormalizeSql(migrator.GenerateScript(migrations[2], migrations[3], MigrationsSqlGenerationOptions.Idempotent)),
+            NormalizeSql(ReadSql("SupportTeamAdministration.sql")));
+        Assert.Equal(NormalizeSql(migrator.GenerateScript(migrations[3], migrations[2])),
+            NormalizeSql(ReadSql("SupportTeamAdministration.Rollback.sql")));
+        Assert.Equal(NormalizeSql(migrator.GenerateScript(migrations[3], migrations[4], MigrationsSqlGenerationOptions.Idempotent)),
+            NormalizeSql(ReadSql("TicketCategoryAdministration.sql")));
+        Assert.Equal(NormalizeSql(migrator.GenerateScript(migrations[4], migrations[3])),
+            NormalizeSql(ReadSql("TicketCategoryAdministration.Rollback.sql")));
     }
 
     internal static string ReadSql(string fileName) =>

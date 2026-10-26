@@ -324,7 +324,7 @@ public class PermissionAuthorizationTests(PostgresFixture fixture)
         };
         if (role is RoleNames.SupportAgent or RoleNames.TeamLeader)
             permissions.UnionWith(new[] { PermissionCodes.TicketReadTeam, PermissionCodes.TicketUpdateStatus, PermissionCodes.TicketCommentInternal });
-        if (role == RoleNames.TeamLeader) permissions.Add(PermissionCodes.TicketAssign);
+        if (role == RoleNames.TeamLeader) permissions.UnionWith(new[] { PermissionCodes.TicketAssign, PermissionCodes.TeamManage });
         return permissions;
     }
 

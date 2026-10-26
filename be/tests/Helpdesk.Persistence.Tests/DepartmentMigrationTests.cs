@@ -76,10 +76,11 @@ public class DepartmentMigrationTests(PostgresFixture fixture)
                 await rollback.ExecuteNonQueryAsync();
                 Assert.Equal(2, (await context.Database.GetAppliedMigrationsAsync()).Count());
                 await upgrade.ExecuteNonQueryAsync();
-                Assert.Empty(await context.Database.GetPendingMigrationsAsync());
+                Assert.Contains("20261026143539_DepartmentAdministration", await context.Database.GetAppliedMigrationsAsync());
             }
             Assert.Equal(department, (await context.Users.SingleAsync(x => x.Id == user)).DepartmentId);
-            var legacyTeam = await context.SupportTeams.SingleAsync(x => x.Id == team);
+            var legacyTeam = await context.SupportTeams.Where(x => x.Id == team)
+                .Select(x => new { x.DepartmentId, x.IsActive }).SingleAsync();
             Assert.Equal(department, legacyTeam.DepartmentId);
             Assert.True(legacyTeam.IsActive);
         }

@@ -102,7 +102,7 @@ public class PostgresTests(PostgresFixture fixture)
         await using var command = new NpgsqlCommand(ModelTests.ReadSql("InitialCreate.sql"), connection);
         await command.ExecuteNonQueryAsync();
         await command.ExecuteNonQueryAsync();
-        Assert.Equal(3, (await context.Database.GetAppliedMigrationsAsync()).Count());
+        Assert.Equal(5, (await context.Database.GetAppliedMigrationsAsync()).Count());
         context.ChangeTracker.Clear();
         var loaded = await context.Tickets.SingleAsync(x => x.Id == ticket.Id);
         Assert.Equal(ticket.TicketNumber, loaded.TicketNumber);
@@ -131,7 +131,7 @@ public class PostgresTests(PostgresFixture fixture)
     private static async Task<Ticket> AddTicketAsync(HelpdeskDbContext context)
     {
         var user = new User { Email = $"{Guid.NewGuid():N}@example.test", DisplayName = "Test user" };
-        var category = new TicketCategory { Name = "Test category" };
+        var category = new TicketCategory { Name = $"Test category {Guid.NewGuid():N}" };
         context.Users.Add(user);
         context.TicketCategories.Add(category);
         var ticket = new Ticket

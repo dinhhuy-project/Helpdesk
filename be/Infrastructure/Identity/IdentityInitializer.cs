@@ -71,11 +71,17 @@ public sealed class IdentityInitializer(HelpdeskDbContext database, IPasswordHas
     public async Task GrantDepartmentAdministrationAsync(CancellationToken cancellationToken = default)
         => await GrantAdministrationAsync([PermissionCodes.DepartmentManage], "DepartmentAdministrationEnabled", cancellationToken);
 
-    private async Task GrantAdministrationAsync(string[] codes, string action, CancellationToken cancellationToken)
+    public async Task GrantTeamLeadershipAsync(CancellationToken cancellationToken = default)
+        => await GrantAdministrationAsync([PermissionCodes.TeamManage], "TeamLeadershipEnabled", cancellationToken, RoleNames.TeamLeader);
+
+    public async Task GrantCategoryAdministrationAsync(CancellationToken cancellationToken = default)
+        => await GrantAdministrationAsync([PermissionCodes.CategoryManage], "CategoryAdministrationEnabled", cancellationToken);
+
+    private async Task GrantAdministrationAsync(string[] codes, string action, CancellationToken cancellationToken, string roleName = RoleNames.SystemAdmin)
     {
         await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
         await LockAndCheckMigrationsAsync(cancellationToken);
-        var role = await database.Roles.SingleOrDefaultAsync(x => x.Name == RoleNames.SystemAdmin, cancellationToken)
+        var role = await database.Roles.SingleOrDefaultAsync(x => x.Name == roleName, cancellationToken)
             ?? throw new IdentityInitializationException("Run seed-identity first.");
         var permissions = await database.Permissions.Where(x => codes.Contains(x.Code)).ToListAsync(cancellationToken);
         if (permissions.Count != codes.Length) throw new IdentityInitializationException("Run seed-identity first.");

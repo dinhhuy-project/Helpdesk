@@ -10,7 +10,7 @@ internal static class IdentitySeedCatalog
         PermissionCodes.TicketReadAll, PermissionCodes.TicketAssign, PermissionCodes.TicketUpdateStatus,
         PermissionCodes.TicketCommentPublic, PermissionCodes.TicketCommentInternal,
         PermissionCodes.TicketManageSla, PermissionCodes.UserManage, PermissionCodes.RoleManage, PermissionCodes.TeamManage,
-        PermissionCodes.DepartmentManage
+        PermissionCodes.DepartmentManage, PermissionCodes.CategoryManage
     ];
 
     private static readonly string[] RequesterPermissions =
@@ -22,7 +22,7 @@ internal static class IdentitySeedCatalog
     {
         [RoleNames.Requester] = RequesterPermissions,
         [RoleNames.SupportAgent] = AgentPermissions,
-        [RoleNames.TeamLeader] = [.. AgentPermissions, PermissionCodes.TicketAssign],
+        [RoleNames.TeamLeader] = [.. AgentPermissions, PermissionCodes.TicketAssign, PermissionCodes.TeamManage],
         [RoleNames.SystemAdmin] = Permissions
     };
 }

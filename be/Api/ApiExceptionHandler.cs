@@ -5,6 +5,9 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using be.Application.Features.Accounts;
 using be.Application.Features.Departments;
+using be.Application.Features.SupportTeams;
+using be.Application.Features.Categories;
+using be.Application.Features.Tickets;
 
 namespace be.Api;
 
@@ -14,6 +17,30 @@ public sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger) : I
     {
         var status = exception switch
         {
+            TicketOperationException ticket => ticket.Error switch
+            {
+                TicketError.NotFound => 404,
+                TicketError.Unauthenticated => 401,
+                TicketError.Forbidden => 403,
+                TicketError.InvalidInput or TicketError.InvalidAssignment => 400,
+                _ => 409
+            },
+            CategoryOperationException category => category.Error switch
+            {
+                CategoryError.NotFound => 404,
+                CategoryError.Unauthenticated => 401,
+                CategoryError.InsufficientScope => 403,
+                CategoryError.InvalidInput or CategoryError.InvalidParent or CategoryError.CategoryCycle => 400,
+                _ => 409
+            },
+            TeamOperationException team => team.Error switch
+            {
+                TeamError.NotFound => 404,
+                TeamError.Unauthenticated => 401,
+                TeamError.InsufficientScope => 403,
+                TeamError.InvalidInput or TeamError.InvalidDepartment or TeamError.InvalidUser or TeamError.InvalidLeader => 400,
+                _ => 409
+            },
             DepartmentOperationException department => department.Error switch
             {
                 DepartmentError.NotFound => 404,
@@ -42,7 +69,10 @@ public sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger) : I
         var problem = new ProblemDetails
         {
             Status = status,
-            Title = exception is DepartmentOperationException departmentFailure ? DepartmentTitle(departmentFailure.Error) :
+            Title = exception is TicketOperationException ticketFailure ? TicketTitle(ticketFailure.Error) :
+                exception is CategoryOperationException categoryFailure ? CategoryTitle(categoryFailure.Error) :
+                exception is TeamOperationException teamFailure ? TeamTitle(teamFailure.Error) :
+                exception is DepartmentOperationException departmentFailure ? DepartmentTitle(departmentFailure.Error) :
                 exception is AccountOperationException known ? AccountTitle(known.Error) : status switch
             {
                 409 => "Dữ liệu bị xung đột.",
@@ -54,12 +84,52 @@ public sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger) : I
         problem.Extensions["traceId"] = Activity.Current?.Id ?? context.TraceIdentifier;
         if (exception is AccountOperationException accountError) problem.Extensions["code"] = accountError.Error.ToString();
         if (exception is DepartmentOperationException departmentError) problem.Extensions["code"] = departmentError.Error.ToString();
+        if (exception is TeamOperationException teamError) problem.Extensions["code"] = teamError.Error.ToString();
+        if (exception is CategoryOperationException categoryError) problem.Extensions["code"] = categoryError.Error.ToString();
+        if (exception is TicketOperationException ticketError) problem.Extensions["code"] = ticketError.Error.ToString();
         if (status == 401) context.Response.Headers.WWWAuthenticate = "Bearer";
         context.Response.StatusCode = status;
         await context.Response.WriteAsJsonAsync(problem, options: null,
             contentType: "application/problem+json", cancellationToken: cancellationToken);
         return true;
     }
+
+    private static string TicketTitle(TicketError error) => error switch
+    {
+        TicketError.NotFound => "Không tìm thấy Ticket trong phạm vi được phép.",
+        TicketError.Unauthenticated => "Yêu cầu xác thực.",
+        TicketError.Forbidden => "Thao tác vượt quá phạm vi được cấp quyền.",
+        TicketError.InvalidInput => "Yêu cầu Ticket không hợp lệ.",
+        TicketError.InvalidAssignment => "Nhóm hoặc nhân viên được chọn không hợp lệ trong phạm vi phân công.",
+        _ => "Ticket đã thay đổi. Vui lòng tải lại dữ liệu."
+    };
+
+    private static string CategoryTitle(CategoryError error) => error switch
+    {
+        CategoryError.NotFound => "Không tìm thấy danh mục Ticket.",
+        CategoryError.NameInUse => "Tên danh mục đã được sử dụng trong cùng cấp, kể cả danh mục inactive.",
+        CategoryError.VersionConflict => "Dữ liệu đã thay đổi. Vui lòng tải lại danh mục.",
+        CategoryError.InvalidInput => "Thông tin danh mục không hợp lệ.",
+        CategoryError.InvalidParent => "Parent không tồn tại hoặc có danh mục inactive trong chuỗi tổ tiên.",
+        CategoryError.CategoryCycle => "Không thể chọn chính danh mục hoặc một node con làm parent.",
+        CategoryError.Unauthenticated => "Yêu cầu xác thực.",
+        _ => "Thao tác vượt quá phạm vi được cấp quyền."
+    };
+
+    private static string TeamTitle(TeamError error) => error switch
+    {
+        TeamError.NotFound => "Không tìm thấy dữ liệu nhóm trong phạm vi được phép.",
+        TeamError.NameInUse => "Tên nhóm đã được sử dụng trong phòng ban này, kể cả nhóm đã ngừng hoạt động.",
+        TeamError.VersionConflict => "Dữ liệu đã thay đổi. Vui lòng tải lại nhóm và thành viên.",
+        TeamError.InvalidInput => "Thông tin nhóm hoặc thành viên không hợp lệ.",
+        TeamError.InvalidDepartment => "Phòng ban không tồn tại hoặc đã ngừng hoạt động.",
+        TeamError.InactiveTeam => "Nhóm đã ngừng hoạt động.",
+        TeamError.InvalidUser => "Tài khoản không tồn tại hoặc đã ngừng hoạt động.",
+        TeamError.MembershipExists => "Thành viên đã có trong nhóm. Sử dụng thao tác cập nhật trạng thái.",
+        TeamError.InvalidLeader => "Trưởng nhóm phải là thành viên active và có quyền quản lý nhóm.",
+        TeamError.Unauthenticated => "Yêu cầu xác thực.",
+        _ => "Thao tác vượt quá phạm vi được cấp quyền."
+    };
 
     private static string DepartmentTitle(DepartmentError error) => error switch
     {

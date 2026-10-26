@@ -15,10 +15,11 @@ public static class PermissionCodes
     public const string RoleManage = "role.manage";
     public const string TeamManage = "team.manage";
     public const string DepartmentManage = "department.manage";
+    public const string CategoryManage = "category.manage";
 
     public static IReadOnlyList<string> All { get; } = Array.AsReadOnly(new[]
     {
         TicketCreate, TicketReadOwn, TicketReadTeam, TicketReadAll, TicketAssign, TicketUpdateStatus,
-        TicketCommentPublic, TicketCommentInternal, TicketManageSla, UserManage, RoleManage, TeamManage, DepartmentManage
+        TicketCommentPublic, TicketCommentInternal, TicketManageSla, UserManage, RoleManage, TeamManage, DepartmentManage, CategoryManage
     });
 }

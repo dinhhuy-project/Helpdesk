@@ -2,7 +2,7 @@ namespace be.Infrastructure.Identity;
 
 public static class IdentityCommands
 {
-    public static bool IsCommand(string[] args) => args.Length > 0 && args[0] is "seed-identity" or "bootstrap-admin" or "grant-account-administration" or "grant-department-administration";
+    public static bool IsCommand(string[] args) => args.Length > 0 && args[0] is "seed-identity" or "bootstrap-admin" or "grant-account-administration" or "grant-department-administration" or "grant-team-leadership" or "grant-category-administration";
 
     public static async Task<int> ExecuteAsync(string[] args, IServiceProvider services, IConfiguration configuration)
     {
@@ -31,6 +31,16 @@ public static class IdentityCommands
             {
                 await initializer.GrantDepartmentAdministrationAsync();
                 logger.LogInformation("Department administration grant enabled for SystemAdmin. Other grants were preserved.");
+            }
+            else if (args[0] == "grant-team-leadership")
+            {
+                await initializer.GrantTeamLeadershipAsync();
+                logger.LogInformation("Team management grant enabled for TeamLeader. Resource scope still requires active leadership in each team.");
+            }
+            else if (args[0] == "grant-category-administration")
+            {
+                await initializer.GrantCategoryAdministrationAsync();
+                logger.LogInformation("Category administration grant enabled for SystemAdmin. Other grants were preserved.");
             }
             else
             {

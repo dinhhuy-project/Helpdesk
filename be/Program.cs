@@ -8,6 +8,12 @@ using be.Application.Features.Accounts;
 using be.Infrastructure.Accounts;
 using be.Application.Features.Departments;
 using be.Infrastructure.Departments;
+using be.Application.Features.SupportTeams;
+using be.Infrastructure.SupportTeams;
+using be.Application.Features.Categories;
+using be.Infrastructure.Categories;
+using be.Application.Features.Tickets;
+using be.Infrastructure.Tickets;
 using Microsoft.OpenApi.Models;
 
 namespace be
@@ -30,6 +36,15 @@ namespace be
             builder.Services.AddScoped<AccountAdministrationService>();
             builder.Services.AddScoped<IDepartmentStore, DepartmentStore>();
             builder.Services.AddScoped<DepartmentService>();
+            builder.Services.AddScoped<ISupportTeamStore, SupportTeamStore>();
+            builder.Services.AddScoped<SupportTeamService>();
+            builder.Services.AddScoped<ITicketCategoryStore, TicketCategoryStore>();
+            builder.Services.AddScoped<TicketCategoryService>();
+            builder.Services.AddScoped<TicketScope>();
+            builder.Services.AddScoped<ITicketAccessChecker, TicketAccessChecker>();
+            builder.Services.AddScoped<ITicketReadStore, TicketReadStore>();
+            builder.Services.AddScoped<TicketReadService>();
+            builder.Services.AddScoped<TicketWriteGuard>();
             // Framework diagnostics include raw exceptions; our handler emits safe trace-based logs.
             builder.Logging.AddFilter("Microsoft.AspNetCore.Diagnostics.ExceptionHandlerMiddleware", LogLevel.None);
             builder.Logging.AddFilter("Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerHandler", LogLevel.None);

@@ -52,7 +52,13 @@ Tài liệu này mô tả **phạm vi và thiết kế mục tiêu của hệ th
 
 **Phòng ban:** Đã có API danh sách/chi tiết/tạo/sửa/activate/deactivate với `department.manage`, lookup cho `user.manage`, kiểm tra gán user và giữ liên kết lịch sử. Xem [API phòng ban](docs/backend-departments.md) và [SQL DepartmentAdministration cần review trước khi áp dụng](docs/department-administration-review.md). Phần 6 đã được người dùng xác nhận nâng cấp; phần 7 có migration mới, không tự apply khi F5.
 
-**Kế hoạch tiếp theo:** [Lộ trình backend](docs/backend-roadmap.md); bước 8 triển khai nhóm hỗ trợ và thành viên, sau đó danh mục và các luồng Ticket.
+**Nhóm hỗ trợ:** Đã có API nhóm/thành viên với `team.manage`, phạm vi trưởng nhóm theo membership, version và gỡ mềm giữ lịch sử Ticket. Xem [API nhóm hỗ trợ](docs/backend-support-teams.md) và [SQL SupportTeamAdministration cần review/apply](docs/support-team-administration-review.md). Người dùng đã xác nhận nâng cấp phần 7; phần 8 có migration mới và lệnh grant tùy chọn cho TeamLeader cũ.
+
+**Danh mục Ticket:** Đã có cây danh mục duyệt từng cấp, tạo/sửa/đổi parent/activate/deactivate với `category.manage`, chống vòng lặp và lookup khả dụng với `ticket.create`. Xem [API danh mục](docs/backend-ticket-categories.md) và [SQL TicketCategoryAdministration cần review/apply](docs/ticket-category-administration-review.md). Người dùng đã xác nhận nâng cấp phần 8; phần 9 có migration mới, không tự apply khi F5.
+
+**Phạm vi Ticket:** Đã có scope đọc/cập nhật trạng thái/phân công dùng chung, API GET danh sách/chi tiết/access, lọc theo quyền trước phân trang và guard ghi có transaction/version. Xem [ma trận và hướng dẫn tích hợp](docs/backend-ticket-access.md). Phần 9 đã được người dùng xác nhận nâng cấp; phần 10 không cần migration hoặc grant mới. Command tạo Ticket/workflow triển khai ở phần 11–12.
+
+**Kế hoạch tiếp theo:** [Lộ trình backend](docs/backend-roadmap.md); bước 11 triển khai tạo Ticket và hoàn thiện truy vấn, sau đó phân công/workflow.
 
 > **Quan trọng:** Không sử dụng trực tiếp package EF Core 10 trong project `net8.0`. Phải chuyển project cũ từ `net10.0` sang `net8.0` và thay các gói EF Core/Npgsql/NamingConventions bằng phiên bản **8.x tương thích** trước khi tạo migration. Mọi ví dụ endpoint/cấu trúc module ở README đều là **đề xuất thiết kế**, cần điều chỉnh theo source code thực tế khi triển khai.
 

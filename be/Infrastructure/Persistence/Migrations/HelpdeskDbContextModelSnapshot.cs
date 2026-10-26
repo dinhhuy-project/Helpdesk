@@ -425,17 +425,35 @@ namespace be.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("name");
 
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("normalized_name")
+                        .HasComputedColumnSql("lower(btrim(name))", true);
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id")
                         .HasName("pk_support_teams");
 
-                    b.HasIndex("DepartmentId")
-                        .HasDatabaseName("ix_support_teams_department_id");
+                    b.HasIndex("DepartmentId", "NormalizedName")
+                        .IsUnique()
+                        .HasDatabaseName("ix_support_teams_department_id_normalized_name");
 
-                    b.ToTable("support_teams", "organization");
+                    b.ToTable("support_teams", "organization", t =>
+                        {
+                            t.HasCheckConstraint("ck_support_teams_name_not_blank", "length(btrim(name)) > 0");
+                        });
                 });
 
             modelBuilder.Entity("be.Domain.Entities.SupportTeamMember", b =>
@@ -452,9 +470,23 @@ namespace be.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_active");
 
+                    b.Property<bool>("IsLeader")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_leader");
+
                     b.Property<DateTime>("JoinedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("joined_at");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
 
                     b.HasKey("SupportTeamId", "UserId")
                         .HasName("pk_support_team_members");
@@ -731,6 +763,14 @@ namespace be.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("name");
 
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("normalized_name")
+                        .HasComputedColumnSql("lower(btrim(name))", true);
+
                     b.Property<Guid?>("ParentId")
                         .HasColumnType("uuid")
                         .HasColumnName("parent_id");
@@ -739,13 +779,31 @@ namespace be.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id")
                         .HasName("pk_ticket_categories");
 
-                    b.HasIndex("ParentId")
-                        .HasDatabaseName("ix_ticket_categories_parent_id");
+                    b.HasIndex("NormalizedName")
+                        .IsUnique()
+                        .HasDatabaseName("ix_ticket_categories_normalized_name")
+                        .HasFilter("parent_id IS NULL");
 
-                    b.ToTable("ticket_categories", "helpdesk");
+                    b.HasIndex("ParentId", "NormalizedName")
+                        .IsUnique()
+                        .HasDatabaseName("ix_ticket_categories_parent_id_normalized_name")
+                        .HasFilter("parent_id IS NOT NULL");
+
+                    b.ToTable("ticket_categories", "helpdesk", t =>
+                        {
+                            t.HasCheckConstraint("ck_ticket_categories_name_not_blank", "length(btrim(name)) > 0");
+
+                            t.HasCheckConstraint("ck_ticket_categories_parent_not_self", "parent_id IS NULL OR parent_id <> id");
+                        });
                 });
 
             modelBuilder.Entity("be.Domain.Entities.TicketComment", b =>

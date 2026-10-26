@@ -78,16 +78,20 @@ Lệnh tạo permission/role còn thiếu. Chỉ **role mới được tạo** n
 | --- | --- |
 | Requester | ticket.create, ticket.read.own, ticket.comment.public |
 | SupportAgent | Requester + ticket.read.team, ticket.update.status, ticket.comment.internal |
-| TeamLeader | SupportAgent + ticket.assign |
-| SystemAdmin | Đủ 12 PermissionCodes khi role được tạo mới, gồm user.manage, role.manage, team.manage, ticket.manage.sla và ticket.read.all |
+| TeamLeader | SupportAgent + ticket.assign + team.manage (quản trị nhóm còn cần membership IsLeader theo phần 8) |
+| SystemAdmin | Đủ 14 PermissionCodes khi role được tạo mới, gồm user.manage, role.manage, department.manage, category.manage, team.manage, ticket.manage.sla và ticket.read.all |
 
-Đây là bộ quyền mặc định ban đầu; truy cập Ticket vẫn phải có resource authorization ở bước nghiệp vụ. TeamLeader chưa được cấp team.manage toàn hệ thống. Quyền xác nhận/mở lại ticket cho requester và quyền quản trị bổ sung sẽ được review cùng use case, không suy ra từ role.
+Đây là bộ quyền mặc định cho role được tạo mới; truy cập Ticket vẫn phải có resource authorization ở bước nghiệp vụ. TeamLeader có team.manage vẫn chỉ quản trị nhóm được chỉ định IsLeader active, không có quyền quản trị nhóm toàn hệ thống. Quyền xác nhận/mở lại ticket cho requester và quyền quản trị bổ sung sẽ được review cùng use case, không suy ra từ role.
 
 Chạy lại không thay đổi role description, không xóa grant tùy chỉnh, không khôi phục grant đã bị gỡ khỏi role đã tồn tại. Do đó role có sẵn nhưng chưa có grant sẽ giữ nguyên, cần quản lý quyền riêng. Không xóa/recreate role để áp lại mặc định lên môi trường đã tùy chỉnh.
 
 Role SystemAdmin có sẵn muốn bật quyền quản trị tài khoản/role mới cần operator chủ động chạy `grant-account-administration` sau migration và seed catalog. Lệnh bổ sung riêng user.manage/role.manage còn thiếu, có audit, chạy lặp an toàn và không được gọi từ startup. Xem [trình tự nâng cấp](account-administration-review.md).
 
 Phần 7 bổ sung `department.manage` vào catalog (tổng 13 permission). Sau khi review/apply DepartmentAdministration và seed, operator dùng `grant-department-administration` để bổ sung riêng quyền phòng ban cho SystemAdmin cũ nếu cần. Seed startup vẫn giữ grant cũ; không tự gọi lệnh grant. Xem [nâng cấp phòng ban](department-administration-review.md).
+
+Phần 8 dùng `team.manage` đã có, catalog vẫn 13 mã. TeamLeader được seed mới nhận thêm team.manage; role cũ giữ grant và operator có thể chạy `grant-team-leadership` sau migration/seed nếu muốn bật quyền này. Lệnh không tự gán IsLeader: SystemAdmin phải chỉ định leadership cho từng membership active qua API riêng. Xem [phạm vi và hướng dẫn nhóm hỗ trợ](backend-support-teams.md).
+
+Phần 9 bổ sung category.manage, catalog hiện có 14 mã. Sau review/apply TicketCategoryAdministration và seed, operator dùng `grant-category-administration` nếu muốn bật quyền mới cho SystemAdmin cũ. Chỉ bổ sung đúng quyền này, lặp an toàn và có audit; startup không tự gọi. Lookup danh mục dùng ticket.create, tách khỏi quyền quản trị. Xem [danh mục Ticket](backend-ticket-categories.md).
 
 Hai initializer dùng chung PostgreSQL advisory transaction lock, tránh tạo trùng khi chạy đồng thời. Mỗi lệnh là một transaction và kiểm tra không còn migration pending trước khi ghi; không tự migrate database.
 

@@ -67,7 +67,7 @@ dotnet run --project be/be.csproj --no-launch-profile -- seed-identity
 dotnet run --project be/be.csproj --no-launch-profile -- grant-department-administration
 ```
 
-Role SystemAdmin mới được seed nhận đủ 13 permission. Role đã tồn tại giữ nguyên grant; seed startup không tự cấp quyền mới vào role cũ. Lệnh thứ hai chủ động bổ sung đúng `department.manage` cho SystemAdmin, lặp an toàn, bump version role và ghi một audit `DepartmentAdministrationEnabled` khi thực sự thêm grant. Operator có thể cấp permission qua API grant của phần 6 thay thế lệnh này. Không cần đổi JWT hoặc đăng nhập lại để thấy grant mới.
+Role SystemAdmin mới được seed nhận đủ permission mặc định (hiện 14 mã, gồm category.manage ở phần 9). Role đã tồn tại giữ nguyên grant; seed startup không tự cấp quyền mới vào role cũ. Lệnh thứ hai chủ động bổ sung đúng `department.manage` cho SystemAdmin, lặp an toàn, bump version role và ghi một audit `DepartmentAdministrationEnabled` khi thực sự thêm grant. Operator có thể cấp permission qua API grant của phần 6 thay thế lệnh này. Không cần đổi JWT hoặc đăng nhập lại để thấy grant mới.
 
 Profile **Container (Dockerfile)** giữ port 5000 và seed/bootstrap đã cấu hình. Startup không apply migration và không chạy lệnh grant chủ động. Sau nâng cấp schema/cấp grant, F5 và thử API bằng Swagger.
 

@@ -1,12 +1,12 @@
 # Kế hoạch backend sau Identity và phân quyền
 
-Phần 6 đã có code/API/tests tại [quản trị tài khoản](backend-accounts.md); người dùng đã xác nhận review SQL và nâng cấp database. Phần 7 đã có [API phòng ban](backend-departments.md), cần review/apply [migration mới](department-administration-review.md). Các bước 8–18 dưới đây là kế hoạch tiếp theo. Ưu tiên các phần nhỏ có API, test và tài liệu để kiểm tra độc lập; frontend tích hợp theo từng phần đã ổn định.
+Phần 6–9 đã có code/API/tests và người dùng xác nhận review/apply database. Phần 10 đã có [scope Ticket dùng chung, API đọc và guard ghi](backend-ticket-access.md), không cần migration hoặc grant mới. Các bước 11–18 dưới đây là kế hoạch tiếp theo. Ưu tiên các phần nhỏ có API, test và tài liệu để kiểm tra độc lập; frontend tích hợp theo từng phần đã ổn định.
 
 ## Điểm xuất phát
 
 Đã có năm phần nền tảng: cấu hình/lỗi/bảo mật, seed Identity/bootstrap admin, login và `/users/me`, refresh rotation/logout, permission policies đọc database. Đã có GitHub Actions cho backend, frontend và Docker.
 
-Domain và EF mapping đã có 19 entity trong bốn schema, gồm audit Identity bổ sung cho 18 entity lõi, với InitialCreate, AccountAdministration và DepartmentAdministration. API đã có Auth, Users/me, quản trị User/Identity, Department và WeatherForecast từ template; API SupportTeam/Ticket chưa có. Frontend còn là starter và chưa có auth client.
+Domain và EF mapping đã có 19 entity trong bốn schema, gồm audit Identity bổ sung cho 18 entity lõi, với InitialCreate, AccountAdministration, DepartmentAdministration, SupportTeamAdministration và TicketCategoryAdministration. API đã có Auth, Users/me, quản trị User/Identity, Department, SupportTeam/membership, TicketCategory, Ticket GET list/detail/access và WeatherForecast từ template. Chưa có command tạo Ticket/workflow; frontend còn starter và chưa có auth client.
 
 Tận dụng model hiện có; chỉ tạo migration mới khi cần thay đổi field/index/constraint đã review. Không chỉnh InitialCreate đã áp dụng và không tự apply migration vào database đang dùng.
 
@@ -73,9 +73,10 @@ CRUD role và sửa grant có thể triển khai thành lượt riêng sau khi g
 | Vấn đề trong model hiện tại | Cách xử lý khi triển khai |
 | --- | --- |
 | Email chuẩn hóa đã có unique index trong AccountAdministration | Review xung đột trước khi nâng cấp; không tự gộp/xóa user. Constraint bảo vệ cả create đồng thời. |
-| Đã có `department.manage`, `role.manage`; chưa có `category.manage` | Department có quyền riêng và lệnh grant chủ động cho SystemAdmin cũ. Chốt quyền danh mục ở bước 9. Seed tiếp tục bảo toàn grant cũ. |
-| TeamLeader là role toàn user; SupportTeamMember chưa có field trưởng nhóm | Chốt trưởng nhóm theo team hay theo mọi team tham gia. Nếu cần phân biệt leader/agent từng team, review thay đổi membership trước API phân công. |
-| User/Role/Department đã có xmin Version; Team/Category chưa có | Chọn cơ chế chống ghi đè cho API tiếp theo; review mapping/migration nếu cần. |
+| Đã có `department.manage`, `role.manage`, `category.manage` | Quyền quản trị tách riêng, có lệnh grant chủ động cho role cũ. Seed tiếp tục bảo toàn grant cũ. Lookup danh mục dùng ticket.create. |
+| Trưởng nhóm đã được chốt theo SupportTeamMember.IsLeader | team.manage + membership leader active trong đúng nhóm/phòng ban active; SystemAdmin có team.manage quản trị toàn cục. Role TeamLeader không tự có scope. |
+| User/Role/Department/Team/Member/Category đã có xmin Version | Membership change bump cả member và team. Category version chỉ cho field của node; IsAvailable còn phụ thuộc ancestor hiện tại. |
+| Scope Ticket đã chốt theo requester, assignee và membership hiện tại | Read own/team/all kết hợp OR; xử lý cần update.status và assignee/leader hoặc read.all. Assign cần ticket.assign và leader nguồn/đích hoặc read.all. Dùng TicketScope/WriteGuard chung. |
 | Quyền reopen/confirm/cancel/create-on-behalf chưa có mã tách riêng | Chốt transition, actor và permission khi thiết kế bước 10–12; không suy ra chỉ từ role hoặc tên trạng thái. |
 | Refresh token hiện truyền JSON, frontend chưa có auth client | Khi tích hợp frontend, giữ token trong memory và điều phối một request refresh tại một thời điểm. Nếu cần duy trì qua reload bằng cookie HttpOnly, thiết kế HTTPS/CSRF/CORS cùng thay đổi transport. |
 
@@ -94,4 +95,4 @@ Có thể bắt đầu auth UI sau khi contract hiện tại ổn định: login
 
 Các tính năng AI, business-hour SLA và tối ưu cache dành sau MVP. Dùng Redis khi đã có query pattern và quy tắc invalidation rõ ràng; không cache permission mặc định để thay thế việc đọc quyền hiện tại.
 
-Bước tiếp theo đề xuất: **8 — Nhóm hỗ trợ và thành viên**, sau khi review/apply DepartmentAdministration và kiểm tra API phòng ban trên môi trường development. Bước 7 đã chốt tên duy nhất cả inactive, deactivate giữ user/team/session cũ và chỉ gán mới user vào Department active.
+Bước tiếp theo đề xuất: **11 — Ticket cơ bản**. GET list/detail/access đã nối scope ở phần 10; bổ sung tạo Ticket, kiểm tra category khả dụng trong transaction, requester/creator từ phiên và TicketActivity lúc tạo. Sửa nội dung/transition/confirm/reopen/cancel cần use case và permission phù hợp, không suy từ read scope hoặc tự dùng ticket.update.status để sửa mọi field.

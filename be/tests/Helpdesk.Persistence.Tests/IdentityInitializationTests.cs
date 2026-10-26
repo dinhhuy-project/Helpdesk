@@ -24,7 +24,7 @@ public class IdentityInitializationTests(PostgresFixture fixture)
 
         await using var context = CreateContext();
         Assert.Equal(4, await context.Roles.CountAsync());
-        Assert.Equal(13, await context.Permissions.CountAsync());
+        Assert.Equal(14, await context.Permissions.CountAsync());
         var requester = await context.Roles.SingleAsync(x => x.Name == RoleNames.Requester);
         var createPermission = await context.Permissions.SingleAsync(x => x.Code == PermissionCodes.TicketCreate);
         var readAllPermission = await context.Permissions.SingleAsync(x => x.Code == PermissionCodes.TicketReadAll);

@@ -4,7 +4,7 @@
 
 ## Bắt đầu sử dụng
 
-Sau khi review/nâng cấp database, chạy `seed-identity` để bổ sung catalog. Role SystemAdmin mới được seed nhận đủ 13 permission (đã bổ sung `department.manage` ở phần 7); role đã tồn tại vẫn giữ grant hiện có. Operator muốn bật quản trị tài khoản cho SystemAdmin cũ chạy lệnh chủ động `grant-account-administration` theo tài liệu review. Lệnh chỉ bổ sung `user.manage`/`role.manage` còn thiếu và ghi audit, không reset password hay grant khác. Quyền phòng ban có [lệnh grant riêng](backend-departments.md). Startup không tự gọi các lệnh grant này.
+Sau khi review/nâng cấp database, chạy `seed-identity` để bổ sung catalog. Role SystemAdmin mới được seed nhận đủ 14 permission (gồm department.manage ở phần 7 và category.manage ở phần 9); role đã tồn tại vẫn giữ grant hiện có. Operator muốn bật quản trị tài khoản cho SystemAdmin cũ chạy lệnh chủ động `grant-account-administration` theo tài liệu review. Lệnh chỉ bổ sung `user.manage`/`role.manage` còn thiếu và ghi audit, không reset password hay grant khác. Quyền phòng ban/danh mục có lệnh grant riêng trong tài liệu module tương ứng. Startup không tự gọi các lệnh grant này.
 
 Profile Visual Studio **Container (Dockerfile)** tiếp tục dùng port 5000, seed/bootstrap admin theo cấu hình hiện có. Sau nâng cấp, F5 lại và dùng Swagger. Credentials/JWT options vẫn lấy từ user-secrets; không có secret mới cho module này.
 
