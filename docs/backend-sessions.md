@@ -1,6 +1,6 @@
 # Quản lý phiên: refresh rotation và logout
 
-Backend có `POST /api/v1/auth/refresh` và `POST /api/v1/auth/logout`, cùng response login mở rộng. Dùng bảng `identity.refresh_tokens` và liên kết `replaced_by_token_id` đã có trong InitialCreate; không thêm migration hoặc dependency. Profile **Container (Dockerfile)** vẫn chạy ở `http://localhost:5000` với cấu hình JWT/user-secrets hiện có. Stop Debugging và F5 lại; không cần chạy initializer hoặc tạo lại admin.
+Backend có `POST /api/v1/auth/refresh` và `POST /api/v1/auth/logout`, cùng response login mở rộng. Refresh dùng bảng `identity.refresh_tokens` và liên kết `replaced_by_token_id` đã có trong InitialCreate. Code hiện có thêm [quản trị tài khoản/đổi mật khẩu](backend-accounts.md), cần [migration AccountAdministration](account-administration-review.md) trước khi chạy. Profile **Container (Dockerfile)** vẫn dùng `http://localhost:5000` với JWT/user-secrets hiện có; sau nâng cấp F5 lại, không tạo lại admin.
 
 ## Contract và cách truyền token
 
@@ -43,7 +43,7 @@ Endpoint không yêu cầu access token; access token hết hạn không ngăn v
 
 Phiên có thời hạn tuyệt đối, không sliding expiration. Khi hết hạn phiên, user login lại dù trước đó đã refresh nhiều lần. Access token mặc định 15 phút, vẫn kiểm tra issuer/audience/signature/type/lifetime với clock skew 30 giây. Refresh/session expiry được so sánh trực tiếp với giờ UTC, không có khoảng gia hạn đó.
 
-Khi refresh một phiên của user inactive, chuỗi đó được thu hồi bền vững; activate user lại không khôi phục chuỗi đã thu hồi. Các API có bearer luôn từ chối user inactive. Luồng quản trị ban/unban toàn bộ phiên chưa nằm trong bước này.
+Khi refresh một phiên của user inactive, chuỗi đó được thu hồi bền vững; activate user lại không khôi phục chuỗi đã thu hồi. Các API có bearer luôn từ chối user inactive. API status và đổi mật khẩu trong module quản trị thu hồi toàn bộ phiên trong cùng transaction với thay đổi tài khoản; bật active lại không khôi phục token cũ.
 
 ## POST /api/v1/auth/logout
 

@@ -12,6 +12,7 @@ public class HelpdeskDbContext(DbContextOptions<HelpdeskDbContext> options) : Db
     public DbSet<UserRole> UserRoles => Set<UserRole>();
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<IdentityAuditLog> IdentityAuditLogs => Set<IdentityAuditLog>();
     public DbSet<Department> Departments => Set<Department>();
     public DbSet<SupportTeam> SupportTeams => Set<SupportTeam>();
     public DbSet<SupportTeamMember> SupportTeamMembers => Set<SupportTeamMember>();

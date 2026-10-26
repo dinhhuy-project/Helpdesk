@@ -47,14 +47,35 @@ namespace be.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("name");
 
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("normalized_name")
+                        .HasComputedColumnSql("lower(btrim(name))", true);
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id")
                         .HasName("pk_departments");
 
-                    b.ToTable("departments", "organization");
+                    b.HasIndex("NormalizedName")
+                        .IsUnique()
+                        .HasDatabaseName("ix_departments_normalized_name");
+
+                    b.ToTable("departments", "organization", t =>
+                        {
+                            t.HasCheckConstraint("ck_departments_name_not_blank", "length(btrim(name)) > 0");
+                        });
                 });
 
             modelBuilder.Entity("be.Domain.Entities.ExternalIdentity", b =>
@@ -94,6 +115,56 @@ namespace be.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_external_identities_provider_subject");
 
                     b.ToTable("external_identities", "identity");
+                });
+
+            modelBuilder.Entity("be.Domain.Entities.IdentityAuditLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("action");
+
+                    b.Property<Guid?>("ActorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("actor_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Data")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("data");
+
+                    b.Property<Guid?>("TargetRoleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("target_role_id");
+
+                    b.Property<Guid?>("TargetUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("target_user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_identity_audit_logs");
+
+                    b.HasIndex("ActorId")
+                        .HasDatabaseName("ix_identity_audit_logs_actor_id");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("ix_identity_audit_logs_created_at");
+
+                    b.HasIndex("TargetRoleId")
+                        .HasDatabaseName("ix_identity_audit_logs_target_role_id");
+
+                    b.HasIndex("TargetUserId")
+                        .HasDatabaseName("ix_identity_audit_logs_target_user_id");
+
+                    b.ToTable("identity_audit_logs", "identity");
                 });
 
             modelBuilder.Entity("be.Domain.Entities.Notification", b =>
@@ -236,6 +307,16 @@ namespace be.Infrastructure.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("name");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
 
                     b.HasKey("Id")
                         .HasName("pk_roles");
@@ -798,6 +879,14 @@ namespace be.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_active");
 
+                    b.Property<string>("NormalizedEmail")
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)")
+                        .HasColumnName("normalized_email")
+                        .HasComputedColumnSql("lower(btrim(email))", true);
+
                     b.Property<string>("PasswordHash")
                         .HasMaxLength(1024)
                         .HasColumnType("character varying(1024)")
@@ -806,6 +895,12 @@ namespace be.Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
 
                     b.HasKey("Id")
                         .HasName("pk_users");
@@ -816,6 +911,10 @@ namespace be.Infrastructure.Persistence.Migrations
                     b.HasIndex("Email")
                         .IsUnique()
                         .HasDatabaseName("ix_users_email");
+
+                    b.HasIndex("NormalizedEmail")
+                        .IsUnique()
+                        .HasDatabaseName("ix_users_normalized_email");
 
                     b.ToTable("users", "identity");
                 });
@@ -847,6 +946,27 @@ namespace be.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_external_identities_users_user_id");
+                });
+
+            modelBuilder.Entity("be.Domain.Entities.IdentityAuditLog", b =>
+                {
+                    b.HasOne("be.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_identity_audit_logs_users_actor_id");
+
+                    b.HasOne("be.Domain.Entities.Role", null)
+                        .WithMany()
+                        .HasForeignKey("TargetRoleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_identity_audit_logs_roles_target_role_id");
+
+                    b.HasOne("be.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("TargetUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_identity_audit_logs_users_target_user_id");
                 });
 
             modelBuilder.Entity("be.Domain.Entities.Notification", b =>

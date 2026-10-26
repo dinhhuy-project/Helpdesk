@@ -1,6 +1,6 @@
 # Nền tảng API/configuration và seed Identity
 
-Đợt này đồng bộ EF Core Tools về **8.0.32**; runtime/Relational/Design vẫn 8.0.32, provider Npgsql 8.0.11. Giữ nguyên .NET 8, Domain và migration InitialCreate đã áp dụng. Không có migration mới.
+EF Core Tools/runtime/Relational/Design dùng **8.0.32**, provider Npgsql 8.0.11, giữ .NET 8. Sau nền tảng InitialCreate đã có [AccountAdministration](account-administration-review.md) cho email chuẩn hóa và audit. Cần áp dụng migration đã review trước khi chạy code hiện tại; startup không tự migrate.
 
 ## Trạng thái
 
@@ -79,11 +79,15 @@ Lệnh tạo permission/role còn thiếu. Chỉ **role mới được tạo** n
 | Requester | ticket.create, ticket.read.own, ticket.comment.public |
 | SupportAgent | Requester + ticket.read.team, ticket.update.status, ticket.comment.internal |
 | TeamLeader | SupportAgent + ticket.assign |
-| SystemAdmin | Đủ 11 PermissionCodes hiện tại, gồm user.manage, team.manage, ticket.manage.sla và ticket.read.all |
+| SystemAdmin | Đủ 12 PermissionCodes khi role được tạo mới, gồm user.manage, role.manage, team.manage, ticket.manage.sla và ticket.read.all |
 
 Đây là bộ quyền mặc định ban đầu; truy cập Ticket vẫn phải có resource authorization ở bước nghiệp vụ. TeamLeader chưa được cấp team.manage toàn hệ thống. Quyền xác nhận/mở lại ticket cho requester và quyền quản trị bổ sung sẽ được review cùng use case, không suy ra từ role.
 
 Chạy lại không thay đổi role description, không xóa grant tùy chỉnh, không khôi phục grant đã bị gỡ khỏi role đã tồn tại. Do đó role có sẵn nhưng chưa có grant sẽ giữ nguyên, cần quản lý quyền riêng. Không xóa/recreate role để áp lại mặc định lên môi trường đã tùy chỉnh.
+
+Role SystemAdmin có sẵn muốn bật quyền quản trị tài khoản/role mới cần operator chủ động chạy `grant-account-administration` sau migration và seed catalog. Lệnh bổ sung riêng user.manage/role.manage còn thiếu, có audit, chạy lặp an toàn và không được gọi từ startup. Xem [trình tự nâng cấp](account-administration-review.md).
+
+Phần 7 bổ sung `department.manage` vào catalog (tổng 13 permission). Sau khi review/apply DepartmentAdministration và seed, operator dùng `grant-department-administration` để bổ sung riêng quyền phòng ban cho SystemAdmin cũ nếu cần. Seed startup vẫn giữ grant cũ; không tự gọi lệnh grant. Xem [nâng cấp phòng ban](department-administration-review.md).
 
 Hai initializer dùng chung PostgreSQL advisory transaction lock, tránh tạo trùng khi chạy đồng thời. Mỗi lệnh là một transaction và kiểm tra không còn migration pending trước khi ghi; không tự migrate database.
 

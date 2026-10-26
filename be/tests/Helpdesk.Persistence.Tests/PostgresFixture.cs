@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql;
 using Xunit;
 
@@ -49,7 +51,7 @@ public sealed class PostgresFixture : IAsyncLifetime
         await using var context = ModelTests.CreateContext(ConnectionString);
         // Apply the migration API, validate the rollback artifact on our empty test schema,
         // then reapply the reviewed SQL. No application data exists at this point.
-        await context.Database.MigrateAsync();
+        await context.GetService<IMigrator>().MigrateAsync("20261022150705_InitialCreate");
         Assert.Single(await context.Database.GetAppliedMigrationsAsync());
         await using var rollbackCommand = new NpgsqlCommand(ModelTests.ReadSql("InitialCreate.Rollback.sql"), connection);
         await rollbackCommand.ExecuteNonQueryAsync();
@@ -57,6 +59,18 @@ public sealed class PostgresFixture : IAsyncLifetime
         Assert.Equal(1L, Convert.ToInt64(await countCommand.ExecuteScalarAsync())); // history table remains
         await using var createCommand = new NpgsqlCommand(ModelTests.ReadSql("InitialCreate.sql"), connection);
         await createCommand.ExecuteNonQueryAsync();
+        await using var upgrade = new NpgsqlCommand(ModelTests.ReadSql("AccountAdministration.sql"), connection);
+        await upgrade.ExecuteNonQueryAsync();
+        await upgrade.ExecuteNonQueryAsync(); // Idempotent history guard.
+        await using var downgrade = new NpgsqlCommand(ModelTests.ReadSql("AccountAdministration.Rollback.sql"), connection);
+        await downgrade.ExecuteNonQueryAsync(); // Empty database only; preserve InitialCreate history.
+        await upgrade.ExecuteNonQueryAsync();
+        await using var departments = new NpgsqlCommand(ModelTests.ReadSql("DepartmentAdministration.sql"), connection);
+        await departments.ExecuteNonQueryAsync();
+        await departments.ExecuteNonQueryAsync();
+        await using var undoDepartments = new NpgsqlCommand(ModelTests.ReadSql("DepartmentAdministration.Rollback.sql"), connection);
+        await undoDepartments.ExecuteNonQueryAsync(); // Empty database only.
+        await departments.ExecuteNonQueryAsync();
         await context.Database.MigrateAsync(); // already applied: must be a no-op
         Assert.Empty(await context.Database.GetPendingMigrationsAsync());
     }

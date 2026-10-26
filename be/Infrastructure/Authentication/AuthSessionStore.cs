@@ -13,11 +13,11 @@ namespace be.Infrastructure.Authentication;
 public sealed class AuthSessionStore(
     HelpdeskDbContext database, IOptions<JwtOptions> options, TimeProvider timeProvider) : IAuthSessionStore
 {
-    public async Task<RefreshSession?> CreateAsync(Guid userId, CancellationToken cancellationToken)
+    public async Task<RefreshSession?> CreateAsync(Guid userId, string expectedPasswordHash, CancellationToken cancellationToken)
     {
         await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
         var user = await LockUserAsync(userId, cancellationToken);
-        if (user is null || !user.IsActive) return null;
+        if (user is null || !user.IsActive || user.PasswordHash != expectedPasswordHash) return null;
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
         var (token, value) = CreateToken(userId, now, now.AddDays(options.Value.RefreshTokenDays));
@@ -76,7 +76,7 @@ public sealed class AuthSessionStore(
     }
 
     private Task<User?> LockUserAsync(Guid userId, CancellationToken cancellationToken) =>
-        database.Users.FromSqlInterpolated($"SELECT * FROM identity.users WHERE id = {userId} FOR UPDATE")
+        database.Users.FromSqlInterpolated($"SELECT *, xmin FROM identity.users WHERE id = {userId} FOR UPDATE")
             .AsNoTracking().SingleOrDefaultAsync(cancellationToken);
 
     private async Task<TokenOwner?> FindOwnerAsync(string value, CancellationToken cancellationToken)

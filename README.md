@@ -48,6 +48,12 @@ Tài liệu này mô tả **phạm vi và thiết kế mục tiêu của hệ th
 
 **CI:** GitHub Actions kiểm tra backend với PostgreSQL riêng, lint/build frontend và build Docker khi push hoặc mở pull request. Xem [cấu hình và cách sử dụng](docs/github-actions.md).
 
+**Quản trị tài khoản:** Đã có API user/status, cấp role theo scope, quản lý grant với `role.manage`, đổi mật khẩu/revoke toàn bộ phiên và audit. Xem [API quản trị](docs/backend-accounts.md). Code này yêu cầu [migration AccountAdministration đã review](docs/account-administration-review.md); database thật chưa được tự nâng cấp. Model hiện gồm 18 entity lõi và IdentityAuditLog.
+
+**Phòng ban:** Đã có API danh sách/chi tiết/tạo/sửa/activate/deactivate với `department.manage`, lookup cho `user.manage`, kiểm tra gán user và giữ liên kết lịch sử. Xem [API phòng ban](docs/backend-departments.md) và [SQL DepartmentAdministration cần review trước khi áp dụng](docs/department-administration-review.md). Phần 6 đã được người dùng xác nhận nâng cấp; phần 7 có migration mới, không tự apply khi F5.
+
+**Kế hoạch tiếp theo:** [Lộ trình backend](docs/backend-roadmap.md); bước 8 triển khai nhóm hỗ trợ và thành viên, sau đó danh mục và các luồng Ticket.
+
 > **Quan trọng:** Không sử dụng trực tiếp package EF Core 10 trong project `net8.0`. Phải chuyển project cũ từ `net10.0` sang `net8.0` và thay các gói EF Core/Npgsql/NamingConventions bằng phiên bản **8.x tương thích** trước khi tạo migration. Mọi ví dụ endpoint/cấu trúc module ở README đều là **đề xuất thiết kế**, cần điều chỉnh theo source code thực tế khi triển khai.
 
 ## 3. Công nghệ sử dụng

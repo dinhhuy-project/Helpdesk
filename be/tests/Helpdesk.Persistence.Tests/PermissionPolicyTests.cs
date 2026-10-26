@@ -24,7 +24,7 @@ public class PermissionPolicyTests
         services.AddHelpdeskAuthorization();
         using var provider = services.BuildServiceProvider();
         var policies = provider.GetRequiredService<IAuthorizationPolicyProvider>();
-        Assert.Equal(11, PermissionCodes.All.Count);
+        Assert.Equal(13, PermissionCodes.All.Count);
         foreach (var permission in PermissionCodes.All)
         {
             var policy = await policies.GetPolicyAsync(permission);

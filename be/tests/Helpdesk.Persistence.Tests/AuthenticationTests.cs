@@ -181,16 +181,13 @@ public class AuthenticationTests(PostgresFixture fixture)
     }
 
     [PostgresFact]
-    public async Task AmbiguousEmailVariantsFailClosed()
+    public async Task AmbiguousEmailVariantsArePreventedByTheDatabase()
     {
         var (user, password) = await CreateUserAsync();
         await using var database = ModelTests.CreateContext(fixture.ConnectionString);
         database.Users.Add(new User { Email = user.Email.ToUpperInvariant(), DisplayName = "Ambiguous" });
-        await database.SaveChangesAsync();
-        await using var factory = CreateFactory();
-        using var client = factory.CreateClient();
-        using var response = await client.PostAsJsonAsync("/api/v1/auth/login", new { email = user.Email, password });
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        var error = await Assert.ThrowsAsync<DbUpdateException>(() => database.SaveChangesAsync());
+        Assert.Equal("23505", Assert.IsType<Npgsql.PostgresException>(error.InnerException).SqlState);
     }
 
     [PostgresFact]

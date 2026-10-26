@@ -2,7 +2,7 @@ namespace be.Application.Features.Auth;
 
 public interface IAuthSessionStore
 {
-    Task<RefreshSession?> CreateAsync(Guid userId, CancellationToken cancellationToken);
+    Task<RefreshSession?> CreateAsync(Guid userId, string expectedPasswordHash, CancellationToken cancellationToken);
     Task<RefreshSession?> RotateAsync(string refreshToken, CancellationToken cancellationToken);
     Task RevokeAsync(string refreshToken, CancellationToken cancellationToken);
     Task<bool> IsActiveAsync(Guid userId, Guid sessionId, CancellationToken cancellationToken);

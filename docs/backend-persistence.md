@@ -1,6 +1,6 @@
 # Persistence với EF Core / PostgreSQL
 
-`be/Infrastructure/Persistence` chứa `HelpdeskDbContext`, đăng ký DI và 18 lớp `IEntityTypeConfiguration<T>`. Domain giữ nguyên C# thuần. Không gọi `EnsureCreated` hoặc `Migrate` khi API khởi động. Profile Container (Dockerfile) có seed catalog Identity tùy chọn như [hướng dẫn Identity](backend-identity-foundation.md).
+`be/Infrastructure/Persistence` chứa `HelpdeskDbContext`, đăng ký DI và 19 lớp `IEntityTypeConfiguration<T>`: 18 entity lõi cùng IdentityAuditLog. Domain giữ nguyên C# thuần. Có InitialCreate, [AccountAdministration](account-administration-review.md) và [DepartmentAdministration](department-administration-review.md). Không gọi `EnsureCreated` hoặc `Migrate` khi API khởi động. Profile Container (Dockerfile) có seed catalog Identity tùy chọn như [hướng dẫn Identity](backend-identity-foundation.md).
 
 ## Packages và cấu hình
 
@@ -32,7 +32,8 @@ Khi debug bằng **Container (Dockerfile)** của Visual Studio, container chạ
 - `ticket_number` là bigint identity **GENERATED ALWAYS**, có unique index. `Ticket.Version` dùng `IsRowVersion()` ánh xạ system column `xmin`, không tạo cột version/xmin mới trong DDL.
 - Enum lưu chuỗi có check constraint; mọi DateTime ánh xạ `timestamp with time zone`. Caller phải cung cấp UTC.
 - `old_value`/`new_value` lưu jsonb; chuỗi không phải JSON hợp lệ bị PostgreSQL từ chối.
-- Unique indexes cho email, role name, permission code, provider + subject, token hash, bucket + object key và ticket number. Uniqueness của chuỗi hiện phân biệt hoa/thường; use case Identity phải chuẩn hóa email trước khi lưu và truy vấn.
+- Unique indexes cho email gốc và normalized_email, role name, permission code, provider + subject, token hash, bucket + object key và ticket number. normalized_email do database tính `lower(btrim(email))`, chống email trùng hoa/thường/khoảng trắng. Các chuỗi còn lại dùng uniqueness theo cấu hình hiện có.
+- Department có generated `normalized_name = lower(btrim(name))`, unique cả inactive và check tên không trống dấu cách. Department/User/Role có Version ánh xạ xmin. Quy tắc phòng ban và gán user xem [module phòng ban](backend-departments.md).
 - Index phục vụ danh sách ticket theo requester/team/agent/status + thời gian; comment/activity theo ticket + thời gian; notification theo user + thời gian và index riêng cho chưa đọc; SLA có partial indexes cho deadline chưa hoàn tất.
 - FK ghép `(comment_id, ticket_id)` bảo đảm file gắn vào comment thuộc cùng ticket. Quyền xem và `IsInternal` vẫn cần kiểm tra ở Application; FK không thay thế ACL.
 - Check constraints: enum hợp lệ, agent phải có team, Resolved/Closed có summary và resolved_at, Closed có closed_at, kích thước file không âm, thời lượng SLA dương, deadline SLA không trước thời điểm áp dụng.

@@ -2,7 +2,7 @@ namespace be.Infrastructure.Identity;
 
 public static class IdentityCommands
 {
-    public static bool IsCommand(string[] args) => args.Length > 0 && args[0] is "seed-identity" or "bootstrap-admin";
+    public static bool IsCommand(string[] args) => args.Length > 0 && args[0] is "seed-identity" or "bootstrap-admin" or "grant-account-administration" or "grant-department-administration";
 
     public static async Task<int> ExecuteAsync(string[] args, IServiceProvider services, IConfiguration configuration)
     {
@@ -21,6 +21,16 @@ public static class IdentityCommands
             {
                 await initializer.SeedAsync();
                 logger.LogInformation("Identity catalog initialized. Existing role permissions were preserved.");
+            }
+            else if (args[0] == "grant-account-administration")
+            {
+                await initializer.GrantAccountAdministrationAsync();
+                logger.LogInformation("Account administration grants enabled for SystemAdmin. Other grants were preserved.");
+            }
+            else if (args[0] == "grant-department-administration")
+            {
+                await initializer.GrantDepartmentAdministrationAsync();
+                logger.LogInformation("Department administration grant enabled for SystemAdmin. Other grants were preserved.");
             }
             else
             {

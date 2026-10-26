@@ -9,9 +9,9 @@ public sealed class AuthUserStore(HelpdeskDbContext database) : IAuthUserStore
 {
     public async Task<User?> FindByEmailAsync(string normalizedEmail, CancellationToken cancellationToken)
     {
-        // Legacy rows may not be normalized. Ambiguous case variants fail closed instead of choosing an account.
+        // Computed and uniquely indexed by the database, including legacy mixed-case email values.
         var matches = await database.Users.AsNoTracking()
-            .Where(x => x.Email.ToLower() == normalizedEmail).Take(2).ToListAsync(cancellationToken);
+            .Where(x => x.NormalizedEmail == normalizedEmail).Take(2).ToListAsync(cancellationToken);
         return matches.Count == 1 ? matches[0] : null;
     }
 

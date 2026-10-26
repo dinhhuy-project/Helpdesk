@@ -1,6 +1,6 @@
 # Đăng nhập và thông tin người dùng
 
-Đã có login email/mật khẩu, phát hành/validate access token JWT, hồ sơ user hiện tại, [quản lý phiên với refresh rotation/logout](backend-sessions.md) và [permission policies đọc database](backend-authorization.md). Giữ .NET 8 và `Microsoft.AspNetCore.Authentication.JwtBearer` 8.0.32. Không có thay đổi schema hoặc migration mới. Chưa triển khai OIDC hoặc cookie.
+Đã có login email/mật khẩu, phát hành/validate access token JWT, hồ sơ user hiện tại, [quản lý phiên với refresh rotation/logout](backend-sessions.md), [permission policies đọc database](backend-authorization.md) và [quản trị tài khoản](backend-accounts.md). Giữ .NET 8 và `Microsoft.AspNetCore.Authentication.JwtBearer` 8.0.32. Code hiện cần [migration AccountAdministration](account-administration-review.md); chưa triển khai OIDC hoặc cookie.
 
 ## Chạy và cấu hình
 
@@ -66,7 +66,7 @@ Lỗi trả ProblemDetails/ValidationProblemDetails có `traceId`:
 
 Các lỗi credential dùng chung title `Email hoặc mật khẩu không hợp lệ.` và không cho biết account có tồn tại/đang bị khóa hay không. Account không có hash vẫn thực hiện verify bằng dummy hash để giảm chênh lệch xử lý. Hash dùng ASP.NET Core PasswordHasher; hash cũ được rehash sau login đúng, update có điều kiện theo hash cũ và trạng thái active để không ghi đè thay đổi đồng thời.
 
-Tra cứu email dùng lowercase và từ chối nếu có nhiều bản ghi khác nhau chỉ ở hoa/thường. Không tự gộp hoặc sửa dữ liệu cũ. Để tối ưu lookup ở quy mô lớn, có thể bổ sung cột/index email chuẩn hóa trong migration riêng.
+Tra cứu email dùng cột generated `normalized_email = lower(btrim(email))`, có unique index. Migration AccountAdministration kiểm tra email mơ hồ trước khi thêm constraint và dừng nếu có xung đột; không tự gộp hoặc sửa email cũ. Login kiểm tra lại password hash dưới khóa trước khi tạo session để chặn credential đã bị thay đổi trong lúc request đang chạy.
 
 ## GET /api/v1/users/me
 
@@ -105,6 +105,6 @@ dotnet build be/be.sln --no-restore -warnaserror
 & ./be/tests/Run-PersistenceTests.ps1
 ```
 
-Không đăng nhập hoặc đổi password admin thật trong suite này. Không cần apply migration mới.
+Không đăng nhập hoặc đổi password admin thật trong suite này. PostgreSQL test tự áp dụng SQL trên database tạm; database ứng dụng cần nâng cấp AccountAdministration theo tài liệu review.
 
 Tham khảo: [JWT bearer validation](https://learn.microsoft.com/aspnet/core/security/authentication/configure-jwt-bearer-authentication), [PasswordHasher](https://learn.microsoft.com/aspnet/core/security/data-protection/consumer-apis/password-hashing).

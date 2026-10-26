@@ -15,7 +15,7 @@ public class ModelTests
     {
         using var context = CreateContext();
         var entities = context.Model.GetEntityTypes().ToArray();
-        Assert.Equal(18, entities.Length);
+        Assert.Equal(19, entities.Length);
         Assert.Equal(new[] { "communication", "helpdesk", "identity", "organization" },
             entities.Select(x => x.GetSchema()).Distinct().OrderBy(x => x));
         foreach (var entity in entities)
@@ -55,13 +55,24 @@ public class ModelTests
     {
         using var context = CreateContext();
         Assert.False(context.Database.HasPendingModelChanges());
-        var migrationId = Assert.Single(context.Database.GetMigrations());
-        Assert.EndsWith("_InitialCreate", migrationId);
+        var migrations = context.Database.GetMigrations().ToArray();
+        Assert.Equal(3, migrations.Length);
+        Assert.EndsWith("_InitialCreate", migrations[0]);
+        Assert.EndsWith("_AccountAdministration", migrations[1]);
+        Assert.EndsWith("_DepartmentAdministration", migrations[2]);
         var migrator = context.GetService<IMigrator>();
-        var forward = migrator.GenerateScript("0", migrationId, MigrationsSqlGenerationOptions.Idempotent);
-        var rollback = migrator.GenerateScript(migrationId, "0");
+        var forward = migrator.GenerateScript("0", migrations[0], MigrationsSqlGenerationOptions.Idempotent);
+        var rollback = migrator.GenerateScript(migrations[0], "0");
         Assert.Equal(NormalizeSql(forward), NormalizeSql(ReadSql("InitialCreate.sql")));
         Assert.Equal(NormalizeSql(rollback), NormalizeSql(ReadSql("InitialCreate.Rollback.sql")));
+        Assert.Equal(NormalizeSql(migrator.GenerateScript(migrations[0], migrations[1], MigrationsSqlGenerationOptions.Idempotent)),
+            NormalizeSql(ReadSql("AccountAdministration.sql")));
+        Assert.Equal(NormalizeSql(migrator.GenerateScript(migrations[1], migrations[0])),
+            NormalizeSql(ReadSql("AccountAdministration.Rollback.sql")));
+        Assert.Equal(NormalizeSql(migrator.GenerateScript(migrations[1], migrations[2], MigrationsSqlGenerationOptions.Idempotent)),
+            NormalizeSql(ReadSql("DepartmentAdministration.sql")));
+        Assert.Equal(NormalizeSql(migrator.GenerateScript(migrations[2], migrations[1])),
+            NormalizeSql(ReadSql("DepartmentAdministration.Rollback.sql")));
     }
 
     internal static string ReadSql(string fileName) =>

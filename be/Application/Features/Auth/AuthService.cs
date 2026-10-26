@@ -14,11 +14,13 @@ public sealed class AuthService(
             if (user.PasswordHash is null || !await users.UpdatePasswordHashAsync(
                     user.Id, user.PasswordHash, check.ReplacementHash, cancellationToken))
                 return null;
+            user.PasswordHash = check.ReplacementHash;
         }
 
         var profile = await users.GetProfileAsync(user.Id, cancellationToken);
         if (profile is null) return null;
-        var session = await sessions.CreateAsync(user.Id, cancellationToken);
+        if (user.PasswordHash is null) return null;
+        var session = await sessions.CreateAsync(user.Id, user.PasswordHash, cancellationToken);
         return session is null ? null : CreateResult(session, profile);
     }
 

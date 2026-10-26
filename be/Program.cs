@@ -4,6 +4,10 @@ using be.Infrastructure.Identity;
 using be.Api;
 using be.Infrastructure.Authentication;
 using be.Infrastructure.Authorization;
+using be.Application.Features.Accounts;
+using be.Infrastructure.Accounts;
+using be.Application.Features.Departments;
+using be.Infrastructure.Departments;
 using Microsoft.OpenApi.Models;
 
 namespace be
@@ -22,6 +26,10 @@ namespace be
             builder.Services.AddIdentityInitialization();
             builder.Services.AddHelpdeskAuthentication();
             builder.Services.AddHelpdeskAuthorization();
+            builder.Services.AddScoped<IAccountAdministrationStore, AccountAdministrationStore>();
+            builder.Services.AddScoped<AccountAdministrationService>();
+            builder.Services.AddScoped<IDepartmentStore, DepartmentStore>();
+            builder.Services.AddScoped<DepartmentService>();
             // Framework diagnostics include raw exceptions; our handler emits safe trace-based logs.
             builder.Logging.AddFilter("Microsoft.AspNetCore.Diagnostics.ExceptionHandlerMiddleware", LogLevel.None);
             builder.Logging.AddFilter("Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerHandler", LogLevel.None);

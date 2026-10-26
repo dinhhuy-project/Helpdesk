@@ -10,6 +10,7 @@ public class RoleConfiguration : IEntityTypeConfiguration<Role>
     {
         builder.ToTable("roles", "identity");
         builder.HasKey(x => x.Id);
+        builder.Property(x => x.Version).IsRowVersion();
         builder.Property(x => x.Id).ValueGeneratedNever();
         builder.Property(x => x.Name).HasMaxLength(100).IsRequired();
         builder.Property(x => x.Description).HasMaxLength(1000).IsRequired(false);

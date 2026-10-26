@@ -1,6 +1,6 @@
 # Phân quyền theo permission hiện tại
 
-Đã đăng ký policy cho 11 mã trong `PermissionCodes.All`, với helper `[RequirePermission(...)]` và permission checker đọc PostgreSQL. Giữ .NET 8, EF/Npgsql 8.x và schema hiện có; không cần migration, package, secret hoặc cấu hình mới. F5 lại profile **Container (Dockerfile)** để dùng code mới.
+Đã đăng ký policy cho 13 mã trong `PermissionCodes.All`, gồm `role.manage` và `department.manage` tách khỏi `user.manage`, với helper `[RequirePermission(...)]` và permission checker đọc PostgreSQL. Giữ .NET 8, EF/Npgsql 8.x. Code hiện có [API quản trị](backend-accounts.md) và [phòng ban](backend-departments.md); phần 7 cần [nâng cấp DepartmentAdministration](department-administration-review.md) trước khi F5 lại profile Docker. Không có secret mới.
 
 ## Luồng quyết định truy cập
 
@@ -48,7 +48,9 @@ Các policy hiện có:
 | `TicketCommentInternal` | `ticket.comment.internal` |
 | `TicketManageSla` | `ticket.manage.sla` |
 | `UserManage` | `user.manage` |
+| `RoleManage` | `role.manage` |
 | `TeamManage` | `team.manage` |
+| `DepartmentManage` | `department.manage` |
 
 `ticket.read.all`, `ticket.read.team`, `ticket.read.own` là các permission khác nhau; một policy không tự thay thế policy khác. Use case đọc Ticket cần chọn quy tắc phù hợp với các scope này khi triển khai truy vấn.
 
@@ -76,7 +78,7 @@ Application có abstraction `IPermissionChecker` tại `Application/Common/Autho
 
 403 không tiết lộ permission còn thiếu hoặc dữ liệu role. Swagger tự thêm Bearer security cùng response 401/403 dạng ProblemDetails cho `[RequirePermission]`, kể cả attribute nằm trên class. Auth endpoints có `[AllowAnonymous]` tiếp tục dùng credentials của chính endpoint đó.
 
-`GET /api/v1/users/me` giữ `[Authorize]`: mọi user có phiên hợp lệ và active có thể xem hồ sơ của mình, kể cả chưa được gán role. Hồ sơ trả role/permission hiện tại từ database. Health endpoint giữ cách truy cập hiện có. Các API quản trị/nghiệp vụ tiếp theo cần được gắn permission tương ứng khi thêm endpoint.
+`GET /api/v1/users/me` giữ `[Authorize]`: mọi user có phiên hợp lệ và active có thể xem hồ sơ của mình, kể cả chưa được gán role. Hồ sơ trả role/permission hiện tại từ database. API quản lý user dùng `user.manage`; cấp role/grant dùng `role.manage` cùng [scope và guard quản trị](backend-accounts.md). Health endpoint giữ cách truy cập hiện có. Các API nghiệp vụ tiếp theo cần được gắn permission tương ứng khi thêm endpoint.
 
 ## Permission và phạm vi tài nguyên
 
@@ -93,7 +95,7 @@ dotnet build be/be.sln --no-restore -warnaserror
 & ./be/tests/Run-PersistenceTests.ps1
 ```
 
-Các test mới kiểm tra 11 policy với bốn role mặc định, thêm/gỡ membership và grant trên JWT đang dùng, nhiều role, kết hợp class/action policy, SystemAdmin mất grant, claim/header không cấp quyền, 401/403 và Swagger. Permission checker được kiểm tra trực tiếp với user inactive, phiên hết hạn/thu hồi/sai owner và permission không đăng ký. Lỗi tra quyền phải đóng truy cập và giữ response sanitized.
+Các test kiểm tra 12 policy với bốn role mặc định, thêm/gỡ membership và grant trên JWT đang dùng, nhiều role, kết hợp class/action policy, SystemAdmin mất grant, claim/header không cấp quyền, 401/403 và Swagger. Permission checker được kiểm tra trực tiếp với user inactive, phiên hết hạn/thu hồi/sai owner và permission không đăng ký. API quản trị có tests scope/grant và last-admin riêng. Lỗi tra quyền phải đóng truy cập và giữ response sanitized.
 
 Endpoint `__tests/permissions` và `__tests/team-permissions` chỉ nằm trong assembly test, được TestServer đăng ký; không xuất hiện trong API production. Toàn bộ test database chạy trên PostgreSQL tạm, không sửa grant hay tài khoản thật. GitHub Actions hiện có tự chạy suite này; không cần thêm secret hoặc thay workflow.
 

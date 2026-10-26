@@ -9,7 +9,8 @@ internal static class IdentitySeedCatalog
         PermissionCodes.TicketCreate, PermissionCodes.TicketReadOwn, PermissionCodes.TicketReadTeam,
         PermissionCodes.TicketReadAll, PermissionCodes.TicketAssign, PermissionCodes.TicketUpdateStatus,
         PermissionCodes.TicketCommentPublic, PermissionCodes.TicketCommentInternal,
-        PermissionCodes.TicketManageSla, PermissionCodes.UserManage, PermissionCodes.TeamManage
+        PermissionCodes.TicketManageSla, PermissionCodes.UserManage, PermissionCodes.RoleManage, PermissionCodes.TeamManage,
+        PermissionCodes.DepartmentManage
     ];
 
     private static readonly string[] RequesterPermissions =
