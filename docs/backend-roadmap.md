@@ -6,7 +6,7 @@ Phần 6–9 đã có code/API/tests và người dùng xác nhận review/apply
 
 Đã có năm phần nền tảng: cấu hình/lỗi/bảo mật, seed Identity/bootstrap admin, login và `/users/me`, refresh rotation/logout, permission policies đọc database. Đã có GitHub Actions cho backend, frontend và Docker.
 
-Domain và EF mapping có 20 entity trong bốn schema: 18 entity lõi, IdentityAuditLog và AttachmentUploadIntent. Có tám migration: InitialCreate, AccountAdministration, DepartmentAdministration, SupportTeamAdministration, TicketCategoryAdministration, AttachmentStorage, NotificationDelivery và SlaMvp. API có Auth, Users/me, quản trị User/Identity, Department, SupportTeam/membership, TicketCategory, Ticket create/assign/transition/list/detail/access, comment/activity/attachment, notification, SLA policy/Ticket SLA, dashboard/reports và hub /hubs/notifications, cùng WeatherForecast từ template. Frontend còn starter và chưa có auth client.
+Domain và EF mapping có 20 entity trong bốn schema: 18 entity lõi, IdentityAuditLog và AttachmentUploadIntent. Có tám migration: InitialCreate, AccountAdministration, DepartmentAdministration, SupportTeamAdministration, TicketCategoryAdministration, AttachmentStorage, NotificationDelivery và SlaMvp. API có Auth, Users/me, quản trị User/Identity, Department, SupportTeam/membership, TicketCategory, Ticket create/assign/transition/list/detail/access, comment/activity/attachment, notification, SLA policy/Ticket SLA, dashboard/reports và hub /hubs/notifications, cùng WeatherForecast từ template. Frontend đã có [nền tảng bước 1](frontend-foundation.md), chưa có auth client hoặc màn hình nghiệp vụ.
 
 Tận dụng model hiện có; chỉ tạo migration mới khi cần thay đổi field/index/constraint đã review. Không chỉnh InitialCreate đã áp dụng và không tự apply migration vào database đang dùng.
 
@@ -90,6 +90,8 @@ CRUD role và sửa grant có thể triển khai thành lượt riêng sau khi g
 - Nếu có migration: tạo migration mới, review SQL/rollback và dữ liệu hiện có trước khi áp dụng. Không tự migrate lúc startup.
 
 ## Tích hợp frontend
+
+Thực hiện theo [lộ trình frontend 15 bước](frontend-roadmap.md), có thứ tự phụ thuộc, mốc nghiệm thu và các điểm cần chốt contract trước giao diện phân công.
 
 Backend phần 1–17 đủ contract để bắt đầu frontend: auth/login/logout/refresh và `/users/me` trước, sau đó Ticket create/list/detail/assign/transition, comment/internal/file, quản trị, notification/SLA và dashboard. Xem [checklist quyền, query cache và báo cáo](backend-reporting.md). Kiểm thử JS SignalR major 10 với backend 8 là bước tích hợp riêng, chưa được coi là hoàn tất bởi các tests .NET client.
 

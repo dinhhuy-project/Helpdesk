@@ -40,7 +40,7 @@ Tài liệu này mô tả **phạm vi và thiết kế mục tiêu của hệ th
 | Phân tích nghiệp vụ và mô hình dữ liệu 18 entities | Đã thiết kế                          | Có thiết kế schema, entities, quan hệ và constraints                        |
 | Bộ mã EF Core Schema Starter từ giai đoạn trước    | Có bản khởi tạo riêng                | **Bản cũ target .NET 10 / EF Core 10**, chưa phải backend `net8.0` hiện tại |
 | Backend API nghiệp vụ                              | Core phần 1–17 đã triển khai          | Auth, tổ chức, Ticket, file, SLA, notification và dashboard/report theo ACL |
-| Frontend React `^19.3.1`                           | Stack đã chọn                        | Chưa có mã frontend được cung cấp trong phạm vi tài liệu này                |
+| Frontend React `^19.3.1`                           | Nền tảng đã triển khai               | Router/provider, API client, component dùng chung và tests; auth/nghiệp vụ triển khai tiếp |
 | MinIO nghiệp vụ                                    | Đã triển khai phần 14                | File private theo ACL Ticket/comment, cần review SQL và cấu hình storage    |
 | SignalR / Redis nghiệp vụ                          | SignalR đã triển khai phần 15         | Notification sau commit, JWT/resource ACL; Redis chưa làm cache/backplane   |
 | AI                                                 | Sau MVP, nếu còn thời gian           | Không phải yêu cầu bắt buộc                                                 |
@@ -73,7 +73,9 @@ Tài liệu này mô tả **phạm vi và thiết kế mục tiêu của hệ th
 
 **Dashboard và báo cáo:** Phần 17 có GET dashboard, report team/agent và daily, lọc ACL trước aggregation, phân trang group và định nghĩa denominator SLA rõ ràng. Đã [đo SQL/index thực tế](docs/report-query-review.md), giữ model 20 entity/tám migration, không thêm package/grant/secret. Xem [contract và checklist frontend](docs/backend-reporting.md).
 
-**Kế hoạch tiếp theo:** Có thể bắt đầu frontend theo các API hiện có; [lộ trình backend](docs/backend-roadmap.md) còn phần 18 chuẩn bị vận hành trước deployment production.
+**Kế hoạch tiếp theo:** Triển khai frontend theo [lộ trình 15 bước và tiêu chí nghiệm thu](docs/frontend-roadmap.md), bắt đầu từ nền tảng, auth/session và luồng Ticket. [Lộ trình backend](docs/backend-roadmap.md) còn phần 18 chuẩn bị vận hành trước deployment production.
+
+**Nền tảng frontend:** Bước 1 đã có React Router/QueryClient, typed Axios client, ProblemDetails/validation/traceId, enum/ngày giờ, component dùng chung và Vitest/Testing Library. Chạy `npm ci`, `npm run dev` trong `fe/`, mở port 5173; dev proxy mặc định nối API Container port 5000. Xem [cấu hình, phiên bản và kiểm thử](docs/frontend-foundation.md). Bước tiếp theo là auth/session; chưa có giao diện đăng nhập.
 
 **Khởi động lại hạ tầng:** Giữ `.env` hiện có, chạy `docker compose up -d --build --wait postgres redis minio`. MinIO tự tạo bucket private, app user/policy và chỉ báo healthy sau khi cấu hình xong, kể cả khi volume mới trống. Nếu xóa volume PostgreSQL, cần áp dụng lại migrations đã review trước khi chạy API. Xem [setup](docs/backend-setup.md).
 

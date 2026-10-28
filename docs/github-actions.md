@@ -7,10 +7,10 @@ Workflow [CI](../.github/workflows/ci.yml) chạy khi push lên bất kỳ branc
 | Job / status check | Nội dung |
 | --- | --- |
 | `Backend build and tests` | Restore, build Release với warning là lỗi; chạy toàn bộ xUnit với PostgreSQL 16 và MinIO tạm; smoke test CLI `seed-identity`; kiểm tra publish API |
-| `Frontend lint and build` | Node.js 24, `npm ci` theo lockfile, ESLint, TypeScript và Vite build |
+| `Frontend lint and build` | Node.js 24, `npm ci` theo lockfile, ESLint, Vitest unit/component tests, TypeScript và Vite build |
 | `Docker and Compose validation` | Kiểm tra Compose bằng `.env.example` và giá trị giả dành cho CI; build image từ `be/Dockerfile` với context `be/` |
 
-Backend dùng SDK .NET 8 được chọn bằng `global.json` tạo riêng trên runner. File này không được thêm vào repository và không thay cách chọn SDK trên máy phát triển. Frontend dùng cache npm theo `fe/package-lock.json`. Hiện frontend chưa có test runner nên CI chỉ chạy các script lint/build đang tồn tại.
+Backend dùng SDK .NET 8 được chọn bằng `global.json` tạo riêng trên runner. File này không được thêm vào repository và không thay cách chọn SDK trên máy phát triển. Frontend dùng cache npm theo `fe/package-lock.json`, đã có `npm test` chạy Vitest/Testing Library với Happy DOM, không cần API hoặc credential thật. Giữ tên status check hiện tại; xem [nền tảng frontend](frontend-foundation.md).
 
 PostgreSQL là service container mới cho từng job, không mount volume và dùng database `helpdesk_mapping_test_ci`, phù hợp điều kiện an toàn của bộ test. Suite kiểm tra migration/rollback, constraint, Identity/auth/session/permission, quản trị tài khoản (scope, version, audit, last-admin race, password revoke), Department, SupportTeam/membership (leader scope, version, deactivate/remove giữ lịch sử), TicketCategory (active ancestors, tên sibling/root, reparent/cycle race) và ACL Ticket (list/detail/checker cùng scope, negative writes/destination, quyền thay đổi, version race). Migration tests tạo thêm database con tạm trong chính service PostgreSQL để kiểm tra dữ liệu legacy; dùng tài khoản postgres của service test. CLI seed chạy sau test trên cùng database để kiểm tra tính idempotent. CI chạy dotnet test trực tiếp, không gọi script PowerShell; Redis chưa cần cho suite.
 

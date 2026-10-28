@@ -1,75 +1,24 @@
-# React + TypeScript + Vite
+# Helpdesk frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React 19.3.1 + TypeScript + Vite. Đã có nền tảng router/provider, typed API client, lỗi API, component dùng chung và unit/component tests. Chưa triển khai auth hoặc các màn hình nghiệp vụ.
 
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```powershell
+npm ci
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+Mở `http://localhost:5173`; backend Visual Studio **Container (Dockerfile)** chạy tại port 5000. Vite proxy `/api` và `/health` về backend. Có thể copy `.env.example` thành `.env.local` để đổi cấu hình; restart Vite sau khi đổi. `VITE_*` là cấu hình public, không chứa secrets.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```powershell
+npm run lint
+npm test
+npm run build
 ```
+
+Node 22.12+ trong major 22, Node 24 hoặc 26+ theo `package.json`; `.nvmrc`/CI chọn Node 24. `npm run test:watch` dùng khi phát triển.
+
+- [Cấu trúc, phiên bản, API/cache và cách cấu hình](../docs/frontend-foundation.md)
+- [Lộ trình và tiêu chí nghiệm thu](../docs/frontend-roadmap.md)
+- [Quy tắc repository](../guides.md)
+
+Production cần SPA fallback và reverse proxy cho `/api`, `/health`, hoặc build với origin API riêng và CORS phù hợp. Dev proxy không thay thế reverse proxy production. Test enum đối chiếu source `be/Domain/Enums` trong cùng monorepo; chạy từ thư mục `fe/`.

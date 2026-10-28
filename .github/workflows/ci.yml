@@ -130,6 +130,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Frontend tests
+        run: npm test
+
       - name: Build and check TypeScript
         run: npm run build
 
