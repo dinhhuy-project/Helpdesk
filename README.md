@@ -39,10 +39,10 @@ Tài liệu này mô tả **phạm vi và thiết kế mục tiêu của hệ th
 | -------------------------------------------------- | ------------------------------------ | --------------------------------------------------------------------------- |
 | Phân tích nghiệp vụ và mô hình dữ liệu 18 entities | Đã thiết kế                          | Có thiết kế schema, entities, quan hệ và constraints                        |
 | Bộ mã EF Core Schema Starter từ giai đoạn trước    | Có bản khởi tạo riêng                | **Bản cũ target .NET 10 / EF Core 10**, chưa phải backend `net8.0` hiện tại |
-| Backend API nghiệp vụ                              | Dự kiến                              | Auth, ticket, comment, SLA, notification, report                            |
+| Backend API nghiệp vụ                              | Core phần 1–17 đã triển khai          | Auth, tổ chức, Ticket, file, SLA, notification và dashboard/report theo ACL |
 | Frontend React `^19.3.1`                           | Stack đã chọn                        | Chưa có mã frontend được cung cấp trong phạm vi tài liệu này                |
 | MinIO nghiệp vụ                                    | Đã triển khai phần 14                | File private theo ACL Ticket/comment, cần review SQL và cấu hình storage    |
-| SignalR / Redis nghiệp vụ                          | Dự kiến                              | Hạ tầng Redis có thể chạy bằng Docker; realtime/cache chưa tích hợp         |
+| SignalR / Redis nghiệp vụ                          | SignalR đã triển khai phần 15         | Notification sau commit, JWT/resource ACL; Redis chưa làm cache/backplane   |
 | AI                                                 | Sau MVP, nếu còn thời gian           | Không phải yêu cầu bắt buộc                                                 |
 
 **Backend hiện đã khởi tạo:** Domain, persistence/migration, nền tảng API, seed Identity/bootstrap admin, login email/mật khẩu, JWT validation, `/api/v1/users/me`, refresh token rotation/logout và permission policies đọc trạng thái tài khoản/quyền hiện tại từ database. Profile Docker tiếp tục tự seed/bootstrap admin khi cần. Xem [API Authentication](docs/backend-authentication.md), [quản lý phiên](docs/backend-sessions.md), [phân quyền](docs/backend-authorization.md), [nền tảng Identity](docs/backend-identity-foundation.md) và [persistence](docs/backend-persistence.md). Chưa có UI đăng nhập.
@@ -59,15 +59,21 @@ Tài liệu này mô tả **phạm vi và thiết kế mục tiêu của hệ th
 
 **Phạm vi Ticket:** Đã có scope đọc/cập nhật trạng thái/phân công dùng chung, API GET danh sách/chi tiết/access, lọc theo quyền trước phân trang và guard ghi có transaction/version. Xem [ma trận và hướng dẫn tích hợp](docs/backend-ticket-access.md). Phần 9 đã được người dùng xác nhận nâng cấp; phần 10 không cần migration hoặc grant mới.
 
-**Ticket cơ bản:** Phần 11 đã có POST tạo cho chính mình bằng ticket.create, TicketNumber do PostgreSQL sinh và TicketCreated activity cùng transaction. GET hỗ trợ mã/requester/agent/ngày, sort và phân trang trong scope. Xem [contract và cách thử API](docs/backend-tickets.md). Không cần migration/grant mới; Ticket mới chưa có SLA snapshot. Chưa mở tạo hộ.
+**Ticket cơ bản:** Phần 11 đã có POST tạo cho chính mình bằng ticket.create, TicketNumber do PostgreSQL sinh và TicketCreated activity cùng transaction. GET hỗ trợ mã/requester/agent/ngày, sort và phân trang trong scope. Xem [contract và cách thử API](docs/backend-tickets.md). Phần 16 thêm SLA snapshot khi priority có policy active. Chưa mở tạo hộ.
 
-**Phân công và workflow:** Phần 12 đã có POST assign/transition, kiểm tra team/agent, bảng chuyển trạng thái, summary khi resolve, Version/xmin và activity cùng transaction. Confirm/reopen/cancel có quyền riêng; database có role cũ cần seed rồi chủ động grant theo [hướng dẫn workflow](docs/backend-ticket-workflow.md). Không có migration mới. SLA hiện có chỉ đồng bộ mốc resolved, chưa phát notification.
+**Phân công và workflow:** Phần 12 có POST assign/transition, kiểm tra team/agent, bảng chuyển trạng thái, summary khi resolve, Version/xmin và activity cùng transaction. Confirm/reopen/cancel có quyền riêng; database có role cũ cần seed rồi chủ động grant theo [hướng dẫn workflow](docs/backend-ticket-workflow.md). Phần 15 thêm notification; phần 16 bổ sung SLA resolve/reopen/overdue và giữ deadline gốc.
 
 **Comment và internal note:** Phần 13 đã có POST/GET comment và GET activity list/detail, phân trang sau ACL, author từ phiên và comment/activity cùng transaction. Requester không nhận internal note, kể cả trong timeline hoặc count; audit trả payload whitelist. Xem [contract thảo luận Ticket](docs/backend-ticket-comments.md). Comment chỉ thêm mới; không cần migration/grant mới.
 
 **File đính kèm:** Phần 14 đã có upload/list/metadata/download qua API, bucket private, ACL Ticket/comment/internal, kiểm tra định dạng/hạn mức và journal dọn object upload thất bại. Xem [contract và cấu hình MinIO](docs/backend-attachments.md). Cần [review/apply AttachmentStorage](docs/attachment-storage-review.md), bootstrap bucket và tạo app credentials riêng trước khi bật storage; không tự nâng cấp database hoặc dùng root làm tài khoản API.
 
-**Kế hoạch tiếp theo:** [Lộ trình backend](docs/backend-roadmap.md); bước 15 triển khai notification và SignalR.
+**Notification và SignalR:** Phần 15 đã có API danh sách/chi tiết/unread-count/mark-read, recipient theo ACL Ticket/internal hiện tại, persist cùng transaction và worker phát ID sau commit. Hub kiểm tra JWT/session, kiểm soát group và ngừng gửi khi mất quyền; notification làm outbox cho retry trên một API instance. Cần [review/apply NotificationDelivery](docs/notification-delivery-review.md) sau AttachmentStorage; xem [contract và giới hạn delivery](docs/backend-notifications.md). Frontend chưa tích hợp realtime.
+
+**SLA MVP:** Phần 16 có API policy theo priority với `ticket.manage.sla`, snapshot 24/7 khi tạo Ticket, first public response theo phạm vi xử lý, resolve/reopen và worker overdue idempotent. Deadline cũ được giữ khi policy đổi; breach/activity/notification cùng transaction. Người dùng đã migrate SlaMvp và [rà soát phần 16](docs/sla-completion-review.md) đạt; cần tạo policy active để Ticket mới có SLA. Xem [quy tắc và contract](docs/backend-sla.md).
+
+**Dashboard và báo cáo:** Phần 17 có GET dashboard, report team/agent và daily, lọc ACL trước aggregation, phân trang group và định nghĩa denominator SLA rõ ràng. Đã [đo SQL/index thực tế](docs/report-query-review.md), giữ model 20 entity/tám migration, không thêm package/grant/secret. Xem [contract và checklist frontend](docs/backend-reporting.md).
+
+**Kế hoạch tiếp theo:** Có thể bắt đầu frontend theo các API hiện có; [lộ trình backend](docs/backend-roadmap.md) còn phần 18 chuẩn bị vận hành trước deployment production.
 
 **Khởi động lại hạ tầng:** Giữ `.env` hiện có, chạy `docker compose up -d --build --wait postgres redis minio`. MinIO tự tạo bucket private, app user/policy và chỉ báo healthy sau khi cấu hình xong, kể cả khi volume mới trống. Nếu xóa volume PostgreSQL, cần áp dụng lại migrations đã review trước khi chạy API. Xem [setup](docs/backend-setup.md).
 
@@ -263,7 +269,7 @@ flowchart LR
 1. Requester nhập yêu cầu trên React, đính kèm file nếu cần.
 2. React gọi REST API kèm thông tin xác thực.
 3. Backend kiểm tra quyền, dữ liệu, category và quy tắc phân công.
-4. Backend tạo ticket và activity trong PostgreSQL transaction. Phần 11 hiện chưa tạo SLA snapshot; tích hợp snapshot ở bước SLA theo quy tắc riêng, không tự gán deadline hồi tố.
+4. Backend tạo Ticket, activity, SLA snapshot (nếu có policy active cùng priority) và notification trong PostgreSQL transaction. Không tự gán deadline hồi tố; SignalR phát sau commit.
 5. Backend hoàn tất lưu file/metadata theo chiến lược xử lý lỗi đã thiết kế.
 6. Sau khi commit thành công, backend tạo/đẩy notification cho các đối tượng liên quan.
 7. React cập nhật giao diện và timeline. Nếu cần giao nhận sự kiện tin cậy, bổ sung **Transactional Outbox**.

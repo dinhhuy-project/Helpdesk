@@ -5,12 +5,13 @@ using be.Application.Features.Tickets;
 using be.Domain.Constants;
 using be.Domain.Entities;
 using be.Infrastructure.Persistence;
+using be.Infrastructure.Notifications;
 using Microsoft.EntityFrameworkCore;
 
 namespace be.Infrastructure.Tickets;
 
 public sealed class TicketAttachmentStore(HelpdeskDbContext database, TicketScope scope, TicketWriteGuard guard,
-    IAuthSessionStore sessions, TimeProvider clock) : ITicketAttachmentStore
+    IAuthSessionStore sessions, TimeProvider clock, TicketNotificationWriter notifications) : ITicketAttachmentStore
 {
     public async Task<AttachmentReservation> ReserveAsync(AccountActor actor, Guid ticketId, UploadTicketAttachment command,
         string bucket, AttachmentLimits limits, CancellationToken cancellationToken)
@@ -61,7 +62,7 @@ public sealed class TicketAttachmentStore(HelpdeskDbContext database, TicketScop
             Action = file.IsInternal ? TicketActivityActions.InternalAttachmentAdded : TicketActivityActions.PublicAttachmentAdded,
             NewValue = JsonSerializer.Serialize(new { AttachmentId = file.Id, file.CommentId, file.IsInternal }) });
         database.AttachmentUploadIntents.Remove(intent);
-        await database.SaveChangesAsync(cancellationToken);
+        await notifications.SaveChangesAsync(actor.UserId, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return Details(file);
     }

@@ -60,7 +60,7 @@ Lỗi Put, mất quyền, timeout, lỗi metadata commit hoặc crash giữ lạ
 
 Worker commit claim **trước I/O**, abort incomplete multipart và xóa object, sau đó xóa intent. Delete lỗi giữ intent và retry; một item lỗi không chặn các item khác. Crash sau delete trước xóa intent được retry idempotent. Mỗi object do API tạo đều có journal trước Put; worker không quét/xóa object tùy ý ngoài journal, không xóa object đã commit metadata hoặc bucket khác. Deadline upload ngắn hơn lease để không có Put đang chạy đến lúc cleanup bình thường bắt đầu. Không đổi bucket/credential phạm vi khi còn intent chưa dọn; không xóa thủ công journal để giải phóng quota.
 
-Metadata và hoạt động được rollback cùng nhau nếu save/commit lỗi. Action PublicAttachmentAdded/InternalAttachmentAdded theo visibility, payload chỉ AttachmentId/CommentId/IsInternal. Timeline dùng cùng internal ACL, không trả tên file, key hoặc bytes; requester không nhận internal event/count/ID. Metadata và activity vẫn là dữ liệu lịch sử; chưa phát notification/realtime.
+Metadata và hoạt động được rollback cùng nhau nếu save/commit lỗi. Action PublicAttachmentAdded/InternalAttachmentAdded theo visibility, payload chỉ AttachmentId/CommentId/IsInternal. Timeline dùng cùng internal ACL, không trả tên file, key hoặc bytes; requester không nhận internal event/count/ID. [Phần 15](backend-notifications.md) thêm notification trong cùng transaction, worker chỉ phát ID sau commit và kiểm tra lại ACL.
 
 ## Bucket và cấu hình
 
@@ -124,4 +124,6 @@ Run-ComposeBootstrapTests dùng project GUID, ports ngẫu nhiên và volumes te
 
 Kết quả kiểm chứng phần 14: build Release với -warnaserror đạt 0 warning/error; toàn bộ **432/432 tests đạt, 0 skipped** trên PostgreSQL/MinIO tạm, cùng smoke test CLI seed/grant. Lượt cấu hình Compose sau đó đã build/run minio-init trên MinIO local, xác nhận upload/download/delete bằng app user và chặn quyền ngoài prefix/admin. Database/migration vẫn là thao tác riêng; chưa chạy workflow trên GitHub.
 
-Hạ tầng MinIO Community local giữ bản source đã pin trong repo; xem [backend-setup.md](backend-setup.md) về phạm vi triển khai. Readiness storage, AV, TLS, backup và quan sát cảnh báo cleanup cần hoàn thiện trước vận hành theo phần 18. Bước 15 tiếp theo: notification bền vững và SignalR, kiểm tra recipient/visibility và phát sau commit.
+Lượt [rà soát hoàn thành phần 14](attachment-completion-review.md) chạy lại nhóm attachment/MinIO/model: 36/36 đạt, 0 skipped. [Phần 15](backend-notifications.md) đã bổ sung notification theo visibility activity khi metadata file commit; không notify khi mới reserve/upload object hoặc khi finalize rollback. Cần [review/apply NotificationDelivery](notification-delivery-review.md).
+
+Hạ tầng MinIO Community local giữ bản source đã pin trong repo; xem [backend-setup.md](backend-setup.md) về phạm vi triển khai. Readiness storage, AV, TLS, backup và quan sát cảnh báo cleanup cần hoàn thiện trước vận hành theo phần 18. Bước tiếp theo: 16 — SLA MVP.

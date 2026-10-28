@@ -271,9 +271,25 @@ namespace be.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<Guid?>("DispatchClaimId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("dispatch_claim_id");
+
+                    b.Property<DateTime?>("DispatchLeaseUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("dispatch_lease_until");
+
+                    b.Property<DateTime?>("DispatchedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("dispatched_at");
+
                     b.Property<DateTime?>("ReadAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("read_at");
+
+                    b.Property<Guid?>("TicketActivityId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ticket_activity_id");
 
                     b.Property<Guid?>("TicketId")
                         .HasColumnType("uuid")
@@ -292,11 +308,23 @@ namespace be.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_notifications");
 
+                    b.HasIndex("TicketActivityId")
+                        .HasDatabaseName("ix_notifications_ticket_activity_id");
+
                     b.HasIndex("TicketId")
                         .HasDatabaseName("ix_notifications_ticket_id");
 
                     b.HasIndex("UserId", "CreatedAt")
                         .HasDatabaseName("ix_notifications_user_id_created_at");
+
+                    b.HasIndex("UserId", "TicketActivityId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_notifications_user_id_ticket_activity_id")
+                        .HasFilter("ticket_activity_id IS NOT NULL");
+
+                    b.HasIndex(new[] { "DispatchLeaseUntil", "CreatedAt" }, "ix_notifications_dispatch_pending")
+                        .HasDatabaseName("ix_notifications_dispatch_lease_until_created_at")
+                        .HasFilter("ticket_activity_id IS NOT NULL AND dispatched_at IS NULL");
 
                     b.HasIndex(new[] { "UserId", "CreatedAt" }, "ix_notifications_user_unread")
                         .HasDatabaseName("ix_notifications_user_id_created_at1")
@@ -474,14 +502,29 @@ namespace be.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id")
                         .HasName("pk_sla_policies");
+
+                    b.HasIndex("Priority")
+                        .IsUnique()
+                        .HasDatabaseName("ix_sla_policies_priority")
+                        .HasFilter("is_active");
 
                     b.ToTable("sla_policies", "helpdesk", t =>
                         {
                             t.HasCheckConstraint("ck_sla_policies_duration", "first_response_minutes > 0 AND resolution_minutes > 0");
 
+                            t.HasCheckConstraint("ck_sla_policies_name", "length(btrim(name)) > 0");
+
                             t.HasCheckConstraint("ck_sla_policies_priority", "priority IN ('Low', 'Normal', 'High', 'Urgent')");
+
+                            t.HasCheckConstraint("ck_sla_policies_targets", "first_response_minutes <= resolution_minutes AND resolution_minutes <= 525600");
                         });
                 });
 
@@ -955,13 +998,39 @@ namespace be.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("first_responded_at");
 
+                    b.Property<DateTime?>("FirstResponseBreachedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("first_response_breached_at");
+
                     b.Property<DateTime>("FirstResponseDueAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("first_response_due_at");
 
+                    b.Property<int?>("FirstResponseMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("first_response_minutes");
+
+                    b.Property<string>("PolicyName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("policy_name");
+
+                    b.Property<string>("Priority")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("priority");
+
+                    b.Property<DateTime?>("ResolutionBreachedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("resolution_breached_at");
+
                     b.Property<DateTime>("ResolutionDueAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("resolution_due_at");
+
+                    b.Property<int?>("ResolutionMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("resolution_minutes");
 
                     b.Property<DateTime?>("ResolvedAt")
                         .HasColumnType("timestamp with time zone")
@@ -985,9 +1054,19 @@ namespace be.Infrastructure.Persistence.Migrations
                     b.HasIndex("SlaPolicyId")
                         .HasDatabaseName("ix_ticket_slas_sla_policy_id");
 
+                    b.HasIndex(new[] { "ResolutionDueAt" }, "ix_ticket_slas_resolution_pending")
+                        .HasDatabaseName("ix_ticket_slas_resolution_due_at1")
+                        .HasFilter("resolution_breached_at IS NULL AND resolved_at IS NULL");
+
+                    b.HasIndex(new[] { "FirstResponseDueAt" }, "ix_ticket_slas_response_pending")
+                        .HasDatabaseName("ix_ticket_slas_first_response_due_at1")
+                        .HasFilter("first_response_breached_at IS NULL AND first_responded_at IS NULL");
+
                     b.ToTable("ticket_slas", "helpdesk", t =>
                         {
                             t.HasCheckConstraint("ck_ticket_slas_deadlines", "first_response_due_at >= applied_at AND resolution_due_at >= applied_at");
+
+                            t.HasCheckConstraint("ck_ticket_slas_snapshot", "(policy_name IS NULL AND priority IS NULL AND first_response_minutes IS NULL AND resolution_minutes IS NULL) OR (policy_name IS NOT NULL AND priority IS NOT NULL AND first_response_minutes IS NOT NULL AND resolution_minutes IS NOT NULL AND length(btrim(policy_name)) > 0 AND priority IN ('Low','Normal','High','Urgent') AND first_response_minutes > 0 AND first_response_minutes <= resolution_minutes AND resolution_minutes <= 525600)");
                         });
                 });
 
@@ -1142,6 +1221,12 @@ namespace be.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("be.Domain.Entities.Notification", b =>
                 {
+                    b.HasOne("be.Domain.Entities.TicketActivity", null)
+                        .WithMany()
+                        .HasForeignKey("TicketActivityId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_notifications_ticket_activities_ticket_activity_id");
+
                     b.HasOne("be.Domain.Entities.Ticket", null)
                         .WithMany()
                         .HasForeignKey("TicketId")

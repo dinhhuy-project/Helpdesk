@@ -71,7 +71,7 @@ Ví dụ GET:
 
 ## SLA và bước tiếp theo
 
-Ticket tạo trong phần 11 được phép **chưa có TicketSla**, kể cả database đã có SlaPolicy. Chưa tính deadline hoặc phát notification/SignalR. [File phần 14](backend-attachments.md) có API riêng sau khi tạo Ticket. Khi triển khai phần 16 cần snapshot SLA trong transaction theo quy tắc đã chốt; không tự gán deadline hồi tố cho Ticket hiện có. [Phần 12](backend-ticket-workflow.md) đã bổ sung phân công/transition, dùng TicketWriteGuard cùng activity/version trong transaction; nếu có SLA thì đồng bộ mốc resolved và giữ nguyên deadline.
+[Phần 16](backend-sla.md) đã tạo snapshot SLA trong transaction tạo Ticket khi có policy active cùng priority, tính phút UTC 24/7. Không có policy phù hợp thì Ticket vẫn được tạo với SLA null; không gán hồi tố khi cấu hình policy sau đó. Đọc qua GET `/api/v1/tickets/{id}/sla` theo ACL Ticket. [Phần 15](backend-notifications.md) persist notification cùng TicketCreated và phát SignalR sau commit. [Workflow](backend-ticket-workflow.md) resolve/reopen đồng bộ SLA, giữ deadline/first response/breach lịch sử. File vẫn có API riêng sau khi tạo Ticket.
 
 ## Kiểm chứng
 

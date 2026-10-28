@@ -8,6 +8,7 @@ using be.Application.Features.Departments;
 using be.Application.Features.SupportTeams;
 using be.Application.Features.Categories;
 using be.Application.Features.Tickets;
+using be.Application.Features.Sla;
 
 namespace be.Api;
 
@@ -17,6 +18,14 @@ public sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger) : I
     {
         var status = exception switch
         {
+            SlaOperationException sla => sla.Error switch
+            {
+                SlaError.InvalidInput => 400,
+                SlaError.NotFound => 404,
+                SlaError.Unauthenticated => 401,
+                SlaError.Forbidden => 403,
+                _ => 409
+            },
             TicketOperationException ticket => ticket.Error switch
             {
                 TicketError.NotFound => 404,
@@ -58,7 +67,7 @@ public sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger) : I
                 AccountError.NotFound => 404,
                 AccountError.Unauthenticated => 401,
                 AccountError.InsufficientScope => 403,
-                AccountError.InvalidDepartment or AccountError.InvalidRole or AccountError.InvalidCurrentPassword => 400,
+                AccountError.InvalidInput or AccountError.InvalidDepartment or AccountError.InvalidRole or AccountError.InvalidCurrentPassword => 400,
                 _ => 409
             },
             DbUpdateConcurrencyException => StatusCodes.Status409Conflict,
@@ -73,7 +82,15 @@ public sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger) : I
         var problem = new ProblemDetails
         {
             Status = status,
-            Title = exception is TicketOperationException ticketFailure ? TicketTitle(ticketFailure.Error) :
+            Title = exception is SlaOperationException slaFailure ? slaFailure.Error switch
+            {
+                SlaError.InvalidInput => "Dữ liệu SLA không hợp lệ.",
+                SlaError.NotFound => "Không tìm thấy dữ liệu trong phạm vi được phép.",
+                SlaError.Unauthenticated => "Yêu cầu xác thực.",
+                SlaError.Forbidden => "Thao tác vượt quá phạm vi được cấp quyền.",
+                SlaError.ActivePolicyExists => "Priority đã có policy SLA active.",
+                _ => "Dữ liệu đã thay đổi. Vui lòng tải lại."
+            } : exception is TicketOperationException ticketFailure ? TicketTitle(ticketFailure.Error) :
                 exception is CategoryOperationException categoryFailure ? CategoryTitle(categoryFailure.Error) :
                 exception is TeamOperationException teamFailure ? TeamTitle(teamFailure.Error) :
                 exception is DepartmentOperationException departmentFailure ? DepartmentTitle(departmentFailure.Error) :
@@ -91,6 +108,7 @@ public sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger) : I
         if (exception is TeamOperationException teamError) problem.Extensions["code"] = teamError.Error.ToString();
         if (exception is CategoryOperationException categoryError) problem.Extensions["code"] = categoryError.Error.ToString();
         if (exception is TicketOperationException ticketError) problem.Extensions["code"] = ticketError.Error.ToString();
+        if (exception is SlaOperationException slaError) problem.Extensions["code"] = slaError.Error.ToString();
         if (status == 401) context.Response.Headers.WWWAuthenticate = "Bearer";
         context.Response.StatusCode = status;
         await context.Response.WriteAsJsonAsync(problem, options: null,
@@ -155,6 +173,7 @@ public sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger) : I
 
     private static string AccountTitle(AccountError error) => error switch
     {
+        AccountError.InvalidInput => "Dữ liệu đầu vào không hợp lệ.",
         AccountError.NotFound => "Không tìm thấy dữ liệu.",
         AccountError.VersionConflict => "Dữ liệu đã thay đổi. Vui lòng tải lại.",
         AccountError.EmailInUse => "Email đã được sử dụng.",

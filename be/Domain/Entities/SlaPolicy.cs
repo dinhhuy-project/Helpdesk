@@ -12,4 +12,5 @@ public class SlaPolicy
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
+    public uint Version { get; set; }
 }

@@ -33,6 +33,7 @@ internal static class TicketActivityProjection
                     IsInternal: action == TicketActivityActions.InternalNoteAdded),
                 TicketActivityActions.PublicAttachmentAdded or TicketActivityActions.InternalAttachmentAdded => new(AttachmentId: Id(value, "AttachmentId"),
                     CommentId: Id(value, "CommentId"), IsInternal: action == TicketActivityActions.InternalAttachmentAdded),
+                TicketActivityActions.SlaFirstResponseBreached or TicketActivityActions.SlaResolutionBreached => new(DueAt: Time(value, "DueAt"), DetectedAt: Time(value, "DetectedAt")),
                 _ => null
             };
         }

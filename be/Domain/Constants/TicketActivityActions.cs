@@ -9,4 +9,6 @@ public static class TicketActivityActions
     public const string InternalNoteAdded = "InternalNoteAdded";
     public const string PublicAttachmentAdded = "PublicAttachmentAdded";
     public const string InternalAttachmentAdded = "InternalAttachmentAdded";
+    public const string SlaFirstResponseBreached = "SlaFirstResponseBreached";
+    public const string SlaResolutionBreached = "SlaResolutionBreached";
 }

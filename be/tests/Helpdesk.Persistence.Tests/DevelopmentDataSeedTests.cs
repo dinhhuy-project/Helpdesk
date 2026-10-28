@@ -170,7 +170,7 @@ public class DevelopmentDataSeedTests(PostgresFixture fixture)
         await using var database = test.Database();
         await database.GetService<IMigrator>().MigrateAsync("20261026151829_TicketCategoryAdministration");
         await Assert.ThrowsAsync<IdentityInitializationException>(() => Initializer(database).SeedAsync());
-        Assert.Single(await database.Database.GetPendingMigrationsAsync());
+        Assert.Contains("20261026171234_AttachmentStorage", await database.Database.GetPendingMigrationsAsync());
         Assert.False(await database.Departments.AnyAsync());
     }
 

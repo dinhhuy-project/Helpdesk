@@ -6,6 +6,7 @@ using be.Configuration;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using be.Infrastructure.Realtime;
 
 namespace be.Infrastructure.Authentication;
 
@@ -43,6 +44,17 @@ public static class DependencyInjection
                 };
                 bearer.Events = new JwtBearerEvents
                 {
+                    OnMessageReceived = context =>
+                    {
+                        // Query-string tokens are accepted only on this hub, never on REST endpoints.
+                        if (!context.Request.Headers.ContainsKey("Authorization") &&
+                            context.Request.Path.StartsWithSegments(NotificationsHub.Path))
+                        {
+                            var token = context.Request.Query["access_token"];
+                            if (token.Count == 1 && !string.IsNullOrWhiteSpace(token[0])) context.Token = token[0];
+                        }
+                        return Task.CompletedTask;
+                    },
                     OnTokenValidated = async context =>
                     {
                         var principal = context.Principal;

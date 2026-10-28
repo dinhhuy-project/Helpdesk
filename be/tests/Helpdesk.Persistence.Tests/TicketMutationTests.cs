@@ -107,7 +107,8 @@ public class TicketMutationTests(PostgresFixture fixture)
         Assert.Equal(snapshot.FirstResponseDueAt, sla.FirstResponseDueAt);
         Assert.Equal(snapshot.ResolutionDueAt, sla.ResolutionDueAt);
         Assert.Equal(snapshot.FirstRespondedAt, sla.FirstRespondedAt);
-        var activity = await database.TicketActivities.SingleAsync(x => x.TicketId == ticket.Id);
+        var activity = await database.TicketActivities.SingleAsync(x => x.TicketId == ticket.Id && x.Action == TicketActivityActions.StatusChanged);
+        Assert.Single(await database.TicketActivities.Where(x => x.TicketId == ticket.Id && x.Action == TicketActivityActions.SlaResolutionBreached).ToListAsync());
         Assert.Equal("Resolved", JsonDocument.Parse(activity.OldValue!).RootElement.GetProperty("Status").GetString());
         Assert.Equal("Resolved", JsonDocument.Parse(activity.OldValue!).RootElement.GetProperty("ResolutionSummary").GetString());
         Assert.Equal(JsonValueKind.Null, JsonDocument.Parse(activity.NewValue!).RootElement.GetProperty("ResolutionSummary").ValueKind);

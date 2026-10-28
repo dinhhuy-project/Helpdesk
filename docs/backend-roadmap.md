@@ -1,12 +1,12 @@
 # Kế hoạch backend sau Identity và phân quyền
 
-Phần 6–9 đã có code/API/tests và người dùng xác nhận review/apply database. Phần 10 đã có [scope Ticket dùng chung, API đọc và guard ghi](backend-ticket-access.md); phần 11 đã có [tạo Ticket, truy vấn và activity](backend-tickets.md). Phần 12 đã có [phân công và workflow](backend-ticket-workflow.md); người dùng xác nhận cấp ba quyền mới cho bốn role mặc định. Phần 13 đã có [comment và internal note/timeline](backend-ticket-comments.md). Phần 14 đã có [file MinIO và cleanup journal](backend-attachments.md), còn bước operator [review/apply AttachmentStorage](attachment-storage-review.md) và cấu hình storage. Các bước 15–18 dưới đây là kế hoạch tiếp theo. Ưu tiên các phần nhỏ có API, test và tài liệu để kiểm tra độc lập; frontend tích hợp theo từng phần đã ổn định.
+Phần 6–9 đã có code/API/tests và người dùng xác nhận review/apply database. Phần 10–13 có [scope](backend-ticket-access.md), [Ticket cơ bản](backend-tickets.md), [workflow](backend-ticket-workflow.md) và [comment/internal note](backend-ticket-comments.md). Phần 14 có [MinIO](backend-attachments.md), đã [rà soát MVP](attachment-completion-review.md). Phần 15 có [notification/SignalR](backend-notifications.md), phần 16 có [SLA MVP](backend-sla.md); người dùng xác nhận đã migrate và [kiểm tra lại phần 16](sla-completion-review.md) đạt. Phần 17 đã có [dashboard/báo cáo và checklist frontend](backend-reporting.md), không cần migration mới sau khi đo SQL/index. Backend còn phần 18 chuẩn bị vận hành; có thể bắt đầu frontend.
 
 ## Điểm xuất phát
 
 Đã có năm phần nền tảng: cấu hình/lỗi/bảo mật, seed Identity/bootstrap admin, login và `/users/me`, refresh rotation/logout, permission policies đọc database. Đã có GitHub Actions cho backend, frontend và Docker.
 
-Domain và EF mapping đã có 20 entity trong bốn schema: 18 entity lõi, IdentityAuditLog và AttachmentUploadIntent. Có sáu migration: InitialCreate, AccountAdministration, DepartmentAdministration, SupportTeamAdministration, TicketCategoryAdministration và AttachmentStorage. API đã có Auth, Users/me, quản trị User/Identity, Department, SupportTeam/membership, TicketCategory, Ticket POST create/assign/transition, GET list/detail/access, POST/GET comment, GET activity list/detail và POST/GET attachment/download, cùng WeatherForecast từ template. Frontend còn starter và chưa có auth client.
+Domain và EF mapping có 20 entity trong bốn schema: 18 entity lõi, IdentityAuditLog và AttachmentUploadIntent. Có tám migration: InitialCreate, AccountAdministration, DepartmentAdministration, SupportTeamAdministration, TicketCategoryAdministration, AttachmentStorage, NotificationDelivery và SlaMvp. API có Auth, Users/me, quản trị User/Identity, Department, SupportTeam/membership, TicketCategory, Ticket create/assign/transition/list/detail/access, comment/activity/attachment, notification, SLA policy/Ticket SLA, dashboard/reports và hub /hubs/notifications, cùng WeatherForecast từ template. Frontend còn starter và chưa có auth client.
 
 Tận dụng model hiện có; chỉ tạo migration mới khi cần thay đổi field/index/constraint đã review. Không chỉnh InitialCreate đã áp dụng và không tự apply migration vào database đang dùng.
 
@@ -28,7 +28,7 @@ Tận dụng model hiện có; chỉ tạo migration mới khi cần thay đổi
 | 17 | Dashboard và báo cáo | Thống kê theo phạm vi được phép, trạng thái/nhóm/agent/SLA; server-side aggregation và kiểm tra index/query thực tế. |
 | 18 | Chuẩn bị vận hành | Deploy workflow, HTTPS/secrets, readiness, backup/restore thử nghiệm, retention lịch sử phiên, quan sát lỗi và rà soát phân quyền toàn luồng. Tests/CI vẫn thực hiện ở mọi bước trước đó. |
 
-Phụ thuộc chính: tài khoản + tổ chức + danh mục → ACL Ticket → Ticket cơ bản → workflow/comment → attachment/notification/SLA → báo cáo. Bước 11 đã chốt Ticket mới được phép chưa có TicketSla, kể cả khi có SlaPolicy. Bước 16 cần bổ sung snapshot trong use case tạo theo quy tắc riêng, không tự gán deadline hồi tố cho Ticket cũ.
+Phụ thuộc chính: tài khoản + tổ chức + danh mục → ACL Ticket → Ticket cơ bản → workflow/comment → attachment/notification/SLA → báo cáo. Phần 16 đã snapshot SLA khi tạo Ticket có policy active cùng priority, không tự gán deadline hồi tố. Không có policy phù hợp thì Ticket vẫn được tạo nhưng chưa có TicketSla.
 
 ## Phạm vi cụ thể cho bước 6
 
@@ -91,8 +91,8 @@ CRUD role và sửa grant có thể triển khai thành lượt riêng sau khi g
 
 ## Tích hợp frontend
 
-Có thể bắt đầu auth UI sau khi contract hiện tại ổn định: login/logout, `/users/me`, điều phối refresh và trang 401/403. Sau bước 6–9, thêm UI quản trị user/tổ chức/danh mục. Khi có bước 11–13, tích hợp luồng tạo/xem/xử lý Ticket trước attachment/realtime.
+Backend phần 1–17 đủ contract để bắt đầu frontend: auth/login/logout/refresh và `/users/me` trước, sau đó Ticket create/list/detail/assign/transition, comment/internal/file, quản trị, notification/SLA và dashboard. Xem [checklist quyền, query cache và báo cáo](backend-reporting.md). Kiểm thử JS SignalR major 10 với backend 8 là bước tích hợp riêng, chưa được coi là hoàn tất bởi các tests .NET client.
 
 Các tính năng AI, business-hour SLA và tối ưu cache dành sau MVP. Dùng Redis khi đã có query pattern và quy tắc invalidation rõ ràng; không cache permission mặc định để thay thế việc đọc quyền hiện tại.
 
-Bước tiếp theo đề xuất: **15 — Notification và SignalR**. Persist notification và trạng thái đã đọc; chốt recipients theo Ticket/internal visibility và phát sau commit. JWT/group phải kiểm tra quyền hiện tại, xử lý mất membership hoặc thu hồi phiên; xác định outbox khi cần delivery tin cậy. Comment và attachment hiện chỉ thêm mới; sửa/xóa/đổi visibility cần contract, permission và audit riêng trước khi mở.
+Bước backend tiếp theo: **18 — Chuẩn bị vận hành**, gồm deploy/HTTPS/secrets, readiness, backup/restore, retention, monitoring và rà soát quyền toàn luồng trước production. Phần 17 đã chốt cohort hiện tại, denominator SLA và server aggregation; [EXPLAIN](report-query-review.md) chưa cho thấy cần index mới. Frontend có thể triển khai trước bước vận hành production này. Notification realtime hiện giới hạn một API instance; comment/file chỉ append, sửa/xóa/đổi visibility cần contract và audit riêng.

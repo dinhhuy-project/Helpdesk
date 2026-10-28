@@ -30,7 +30,9 @@ public sealed class ApiFactory(string environment = "Development") : WebApplicat
             ["Jwt:Audience"] = AuthTestSettings.Audience,
             ["Jwt:SigningKey"] = AuthTestSettings.SigningKey,
             ["Minio:Enabled"] = "false", ["Minio:CleanupEnabled"] = "false",
-            ["DevelopmentData:SeedOnStartup"] = "false"
+            ["DevelopmentData:SeedOnStartup"] = "false",
+            ["Notifications:DispatchEnabled"] = "false",
+            ["Sla:WorkerEnabled"] = "false"
         }));
         builder.ConfigureTestServices(services => services.AddControllers().AddApplicationPart(typeof(FoundationTestController).Assembly));
     }

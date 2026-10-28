@@ -79,9 +79,13 @@ public class AttachmentStorageIntegrationTests(PostgresFixture fixture)
             FileName = "report.txt", ContentType = "text/plain", SizeBytes = 1, CreatedAt = DateTime.UtcNow, ExpiresAt = DateTime.UtcNow.AddMinutes(15)
         });
         await database.SaveChangesAsync();
-        var error = await Assert.ThrowsAsync<PostgresException>(() => database.GetService<IMigrator>().MigrateAsync("20261026151829_TicketCategoryAdministration"));
+        await using var rollbackConnection = new NpgsqlConnection(fixture.ConnectionString);
+        await rollbackConnection.OpenAsync();
+        await using var rollback = new NpgsqlCommand(ModelTests.ReadSql("AttachmentStorage.Rollback.sql"), rollbackConnection);
+        var error = await Assert.ThrowsAsync<PostgresException>(() => rollback.ExecuteNonQueryAsync());
+        await rollbackConnection.CloseAsync();
         Assert.Equal("P0001", error.SqlState);
-        Assert.EndsWith("_AttachmentStorage", (await database.Database.GetAppliedMigrationsAsync()).Last());
+        Assert.Contains("20261026171234_AttachmentStorage", await database.Database.GetAppliedMigrationsAsync());
         Assert.Single(await database.AttachmentUploadIntents.Where(x => x.TicketId == ticket.Id).ToListAsync());
     }
 }

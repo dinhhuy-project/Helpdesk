@@ -8,12 +8,14 @@ using be.Domain.Entities;
 using be.Domain.Enums;
 using be.Infrastructure.Categories;
 using be.Infrastructure.Persistence;
+using be.Infrastructure.Notifications;
+using be.Infrastructure.Sla;
 using Microsoft.EntityFrameworkCore;
 
 namespace be.Infrastructure.Tickets;
 
 public sealed class TicketCreateStore(HelpdeskDbContext database, IAuthSessionStore sessions,
-    IPermissionChecker permissions, TimeProvider clock) : ITicketCreateStore
+    IPermissionChecker permissions, TimeProvider clock, TicketNotificationWriter notifications, TicketSlaTracker sla) : ITicketCreateStore
 {
     public async Task<TicketCreated> CreateAsync(AccountActor actor, CreateTicket command, CancellationToken cancellationToken)
     {
@@ -36,13 +38,14 @@ public sealed class TicketCreateStore(HelpdeskDbContext database, IAuthSessionSt
         // PostgreSQL alone generates TicketNumber. Keep both saves in this transaction so an
         // activity failure rolls back the Ticket while retaining normal identity sequence gaps.
         await database.SaveChangesAsync(cancellationToken);
+        await sla.ApplyAsync(ticket, cancellationToken);
         database.TicketActivities.Add(new TicketActivity { TicketId = ticket.Id, ActorId = actor.UserId,
             Action = TicketActivityActions.Created, CreatedAt = now, NewValue = JsonSerializer.Serialize(new
             {
                 ticket.TicketNumber, ticket.RequesterId, ticket.CreatedByUserId, ticket.CategoryId,
                 Status = ticket.Status.ToString(), Priority = ticket.Priority.ToString()
             }) });
-        await database.SaveChangesAsync(cancellationToken);
+        await notifications.SaveChangesAsync(actor.UserId, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         // A creation receipt does not implicitly grant the caller read access to a Ticket.
         return new(ticket.Id, ticket.TicketNumber, ticket.RequesterId, ticket.CreatedByUserId, ticket.CategoryId,

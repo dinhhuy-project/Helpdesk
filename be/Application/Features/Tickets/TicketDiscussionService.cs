@@ -8,7 +8,8 @@ public sealed record TicketCommentDetails(Guid Id, Guid TicketId, Guid AuthorId,
     DateTime CreatedAt, DateTime? UpdatedAt);
 public sealed record TicketActivityData(long? TicketNumber = null, Guid? RequesterId = null, Guid? CreatedByUserId = null,
     Guid? CategoryId = null, string? Status = null, string? Priority = null, Guid? AssignedTeamId = null, Guid? AssignedAgentId = null,
-    string? ResolutionSummary = null, DateTime? ResolvedAt = null, DateTime? ClosedAt = null, Guid? CommentId = null, bool? IsInternal = null, Guid? AttachmentId = null);
+    string? ResolutionSummary = null, DateTime? ResolvedAt = null, DateTime? ClosedAt = null, Guid? CommentId = null, bool? IsInternal = null, Guid? AttachmentId = null,
+    DateTime? DueAt = null, DateTime? DetectedAt = null);
 public sealed record TicketActivityDetails(Guid Id, Guid TicketId, Guid? ActorId, string Action, DateTime CreatedAt,
     TicketActivityData? OldValue, TicketActivityData? NewValue);
 

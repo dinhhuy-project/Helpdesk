@@ -6,11 +6,14 @@ using be.Domain.Constants;
 using be.Domain.Enums;
 using be.Domain.Rules;
 using be.Infrastructure.Persistence;
+using be.Infrastructure.Notifications;
+using be.Infrastructure.Sla;
 using Microsoft.EntityFrameworkCore;
 
 namespace be.Infrastructure.Tickets;
 
-public sealed class TicketMutationStore(HelpdeskDbContext database, TicketWriteGuard guard, TicketScope scope, TimeProvider clock) : ITicketMutationStore
+public sealed class TicketMutationStore(HelpdeskDbContext database, TicketWriteGuard guard, TicketScope scope, TimeProvider clock,
+    TicketNotificationWriter notifications, TicketSlaTracker slaTracker) : ITicketMutationStore
 {
     public async Task<TicketMutationResult> AssignAsync(AccountActor actor, Guid id, AssignTicket command, CancellationToken cancellationToken)
     {
@@ -25,7 +28,7 @@ public sealed class TicketMutationStore(HelpdeskDbContext database, TicketWriteG
             database.TicketActivities.Add(new TicketActivity { TicketId = id, ActorId = actor.UserId, Action = TicketActivityActions.Assigned,
                 CreatedAt = ticket.UpdatedAt.Value, OldValue = oldValue,
                 NewValue = JsonSerializer.Serialize(new { ticket.AssignedTeamId, ticket.AssignedAgentId }) });
-            await database.SaveChangesAsync(cancellationToken);
+            await notifications.SaveChangesAsync(actor.UserId, cancellationToken);
         }
         await transaction.CommitAsync(cancellationToken);
         // The actor may lose team read scope after transfer, so return the command receipt directly.
@@ -60,15 +63,10 @@ public sealed class TicketMutationStore(HelpdeskDbContext database, TicketWriteG
              !await scope.IsAssignmentActiveAsync(new(ticket.AssignedTeamId.Value, ticket.AssignedAgentId), cancellationToken)))
             throw new TicketOperationException(TicketError.InvalidAssignment);
 
-        // Preserve existing snapshot deadlines/first response; do not invent an SLA for old Tickets.
-        if (command.Status is TicketStatus.Resolved or TicketStatus.Reopened)
-        {
-            var sla = await database.TicketSlas.SingleOrDefaultAsync(x => x.TicketId == id, cancellationToken);
-            if (sla is not null) sla.ResolvedAt = ticket.ResolvedAt;
-        }
+        await slaTracker.TransitionAsync(ticket, now, actor.UserId, cancellationToken);
         database.TicketActivities.Add(new TicketActivity { TicketId = id, ActorId = actor.UserId, Action = TicketActivityActions.StatusChanged,
             CreatedAt = now, OldValue = oldValue, NewValue = State(ticket) });
-        await database.SaveChangesAsync(cancellationToken);
+        await notifications.SaveChangesAsync(actor.UserId, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return Receipt(ticket);
     }

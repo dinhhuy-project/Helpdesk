@@ -56,13 +56,15 @@ public class ModelTests
         using var context = CreateContext();
         Assert.False(context.Database.HasPendingModelChanges());
         var migrations = context.Database.GetMigrations().ToArray();
-        Assert.Equal(6, migrations.Length);
+        Assert.Equal(8, migrations.Length);
         Assert.EndsWith("_InitialCreate", migrations[0]);
         Assert.EndsWith("_AccountAdministration", migrations[1]);
         Assert.EndsWith("_DepartmentAdministration", migrations[2]);
         Assert.EndsWith("_SupportTeamAdministration", migrations[3]);
         Assert.EndsWith("_TicketCategoryAdministration", migrations[4]);
         Assert.EndsWith("_AttachmentStorage", migrations[5]);
+        Assert.EndsWith("_NotificationDelivery", migrations[6]);
+        Assert.EndsWith("_SlaMvp", migrations[7]);
         var migrator = context.GetService<IMigrator>();
         var forward = migrator.GenerateScript("0", migrations[0], MigrationsSqlGenerationOptions.Idempotent);
         var rollback = migrator.GenerateScript(migrations[0], "0");
@@ -88,6 +90,14 @@ public class ModelTests
             NormalizeSql(ReadSql("AttachmentStorage.sql")));
         Assert.Equal(NormalizeSql(migrator.GenerateScript(migrations[5], migrations[4])),
             NormalizeSql(ReadSql("AttachmentStorage.Rollback.sql")));
+        Assert.Equal(NormalizeSql(migrator.GenerateScript(migrations[5], migrations[6], MigrationsSqlGenerationOptions.Idempotent)),
+            NormalizeSql(ReadSql("NotificationDelivery.sql")));
+        Assert.Equal(NormalizeSql(migrator.GenerateScript(migrations[6], migrations[5])),
+            NormalizeSql(ReadSql("NotificationDelivery.Rollback.sql")));
+        Assert.Equal(NormalizeSql(migrator.GenerateScript(migrations[6], migrations[7], MigrationsSqlGenerationOptions.Idempotent)),
+            NormalizeSql(ReadSql("SlaMvp.sql")));
+        Assert.Equal(NormalizeSql(migrator.GenerateScript(migrations[7], migrations[6])),
+            NormalizeSql(ReadSql("SlaMvp.Rollback.sql")));
     }
 
     internal static string ReadSql(string fileName) =>

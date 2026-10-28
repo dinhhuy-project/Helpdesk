@@ -5,26 +5,31 @@ using be.Application.Features.Tickets;
 using be.Domain.Constants;
 using be.Domain.Entities;
 using be.Infrastructure.Persistence;
+using be.Infrastructure.Notifications;
+using be.Infrastructure.Sla;
 using Microsoft.EntityFrameworkCore;
 
 namespace be.Infrastructure.Tickets;
 
 public sealed class TicketDiscussionStore(HelpdeskDbContext database, TicketScope scope, TicketWriteGuard guard,
-    IAuthSessionStore sessions, TimeProvider clock) : ITicketDiscussionStore
+    IAuthSessionStore sessions, TimeProvider clock, TicketNotificationWriter notifications, TicketSlaTracker sla) : ITicketDiscussionStore
 {
     public async Task<TicketCommentDetails> CreateAsync(AccountActor actor, Guid ticketId, CreateTicketComment command, CancellationToken cancellationToken)
     {
         await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
-        await guard.LockCommentAsync(actor, ticketId, command.IsInternal, cancellationToken);
+        var ticket = await guard.LockCommentAsync(actor, ticketId, command.IsInternal, cancellationToken);
         var now = clock.GetUtcNow().UtcDateTime;
         now = new DateTime(now.Ticks - now.Ticks % 10, DateTimeKind.Utc);
         var comment = new TicketComment { TicketId = ticketId, AuthorId = actor.UserId, Content = command.Content,
             IsInternal = command.IsInternal, CreatedAt = now };
         database.TicketComments.Add(comment);
+        if (!command.IsInternal && ticket.RequesterId != actor.UserId &&
+            await scope.For(actor, TicketOperation.UpdateStatus).AnyAsync(x => x.Id == ticketId, cancellationToken))
+            await sla.FirstResponseAsync(ticket, actor.UserId, now, cancellationToken);
         database.TicketActivities.Add(new TicketActivity { TicketId = ticketId, ActorId = actor.UserId, CreatedAt = now,
             Action = command.IsInternal ? TicketActivityActions.InternalNoteAdded : TicketActivityActions.PublicCommentAdded,
             NewValue = JsonSerializer.Serialize(new { CommentId = comment.Id, comment.IsInternal }) });
-        await database.SaveChangesAsync(cancellationToken);
+        await notifications.SaveChangesAsync(actor.UserId, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return new(comment.Id, comment.TicketId, comment.AuthorId, comment.Content, comment.IsInternal, comment.CreatedAt, comment.UpdatedAt);
     }
@@ -79,6 +84,7 @@ public sealed class TicketDiscussionStore(HelpdeskDbContext database, TicketScop
             (activity.Action == TicketActivityActions.Created || activity.Action == TicketActivityActions.Assigned ||
              activity.Action == TicketActivityActions.StatusChanged || activity.Action == TicketActivityActions.PublicCommentAdded ||
              activity.Action == TicketActivityActions.PublicAttachmentAdded ||
+             activity.Action == TicketActivityActions.SlaFirstResponseBreached || activity.Action == TicketActivityActions.SlaResolutionBreached ||
              ((activity.Action == TicketActivityActions.InternalNoteAdded || activity.Action == TicketActivityActions.InternalAttachmentAdded) &&
               internalReadable.Contains(activity.TicketId))));
     }

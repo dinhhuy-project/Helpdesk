@@ -15,6 +15,10 @@ public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
         builder.Property(x => x.Content).HasColumnType("text").IsRequired();
         builder.HasOne<User>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Ticket>().WithMany().HasForeignKey(x => x.TicketId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<TicketActivity>().WithMany().HasForeignKey(x => x.TicketActivityId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(x => new { x.UserId, x.TicketActivityId }).IsUnique().HasFilter("ticket_activity_id IS NOT NULL");
+        builder.HasIndex(x => new { x.DispatchLeaseUntil, x.CreatedAt }, "ix_notifications_dispatch_pending")
+            .HasFilter("ticket_activity_id IS NOT NULL AND dispatched_at IS NULL");
         builder.HasIndex(x => new { x.UserId, x.CreatedAt });
         builder.HasIndex(x => new { x.UserId, x.CreatedAt }, "ix_notifications_user_unread")
             .HasFilter("read_at IS NULL");

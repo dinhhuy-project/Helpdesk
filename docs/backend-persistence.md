@@ -1,8 +1,10 @@
 # Persistence với EF Core / PostgreSQL
 
-`be/Infrastructure/Persistence` chứa `HelpdeskDbContext`, đăng ký DI và 20 lớp `IEntityTypeConfiguration<T>`: 18 entity lõi, IdentityAuditLog và AttachmentUploadIntent. Domain giữ nguyên C# thuần. Có InitialCreate, [AccountAdministration](account-administration-review.md), [DepartmentAdministration](department-administration-review.md), [SupportTeamAdministration](support-team-administration-review.md), [TicketCategoryAdministration](ticket-category-administration-review.md) và [AttachmentStorage](attachment-storage-review.md). Migration mới chỉ thêm journal upload phục vụ cleanup, không đổi metadata file lịch sử. Không gọi `EnsureCreated` hoặc `Migrate` khi API khởi động. Profile Container (Dockerfile) có seed catalog Identity tùy chọn như [hướng dẫn Identity](backend-identity-foundation.md).
+`be/Infrastructure/Persistence` chứa `HelpdeskDbContext`, đăng ký DI và 20 lớp `IEntityTypeConfiguration<T>`: 18 entity lõi, IdentityAuditLog và AttachmentUploadIntent. Domain giữ nguyên C# thuần. Có tám migration: InitialCreate, [AccountAdministration](account-administration-review.md), [DepartmentAdministration](department-administration-review.md), [SupportTeamAdministration](support-team-administration-review.md), [TicketCategoryAdministration](ticket-category-administration-review.md), [AttachmentStorage](attachment-storage-review.md), [NotificationDelivery](notification-delivery-review.md) và [SlaMvp](sla-mvp-review.md). Migration mới thêm snapshot/marker SLA, policy unique active theo priority và xmin mapping, không sửa deadline cũ hoặc tạo SLA hồi tố. Không gọi `EnsureCreated` hoặc `Migrate` khi API khởi động. Profile Container (Dockerfile) có seed catalog Identity tùy chọn như [hướng dẫn Identity](backend-identity-foundation.md).
 
 ## Packages và cấu hình
+
+Phần 17 dùng aggregation SQL sau TicketScope, không đổi model/migration. Đã [đo EXPLAIN/index](report-query-review.md) trong database test với 8.000 Ticket/snapshot và giữ các index hiện có; không tự tạo index trên database ứng dụng.
 
 - Microsoft.EntityFrameworkCore, Relational, Design và Tools: **8.0.32**; Design/Tools là dependency phát triển (`PrivateAssets=all`).
 - Npgsql.EntityFrameworkCore.PostgreSQL: **8.0.11**.

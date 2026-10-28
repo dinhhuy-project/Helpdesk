@@ -1,12 +1,12 @@
 # Dữ liệu nghiệp vụ mẫu cho Development
 
-Profile Visual Studio **Container (Dockerfile)** đã bật `DevelopmentData__SeedOnStartup=true` trong launchSettings. Sau khi các containers sẵn sàng và đã áp dụng đầy đủ sáu migrations hiện tại, F5 sẽ chạy lần lượt:
+Profile Visual Studio **Container (Dockerfile)** đã bật `DevelopmentData__SeedOnStartup=true` trong launchSettings. Sau khi các containers sẵn sàng và đã áp dụng đầy đủ tám migrations hiện tại (gồm [SlaMvp phần 16](sla-mvp-review.md)), F5 sẽ chạy lần lượt:
 
 1. Seed role/permission Identity còn thiếu.
 2. Bootstrap admin đầu tiên từ user-secrets nếu chưa có admin.
 3. Seed bộ dữ liệu nghiệp vụ mẫu nếu database nghiệp vụ còn trống.
 
-Không cần migration mới hoặc chạy lệnh seed riêng. Cấu hình JWT, BootstrapAdmin và connection string tiếp tục dùng user-secrets/environment như [Identity foundation](backend-identity-foundation.md). Bootstrap không tự migrate database.
+Riêng seed mẫu không cần migration hoặc lệnh seed riêng; mỗi feature mới vẫn cần apply schema của nó trước F5. Cấu hình JWT, BootstrapAdmin và connection string tiếp tục dùng user-secrets/environment như [Identity foundation](backend-identity-foundation.md). Bootstrap không tự migrate database. Bộ mẫu không tạo notification hoặc phát realtime cho activity lịch sử, không seed policy/snapshot SLA. Tạo policy active qua API trước khi tạo Ticket mới nếu cần SLA; Ticket mẫu cũ không tự được gán lại.
 
 ## Bộ mẫu
 

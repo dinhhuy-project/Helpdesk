@@ -103,6 +103,7 @@ internal sealed class TicketAccessTestContext(TestAccounts accounts) : IAsyncDis
     public async ValueTask DisposeAsync()
     {
         await using var database = Accounts.Database();
+        await database.Notifications.Where(x => x.TicketId != null && _tickets.Contains(x.TicketId.Value)).ExecuteDeleteAsync();
         await database.TicketActivities.Where(x => _tickets.Contains(x.TicketId)).ExecuteDeleteAsync();
         await database.AttachmentUploadIntents.Where(x => _tickets.Contains(x.TicketId)).ExecuteDeleteAsync();
         await database.TicketAttachments.Where(x => _tickets.Contains(x.TicketId)).ExecuteDeleteAsync();

@@ -79,7 +79,7 @@ Mỗi command mở transaction, lấy advisory lock chung 734205001 → khóa us
 
 TicketStatusChanged activity lưu old/new: Status (tên enum), ResolutionSummary, ResolvedAt, ClosedAt; ActorId từ phiên, CreatedAt cùng UpdatedAt. Summary là kết quả công khai đã xuất hiện trong detail, **không phải internal note**. Giữ giá trị cũ để không mất lịch sử sau reopen; không đưa title/description hoặc token vào audit/log. [API activity phần 13](backend-ticket-comments.md) đã xuất lịch sử với scope/visibility và payload whitelist, không trả raw JSON audit.
 
-Nếu đã có TicketSla: resolve đồng bộ ResolvedAt; reopen xóa ResolvedAt. Giữ nguyên policy/applied time/deadline/first response, không tính lại hạn. Ticket chưa có SLA tiếp tục không có; worker và snapshot creation dành phần 16, worker sau này phải bỏ qua Ticket Closed/Cancelled theo quy tắc SLA đã chốt. Chưa phát notification/SignalR trong phần 12; phần 15 bổ sung persist/delivery sau commit, không phát sự kiện trước commit.
+Nếu đã có TicketSla: resolve đồng bộ ResolvedAt, dừng đồng hồ; reopen xóa ResolvedAt và tiếp tục deadline gốc. Giữ snapshot/first response và breach lịch sử. [Phần 16](backend-sla.md) phát hiện vi phạm trong cùng transaction chuyển trạng thái và có worker cho overdue; bỏ qua Closed/Cancelled. Ticket cũ chưa có SLA tiếp tục không có, chỉ tạo mới qua API với policy active phù hợp mới snapshot. [Phần 15](backend-notifications.md) dispatch SignalR sau commit.
 
 ## Nâng cấp quyền trên database hiện có
 
@@ -104,4 +104,4 @@ dotnet build be/be.sln --no-restore -warnaserror
 
 Unit tests bao phủ bảng transition, terminal/no-op/unknown status, summary và timestamps. PostgreSQL tests đi qua route production cho phân công hợp lệ/không hợp lệ, requester/global/leader scope, quyền bị thu hồi với cùng JWT, current assignment inactive, resolve/confirm/reopen, activity giữ lịch sử, SLA không đổi deadline, cạnh tranh cùng version và rollback sau SQL save trước commit. Seed/grant tests chứng minh nâng cấp không cấp quyền ngầm, explicit grant idempotent/audited; script smoke test CLI mới trên container riêng, không sửa database helpdesk đang dùng. GitHub Actions hiện có tự chạy test mới.
 
-[Phần 13](backend-ticket-comments.md) đã bổ sung comment công khai/internal note, phân trang, author từ phiên và activity cùng ACL; append không đổi status hoặc Version Ticket. Người dùng xác nhận đã cấp ba quyền phần 12 trên database hiện có. [Phần 14](backend-attachments.md) đã có file theo ACL Ticket/comment, kiểm tra lại quyền/trạng thái sau storage I/O và cleanup journal; bước tiếp theo là notification/SignalR.
+[Phần 13](backend-ticket-comments.md) có comment/internal note theo ACL; append không đổi status hoặc Version Ticket. Người dùng xác nhận đã cấp ba quyền workflow. [Phần 14](backend-attachments.md) có file và cleanup journal; [phần 15](backend-notifications.md) có notification/SignalR; [phần 16](backend-sla.md) có SLA snapshot/first response/overdue. Bước tiếp theo là Dashboard/báo cáo.

@@ -15,6 +15,11 @@ using be.Infrastructure.Categories;
 using be.Application.Features.Tickets;
 using be.Infrastructure.Tickets;
 using be.Infrastructure.Storage;
+using be.Infrastructure.Notifications;
+using be.Infrastructure.Realtime;
+using be.Infrastructure.Sla;
+using be.Application.Features.Reporting;
+using be.Infrastructure.Reporting;
 using Microsoft.OpenApi.Models;
 
 namespace be
@@ -35,6 +40,10 @@ namespace be
             builder.Services.AddHelpdeskAuthentication();
             builder.Services.AddHelpdeskAuthorization();
             builder.Services.AddAttachmentStorage(builder.Configuration);
+            builder.Services.AddNotifications(builder.Configuration);
+            builder.Services.AddSla(builder.Configuration);
+            builder.Services.AddScoped<IReportStore, ReportStore>();
+            builder.Services.AddScoped<ReportService>();
             builder.Services.AddScoped<IAccountAdministrationStore, AccountAdministrationStore>();
             builder.Services.AddScoped<AccountAdministrationService>();
             builder.Services.AddScoped<IDepartmentStore, DepartmentStore>();
@@ -57,6 +66,8 @@ namespace be
             // Framework diagnostics include raw exceptions; our handler emits safe trace-based logs.
             builder.Logging.AddFilter("Microsoft.AspNetCore.Diagnostics.ExceptionHandlerMiddleware", LogLevel.None);
             builder.Logging.AddFilter("Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerHandler", LogLevel.None);
+            // Browser SignalR transports use access_token in the URL; request-start logs must not expose it.
+            builder.Logging.AddFilter("Microsoft.AspNetCore.Hosting.Diagnostics", LogLevel.Warning);
             builder.Services.AddHealthChecks();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
@@ -109,6 +120,7 @@ namespace be
 
 
             app.MapControllers();
+            app.MapHub<NotificationsHub>(NotificationsHub.Path, options => options.CloseOnAuthenticationExpiration = true);
             app.MapHealthChecks("/health/live");
 
             await app.RunAsync();

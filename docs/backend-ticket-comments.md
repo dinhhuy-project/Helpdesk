@@ -1,6 +1,6 @@
 # Comment, internal note và activity
 
-Phần 13 bổ sung thảo luận và timeline trên [Ticket cơ bản](backend-tickets.md), dùng chung [scope Ticket](backend-ticket-access.md). Người dùng đã xác nhận cấp ba quyền workflow phần 12 cho bốn role mặc định. Riêng phần 13 **không cần migration, permission, grant, package hoặc secret mới**; catalog vẫn 17 permission. [Phần 14](backend-attachments.md) bổ sung MinIO và migration riêng cho upload journal, tổng model hiện tại 20 entity/sáu migration. Container (Dockerfile) giữ port 5000.
+Phần 13 bổ sung thảo luận và timeline trên [Ticket cơ bản](backend-tickets.md), dùng chung [scope Ticket](backend-ticket-access.md). Người dùng đã xác nhận cấp ba quyền workflow phần 12 cho bốn role mặc định. Riêng phần 13 **không cần migration, permission, grant, package hoặc secret mới**; catalog vẫn 17 permission. Phần 14–16 bổ sung MinIO, notification và SLA, tổng model hiện tại 20 entity/tám migration. Container (Dockerfile) giữ port 5000.
 
 ## API
 
@@ -54,9 +54,9 @@ CommentId/activityId phải thuộc đúng ticketId trong route. Ticket ngoài s
 
 Create mở transaction, dùng TicketWriteGuard.LockCommentAsync với thứ tự advisory lock 734205001 → row user → row Ticket. Recheck session/read/operation sau khi khóa; cùng quy tắc với quản trị grant/tổ chức và workflow. Sau đó insert TicketComment và TicketActivity trong cùng SaveChanges/transaction rồi commit. Lỗi sau SQL save nhưng trước commit rollback cả hai; writer SQL ngoài ứng dụng phải tuân thủ cùng khóa/validation.
 
-Append không sửa row Ticket, không đổi Version/xmin, UpdatedAt, status, assignment hoặc SLA. Nhờ vậy note nội bộ không làm lộ thêm sự kiện qua UpdatedAt/Version của Ticket. Không nhận Version từ client vì comment là một bản ghi mới độc lập, không ghi đè bản cũ; nhiều append đồng thời đều được giữ. Row lock vẫn sắp thứ tự với close/cancel/reassign: nếu thay đổi đó commit trước thì append kiểm tra trạng thái/scope mới. Các command workflow vẫn bắt buộc Version như phần 12.
+Append không sửa row Ticket, không đổi Version/xmin, UpdatedAt, status hoặc assignment. Nhờ vậy note nội bộ không làm lộ thêm sự kiện qua UpdatedAt/Version của Ticket. [Phần 16](backend-sla.md) chỉ cập nhật FirstRespondedAt/breach SLA khi public comment đủ điều kiện; internal note không thay SLA. Không nhận Version từ client vì comment là một bản ghi mới độc lập; nhiều append đồng thời đều được giữ. Row lock sắp thứ tự với close/cancel/reassign và recheck trạng thái/scope; workflow vẫn bắt buộc Version.
 
-Comment requester trên WaitingForRequester không tự resume Ticket. Chưa phát notification/SignalR hoặc tính FirstRespondedAt/deadline SLA; phần 15–16 bổ sung các side effect tương ứng sau khi chốt recipient/Agent response. Không tự gán SLA hồi tố. Mỗi POST hợp lệ là một comment mới; chưa có idempotency key, không tự retry POST khi chưa biết kết quả sau mất kết nối.
+Comment requester trên WaitingForRequester không tự resume Ticket. [Phần 15](backend-notifications.md) thêm notification cùng transaction và phát ID sau commit, theo public/internal ACL. [Phần 16](backend-sla.md) tính first response một lần cho public comment của người khác requester có quyền/phạm vi xử lý hiện tại; giữ deadline, không tạo SLA hồi tố. Mỗi POST hợp lệ là comment mới; chưa có idempotency key, không tự retry khi chưa biết kết quả sau mất kết nối.
 
 ## Visibility và payload activity
 
@@ -71,6 +71,7 @@ New activity có ActorId từ phiên, CreatedAt bằng comment.CreatedAt; OldVal
 | InternalNoteAdded | Cùng internal ACL với note; CommentId và IsInternal=true |
 | PublicAttachmentAdded | Public; AttachmentId, CommentId và IsInternal=false |
 | InternalAttachmentAdded | Cùng internal ACL; AttachmentId, CommentId và IsInternal=true |
+| SlaFirstResponseBreached / SlaResolutionBreached | Public; DueAt và DetectedAt, không chứa nội dung comment hoặc file |
 | Action chưa đăng ký/legacy không rõ visibility | Ẩn khỏi list/count/detail với mọi role cho đến khi có quy tắc rõ ràng |
 
 Activity DTO trả id/ticketId/actorId/action/createdAt/oldValue/newValue, trong đó old/new là TicketActivityData có các field whitelist tùy action, field khác null. **Không trả raw JSON** từ database. Các key Content/internalNote/user/email hoặc dữ liệu tùy ý trong audit cũ không xuất hiện. JSON không đúng dạng payload nhận null; action mới cần thêm cả visibility lẫn projection/tests trước khi xuất API. Filter isInternal=true trên activities chọn InternalNoteAdded và InternalAttachmentAdded trong quyền hiện tại, false chọn các action public đã đăng ký. Attachment activity chỉ có ID/visibility, không có tên file hoặc storage key.
@@ -86,4 +87,4 @@ dotnet build be/be.sln --no-restore -warnaserror
 
 PostgreSQL tests bao phủ author từ phiên, strict DTO, Location, trim/length, public/internal độc lập, requester nhiều role vẫn không đọc note, list/detail/activity không lộ note hoặc count, nested ID sai Ticket, author mất scope, thu hồi grant/member/team/department/user/session với cùng JWT, terminal/history, append đồng thời, rollback sau SQL save và projection audit cũ/unknown action. Toàn bộ test workflow/ACL cũ tiếp tục chạy; script dùng container tạm và không thay đổi database helpdesk thật. CI hiện có tự chạy test mới, không cần workflow/secret mới.
 
-[Phần 14](backend-attachments.md) đã bổ sung MinIO private bucket, upload/download theo ACL Ticket/comment, hạn mức và journal dọn object mồ côi. [Review/apply migration mới](attachment-storage-review.md) và cấu hình storage là thao tác riêng; phần tiếp theo là notification/SignalR.
+[Phần 14](backend-attachments.md) có file theo ACL và cleanup journal; [phần 15](backend-notifications.md) có notification/SignalR. [Phần 16](backend-sla.md) thêm first response và overdue với [migration SlaMvp](sla-mvp-review.md); phần tiếp theo là Dashboard/báo cáo.

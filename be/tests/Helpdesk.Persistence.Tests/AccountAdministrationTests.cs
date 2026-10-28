@@ -571,6 +571,7 @@ public class AccountAdministrationTests(PostgresFixture fixture)
                 await database.SaveChangesAsync();
             }
             await database.Users.Where(x => _suspended.Contains(x.Id)).ExecuteUpdateAsync(setters => setters.SetProperty(x => x.IsActive, true));
+            await database.Notifications.Where(x => _users.Contains(x.UserId)).ExecuteDeleteAsync();
             await database.IdentityAuditLogs.Where(x => (x.ActorId != null && _users.Contains(x.ActorId.Value)) ||
                 (x.TargetUserId != null && _users.Contains(x.TargetUserId.Value)) || (x.TargetRoleId != null && _roles.Contains(x.TargetRoleId.Value))).ExecuteDeleteAsync();
             await database.RefreshTokens.Where(x => _users.Contains(x.UserId)).ExecuteUpdateAsync(setters => setters.SetProperty(x => x.ReplacedByTokenId, (Guid?)null));

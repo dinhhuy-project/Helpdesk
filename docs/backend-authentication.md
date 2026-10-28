@@ -82,6 +82,8 @@ Thiếu/sai/hết hạn token, user đã bị xóa hoặc inactive trả 401 Pro
 
 Có `POST /api/v1/auth/refresh` và `POST /api/v1/auth/logout`, đều nhận JSON `{ "refreshToken": "<giá trị hiện tại>" }` và không yêu cầu access token còn hạn. Refresh trả cùng cấu trúc như login; logout trả 204. Refresh token dùng lại sau rotation gây thu hồi chuỗi token liên quan; xem [hành vi khi hết hạn, tái sử dụng và refresh đồng thời](backend-sessions.md). JWT cũ không có `sid` bị từ chối sau khi cập nhật code, cần login lại một lần.
 
+[SignalR phần 15](backend-notifications.md) dùng cùng validation JWT/session cho `/hubs/notifications`. Chỉ hub chấp nhận access_token query của browser transport, REST vẫn cần Bearer header. Hub kiểm tra quyền khi watch Ticket và dispatcher đọc lại ACL trước gửi. Kết nối hết exp hoặc bị revoke/inactive sẽ đóng; refresh token không tự đổi principal của connection đang mở, cần reconnect với access token mới. Request logging đã chặn URL token ở Hosting.Diagnostics; proxy/APM cũng cần che query khi deploy.
+
 ## Thử trong Swagger
 
 1. Stop Debugging rồi F5 lại profile Docker để dùng code mới.
