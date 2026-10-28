@@ -1,6 +1,11 @@
 param([string]$Filter = '')
 
 $ErrorActionPreference = 'Stop'
+$frontendRoot = Join-Path $PSScriptRoot '../../fe'
+if (-not $Filter -and (-not (Get-Command node -ErrorAction SilentlyContinue) -or
+    -not (Test-Path -LiteralPath (Join-Path $frontendRoot 'node_modules/@microsoft/signalr/package.json')))) {
+    throw 'Node.js and frontend dependencies are required for the SignalR JS compatibility test. Run npm ci in fe/ first.'
+}
 $testSuffix = [Guid]::NewGuid().ToString('N')
 $testContainer = "helpdesk-mapping-test-$testSuffix"
 $testDatabase = "helpdesk_mapping_test_$testSuffix"

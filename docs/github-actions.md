@@ -26,7 +26,9 @@ Seed dữ liệu Development có tests riêng trên database con tạm: startup 
 
 Phần 14 build MinIO từ `deploy/minio`, chạy container riêng không volume trên loopback 19000 và dừng bằng step `always()`. Backend job có timeout 35 phút cho lần build source đầu. SDK/API tests dùng bucket tên ngẫu nhiên: upload/download thật, anonymous bị chặn, bucket public bị từ chối; các tests khác kiểm tra ACL, quota, rollback metadata/activity và cleanup journal. Migration AttachmentStorage được apply/replay/rollback chỉ trong database tạm. Credentials MinIO CI là dữ liệu công khai của container tạm; không dùng bucket hay root credential của môi trường ứng dụng.
 
-Phần 15 thêm HTTP/SignalR integration tests trong cùng suite, test client `Microsoft.AspNetCore.SignalR.Client` 8.0.32 qua TestServer LongPolling: owner/current ACL/internal visibility, pagination/mark-read, activity+notification rollback, lease/retry và dispatch sau commit, JWT/group/session revoke. NotificationDelivery được kiểm tra SQL forward/replay/rollback và guard khi có dữ liệu. Test factory tắt dispatch tự động để điều khiển thời điểm gửi; test vẫn dùng registry/dispatcher và hub thật. Không cần Redis/backplane, secrets mới hoặc job CI riêng. Chưa kiểm thử client JS 10 hoặc reverse proxy WebSocket production.
+Phần 15 thêm HTTP/SignalR integration tests trong cùng suite, test client `Microsoft.AspNetCore.SignalR.Client` 8.0.32 qua TestServer LongPolling: owner/current ACL/internal visibility, pagination/mark-read, activity+notification rollback, lease/retry và dispatch sau commit, JWT/group/session revoke. NotificationDelivery được kiểm tra SQL forward/replay/rollback và guard khi có dữ liệu. Test factory tắt dispatch tự động để điều khiển thời điểm gửi; test vẫn dùng registry/dispatcher và hub thật. Không cần Redis/backplane, secrets mới hoặc job CI riêng. Chưa kiểm thử reverse proxy WebSocket production.
+
+Bước 3 frontend thêm test JS SignalR 10.0.11 với hub ứng dụng .NET 8 qua loopback Kestrel bridge/LongPolling, JWT/login/refresh/logout và group ACL thật trên PostgreSQL test. Backend job cài Node 24 và `npm ci --prefix fe` để chạy test này trong suite; credential fixture chỉ qua stdin, không dùng secrets hoặc DB Helpdesk thật. Local chạy riêng `./be/tests/Run-SignalRCompatibilityTests.ps1` sau `npm ci` ở fe; xem [phạm vi đã xác minh và giới hạn](frontend-shell.md).
 
 Phần 16 thêm SLA rules/integration tests: policy permission/version/active priority race, snapshot 24/7 bất biến và no backfill, first response public theo quyền/phạm vi, resolve/reopen, worker batch/idempotence/terminal skip và rollback sau SQL. SlaMvp forward/replay/rollback chạy trong DB test; rollback khi có snapshot mới bị chặn. Factory tắt worker tự động để kiểm soát clock/thời điểm xử lý; production mặc định bật. Không thêm package, container hoặc secret cho SLA.
 
@@ -66,6 +68,7 @@ Script test local tạo PostgreSQL và MinIO riêng bằng Docker, credential/po
 cd fe
 npm ci
 npm run lint
+npm test
 npm run build
 ```
 

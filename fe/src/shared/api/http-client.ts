@@ -1,12 +1,18 @@
-import axios from 'axios'
+import axios, { AxiosHeaders } from 'axios'
 import type { AxiosAdapter, AxiosRequestConfig } from 'axios'
 import { environment } from '../config/environment'
-import { toApiError } from './api-error'
+import { ApiError, toApiError } from './api-error'
 
-type RequestOptions<TBody = unknown> = Omit<AxiosRequestConfig<TBody>,
-  'url' | 'baseURL' | 'auth' | 'withCredentials' | 'adapter'>
+export type RequestOptions<TBody = unknown> = Omit<AxiosRequestConfig<TBody>,
+  'url' | 'baseURL' | 'auth' | 'withCredentials' | 'adapter' | 'signal' | 'headers'>
+  & { signal?: AbortSignal; headers?: AxiosHeaders | Record<string, string> }
 
-export function createHttpClient(options: { baseURL: string; adapter?: AxiosAdapter }) {
+export type AuthorizeRequest = <T>(
+  send: (accessToken: string, sessionSignal: AbortSignal) => Promise<T>,
+  signal?: AbortSignal,
+) => Promise<T>
+
+export function createHttpClient(options: { baseURL: string; adapter?: AxiosAdapter; authorize?: AuthorizeRequest }) {
   const transport = axios.create({
     baseURL: options.baseURL,
     adapter: options.adapter,
@@ -20,13 +26,22 @@ export function createHttpClient(options: { baseURL: string; adapter?: AxiosAdap
     if (!path.startsWith('/') || path.startsWith('//') || /[\\\s]/.test(path)) {
       throw new Error('API path phải bắt đầu bằng một dấu / và thuộc backend đã cấu hình.')
     }
-    try {
-      const response = await transport.request<TResponse>({ ...config, url: path })
-      return response.data
-    } catch (error) {
-      // Do not retain Axios config/request: it may later contain credentials or file data.
-      throw toApiError(error)
+    async function send(accessToken?: string, sessionSignal?: AbortSignal) {
+      try {
+        const signal = sessionSignal && config?.signal
+          ? AbortSignal.any([sessionSignal, config.signal]) : sessionSignal ?? config?.signal
+        if (signal?.aborted) throw new ApiError('Yêu cầu đã được hủy.', 'cancelled')
+        const headers = new AxiosHeaders(config?.headers)
+        if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`)
+        const response = await transport.request<TResponse>({ ...config, headers, signal, url: path })
+        if (signal?.aborted) throw new ApiError('Yêu cầu đã được hủy.', 'cancelled')
+        return response.data
+      } catch (error) {
+        // Do not retain Axios config/request: it may contain credentials or file data.
+        throw toApiError(error)
+      }
     }
+    return options.authorize ? options.authorize(send, config?.signal) : send()
   }
 
   return {
@@ -41,4 +56,5 @@ export function createHttpClient(options: { baseURL: string; adapter?: AxiosAdap
   }
 }
 
+export type HttpClient = ReturnType<typeof createHttpClient>
 export const apiClient = createHttpClient({ baseURL: environment.apiBaseUrl })

@@ -59,6 +59,16 @@ jobs:
       - name: Restore
         run: dotnet restore be/be.sln
 
+      - name: Set up Node.js for SignalR JavaScript compatibility test
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '24.x'
+          cache: npm
+          cache-dependency-path: fe/package-lock.json
+
+      - name: Install JavaScript client for backend compatibility test
+        run: npm ci --prefix fe
+
       - name: Build Release
         run: dotnet build be/be.sln --configuration Release --no-restore -warnaserror
 

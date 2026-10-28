@@ -6,7 +6,7 @@ Phần 6–9 đã có code/API/tests và người dùng xác nhận review/apply
 
 Đã có năm phần nền tảng: cấu hình/lỗi/bảo mật, seed Identity/bootstrap admin, login và `/users/me`, refresh rotation/logout, permission policies đọc database. Đã có GitHub Actions cho backend, frontend và Docker.
 
-Domain và EF mapping có 20 entity trong bốn schema: 18 entity lõi, IdentityAuditLog và AttachmentUploadIntent. Có tám migration: InitialCreate, AccountAdministration, DepartmentAdministration, SupportTeamAdministration, TicketCategoryAdministration, AttachmentStorage, NotificationDelivery và SlaMvp. API có Auth, Users/me, quản trị User/Identity, Department, SupportTeam/membership, TicketCategory, Ticket create/assign/transition/list/detail/access, comment/activity/attachment, notification, SLA policy/Ticket SLA, dashboard/reports và hub /hubs/notifications, cùng WeatherForecast từ template. Frontend đã có [nền tảng bước 1](frontend-foundation.md), chưa có auth client hoặc màn hình nghiệp vụ.
+Domain và EF mapping có 20 entity trong bốn schema: 18 entity lõi, IdentityAuditLog và AttachmentUploadIntent. Có tám migration: InitialCreate, AccountAdministration, DepartmentAdministration, SupportTeamAdministration, TicketCategoryAdministration, AttachmentStorage, NotificationDelivery và SlaMvp. API có Auth, Users/me, quản trị User/Identity, Department, SupportTeam/membership, TicketCategory, Ticket create/assign/transition/list/detail/access, comment/activity/attachment, notification, SLA policy/Ticket SLA, dashboard/reports và hub /hubs/notifications, cùng WeatherForecast từ template. Frontend đã có [nền tảng bước 1](frontend-foundation.md) và [auth/session bước 2](frontend-authentication.md); màn hình Ticket/quản trị triển khai tiếp.
 
 Tận dụng model hiện có; chỉ tạo migration mới khi cần thay đổi field/index/constraint đã review. Không chỉnh InitialCreate đã áp dụng và không tự apply migration vào database đang dùng.
 
@@ -78,7 +78,7 @@ CRUD role và sửa grant có thể triển khai thành lượt riêng sau khi g
 | User/Role/Department/Team/Member/Category đã có xmin Version | Membership change bump cả member và team. Category version chỉ cho field của node; IsAvailable còn phụ thuộc ancestor hiện tại. |
 | Scope Ticket đã chốt theo requester, assignee và membership hiện tại | Read own/team/all kết hợp OR; xử lý cần update.status và assignee/leader hoặc read.all. Assign cần ticket.assign và leader nguồn/đích hoặc read.all. Dùng TicketScope/WriteGuard chung. |
 | Đã có ticket.confirm/reopen/cancel tách ticket.update.status | Bước 12 chốt requester hoặc read.all, luôn có read scope + permission riêng; Closed/Cancelled terminal. Bước 11 chỉ tạo cho chính mình, requester/creator từ phiên. Tạo hộ tiếp tục cần contract/quyền riêng khi mở rộng. |
-| Refresh token hiện truyền JSON, frontend chưa có auth client | Khi tích hợp frontend, giữ token trong memory và điều phối một request refresh tại một thời điểm. Nếu cần duy trì qua reload bằng cookie HttpOnly, thiết kế HTTPS/CSRF/CORS cùng thay đổi transport. |
+| Refresh token hiện truyền JSON, frontend đã có auth client | Frontend giữ token trong memory, điều phối một refresh/chuỗi phiên và chặn response cũ sau logout. Reload cần login lại; nếu cần cookie HttpOnly phải thiết kế HTTPS/CSRF/CORS cùng thay đổi transport. |
 
 ## Tiêu chí hoàn thành mỗi phần
 

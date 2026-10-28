@@ -5,18 +5,20 @@ import { RouterProvider, createMemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getHealth } from '../../features/home/api/health'
 import { ApiError } from '../../shared/api/api-error'
-import { createQueryClient } from '../providers/query-client'
 import { appRoutes } from './routes'
+import { createAppServices } from '../providers/app-services'
+import { AuthProvider } from '../../features/auth/providers/auth-provider'
 
 vi.mock('../../features/home/api/health', () => ({ getHealth: vi.fn() }))
 
 const cleanups: (() => void)[] = []
 function openPage(path: string) {
-  const client = createQueryClient()
+  const { queryClient: client, session, client: authenticatedClient } = createAppServices()
   client.setDefaultOptions({ queries: { retry: false } })
   const router = createMemoryRouter(appRoutes, { initialEntries: [path] })
   cleanups.push(() => { router.dispose(); client.clear() })
-  return render(<QueryClientProvider client={client}><RouterProvider router={router} /></QueryClientProvider>)
+  return render(<QueryClientProvider client={client}><AuthProvider session={session} client={authenticatedClient}>
+    <RouterProvider router={router} /></AuthProvider></QueryClientProvider>)
 }
 
 beforeEach(() => { vi.mocked(getHealth).mockResolvedValue(undefined) })

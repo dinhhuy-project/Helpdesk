@@ -1,6 +1,6 @@
 # Nền tảng frontend — bước 1
 
-Đã triển khai nền tảng React trong `fe/`: cấu hình môi trường, router/provider, typed API transport, lỗi API, ngày giờ/enum, component dùng chung và bộ test. Trang chủ gọi **API thật** `GET /health/live`, có loading/error/retry, cùng trang 404 cho route chưa tồn tại. Chưa triển khai đăng nhập hoặc các màn hình nghiệp vụ của bước 2 trở đi.
+Đã triển khai nền tảng React trong `fe/`: cấu hình môi trường, router/provider, typed API transport, lỗi API, ngày giờ/enum, component dùng chung và bộ test. Trang chủ gọi **API thật** `GET /health/live`, có loading/error/retry, cùng trang 404 cho route chưa tồn tại. Bước 2 đã bổ sung [đăng nhập và quản lý phiên](frontend-authentication.md); các màn hình Ticket/quản trị chưa triển khai.
 
 ## Chạy local
 
@@ -85,7 +85,7 @@ Không tạo sẵn các module nghiệp vụ rỗng. `App.tsx` chỉ lắp provi
 - Lỗi được chuẩn hóa thành `ApiError`: kind, HTTP status, business code, traceId, field errors và Retry-After nếu có. Lỗi HTTP dùng status response; không tin status trong JSON để thay thế transport status. Không giữ Axios config/request chứa credential/body trong error object.
 - `getFieldError(error, 'displayName')` ánh xạ field ASP.NET không phân biệt hoa/thường và hỗ trợ tiền tố `$.`; có thể truyền đầy đủ path cho field lồng nhau. Không render HTML từ lỗi hoặc nội dung người dùng.
 - Query staleTime mặc định 30 giây, gcTime 5 phút, refetch khi focus/reconnect. Query chỉ retry **một lần** với lỗi network/timeout hoặc HTTP 502/503/504; không retry tự động 401/403/404/409/429/cancelled. Mutation không retry.
-- `createQueryClient` tạo instance riêng cho provider/test. Hiện chỉ cache health công khai. Khi làm auth ở bước 2, cần bổ sung scope user/session vào query keys nghiệp vụ, hủy request/xóa cache khi kết thúc phiên và điều phối refresh một lần; bước này chưa có interceptor refresh hoặc lưu token.
+- `createQueryClient` tạo instance riêng cho provider/test. Bước 2 đã bổ sung authenticated client, scope user/session, hủy request/xóa cache khi kết thúc phiên và điều phối refresh một lần; xem [cách dùng API client cho feature mới](frontend-authentication.md). Health vẫn dùng public client, không đính kèm Bearer.
 
 ## Enum, ngày giờ và component
 
@@ -111,6 +111,6 @@ npm run build
 
 Kết quả lượt triển khai: **51 tests / 9 files đạt**, ESLint và TypeScript/Vite build đạt trên máy local. Bao phủ normalization/validation/traceId, chặn request ngoài origin, multipart, cancellation, mutation không retry, query retry policy, enum parity, UTC/date, form/pagination/dialog/table và router/API states. Kiểm tra npm không báo dependency conflict hoặc vulnerability tại lượt chạy này.
 
-Đã kiểm tra local bằng Edge headless: API thật qua Vite proxy trả `200 Healthy`, trang chủ desktop/mobile không overflow ngang, skip link, deep-link/reload/404, dialog keyboard/Escape/focus restore, lỗi mạng và retry; không có page error. Browser smoke dùng công cụ tạm ngoài repo, chưa phải E2E suite chạy trên CI. Chưa chạy workflow GitHub từ xa hoặc nghiệm thu auth/SignalR/nghiệp vụ ở các bước sau.
+Đã kiểm tra local bằng Edge headless: API thật qua Vite proxy trả `200 Healthy`, trang chủ desktop/mobile không overflow ngang, skip link, deep-link/reload/404, dialog keyboard/Escape/focus restore, lỗi mạng và retry; không có page error. Browser smoke dùng công cụ tạm ngoài repo, chưa phải E2E suite chạy trên CI. Lượt bước 1 chưa nghiệm thu auth/SignalR/nghiệp vụ; kết quả auth mới nằm ở [bước 2](frontend-authentication.md). Chưa chạy workflow GitHub từ xa.
 
-Bước tiếp theo: [bước 2 — auth/session](frontend-roadmap.md), sau đó bổ sung layout/menu/permission theo bước 3. Không cần migration, seed lại database hoặc đổi secret cho nền tảng frontend này.
+Bước 2 đã có [auth/session](frontend-authentication.md), bước 3 đã có [khung ứng dụng và quyền giao diện](frontend-shell.md); tiếp theo là Ticket list/detail. Không cần migration, seed lại database hoặc đổi secret cho frontend.

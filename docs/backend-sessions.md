@@ -15,7 +15,7 @@ Login trả HTTP 200 với các field cũ `accessToken`, `tokenType`, `expiresAt
 
 Đoạn JSON trên chỉ minh họa hai field bổ sung. Mỗi lần login tạo một chuỗi token độc lập, kể cả cùng user. `Jwt:RefreshTokenDays` (environment `Jwt__RefreshTokenDays`, Compose `JWT_REFRESH_TOKEN_DAYS`) là thời hạn phiên, mặc định 7 ngày, hợp lệ 1–30. Mọi token được rotation từ login đó giữ nguyên thời hạn này. Thay cấu hình chỉ ảnh hưởng login mới.
 
-Credentials được truyền rõ ràng qua JSON; access token qua `Authorization: Bearer`. Backend không đặt hoặc đọc cookie xác thực. Client trình duyệt hiện nên giữ token trong bộ nhớ, tránh localStorage và không log body chứa token. Việc tải lại trang sẽ cần login lại khi client không còn credential trong bộ nhớ. Frontend hiện chưa có auth client/interceptor.
+Credentials được truyền rõ ràng qua JSON; access token qua `Authorization: Bearer`. Backend không đặt hoặc đọc cookie xác thực. Client trình duyệt giữ token trong bộ nhớ, tránh localStorage và không log body chứa token. Việc tải lại trang cần login lại khi client không còn credential trong bộ nhớ. Frontend đã có [auth client và điều phối rotation/logout](frontend-authentication.md).
 
 Các endpoint auth chỉ nhận `application/json`, giới hạn body 4096 byte. Refresh token phải có đúng 86 ký tự `[A-Za-z0-9_-]`, không trim. Response thành công/lỗi credential có `Cache-Control: no-store`. Production dùng HTTPS. Khi bổ sung cookie HttpOnly để duy trì phiên trình duyệt, phải thiết kế CSRF, Secure/SameSite và CORS credentials cùng lúc; hiện không có credential do trình duyệt tự gửi để xác thực request.
 

@@ -40,7 +40,7 @@ Tài liệu này mô tả **phạm vi và thiết kế mục tiêu của hệ th
 | Phân tích nghiệp vụ và mô hình dữ liệu 18 entities | Đã thiết kế                          | Có thiết kế schema, entities, quan hệ và constraints                        |
 | Bộ mã EF Core Schema Starter từ giai đoạn trước    | Có bản khởi tạo riêng                | **Bản cũ target .NET 10 / EF Core 10**, chưa phải backend `net8.0` hiện tại |
 | Backend API nghiệp vụ                              | Core phần 1–17 đã triển khai          | Auth, tổ chức, Ticket, file, SLA, notification và dashboard/report theo ACL |
-| Frontend React `^19.3.1`                           | Nền tảng đã triển khai               | Router/provider, API client, component dùng chung và tests; auth/nghiệp vụ triển khai tiếp |
+| Frontend React `^19.3.1`                           | Nền tảng và auth đã triển khai        | Router/provider, API client, component, login/refresh/logout/account/password và tests; Ticket/quản trị triển khai tiếp |
 | MinIO nghiệp vụ                                    | Đã triển khai phần 14                | File private theo ACL Ticket/comment, cần review SQL và cấu hình storage    |
 | SignalR / Redis nghiệp vụ                          | SignalR đã triển khai phần 15         | Notification sau commit, JWT/resource ACL; Redis chưa làm cache/backplane   |
 | AI                                                 | Sau MVP, nếu còn thời gian           | Không phải yêu cầu bắt buộc                                                 |
@@ -75,7 +75,7 @@ Tài liệu này mô tả **phạm vi và thiết kế mục tiêu của hệ th
 
 **Kế hoạch tiếp theo:** Triển khai frontend theo [lộ trình 15 bước và tiêu chí nghiệm thu](docs/frontend-roadmap.md), bắt đầu từ nền tảng, auth/session và luồng Ticket. [Lộ trình backend](docs/backend-roadmap.md) còn phần 18 chuẩn bị vận hành trước deployment production.
 
-**Nền tảng frontend:** Bước 1 đã có React Router/QueryClient, typed Axios client, ProblemDetails/validation/traceId, enum/ngày giờ, component dùng chung và Vitest/Testing Library. Chạy `npm ci`, `npm run dev` trong `fe/`, mở port 5173; dev proxy mặc định nối API Container port 5000. Xem [cấu hình, phiên bản và kiểm thử](docs/frontend-foundation.md). Bước tiếp theo là auth/session; chưa có giao diện đăng nhập.
+**Frontend:** Đã có [nền tảng bước 1](docs/frontend-foundation.md), [auth/session bước 2](docs/frontend-authentication.md) và [khung ứng dụng/quyền giao diện bước 3](docs/frontend-shell.md): sidebar/header responsive, policy guards và 403/404. Token chỉ giữ trong memory, reload cần login lại. Chạy `npm ci`, `npm run dev` trong `fe/`, mở port 5173; dev proxy nối API Container port 5000. Menu module chưa triển khai có nhãn Sắp có; bước tiếp theo là Ticket list/detail. Phép thử JS SignalR 10 với hub .NET 8 qua LongPolling đã đạt trên DB test riêng.
 
 **Khởi động lại hạ tầng:** Giữ `.env` hiện có, chạy `docker compose up -d --build --wait postgres redis minio`. MinIO tự tạo bucket private, app user/policy và chỉ báo healthy sau khi cấu hình xong, kể cả khi volume mới trống. Nếu xóa volume PostgreSQL, cần áp dụng lại migrations đã review trước khi chạy API. Xem [setup](docs/backend-setup.md).
 

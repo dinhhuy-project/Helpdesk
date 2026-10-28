@@ -1,6 +1,6 @@
 # Helpdesk frontend
 
-React 19.3.1 + TypeScript + Vite. Đã có nền tảng router/provider, typed API client, lỗi API, component dùng chung và unit/component tests. Chưa triển khai auth hoặc các màn hình nghiệp vụ.
+React 19.3.1 + TypeScript + Vite. Đã có nền tảng, login/phiên/tài khoản, khung sidebar/header responsive, guard theo permission và 403/404. Các màn hình Ticket/quản trị triển khai tiếp; mục Sắp có chưa phải trang nghiệp vụ đã hoàn thành.
 
 ```powershell
 npm ci
@@ -18,6 +18,8 @@ npm run build
 Node 22.12+ trong major 22, Node 24 hoặc 26+ theo `package.json`; `.nvmrc`/CI chọn Node 24. `npm run test:watch` dùng khi phát triển.
 
 - [Cấu trúc, phiên bản, API/cache và cách cấu hình](../docs/frontend-foundation.md)
+- [Đăng nhập, phiên, tài khoản và đổi mật khẩu](../docs/frontend-authentication.md)
+- [Khung ứng dụng, permission guards và kiểm tra SignalR JS 10/server 8](../docs/frontend-shell.md)
 - [Lộ trình và tiêu chí nghiệm thu](../docs/frontend-roadmap.md)
 - [Quy tắc repository](../guides.md)
 

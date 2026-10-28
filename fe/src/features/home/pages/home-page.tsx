@@ -1,11 +1,13 @@
 import { ErrorState, LoadingState } from '../../../shared/components/async-state'
 import { formatDateTime } from '../../../shared/lib/date-time'
 import { useHealth } from '../hooks/use-health'
+import { PageTitle } from '../../../shared/components/page-title'
 
 export function HomePage() {
   const health = useHealth()
   return (
     <>
+      <PageTitle title="Trang chủ" />
       <section className="intro" aria-labelledby="welcome-title">
         <p className="eyebrow">Helpdesk / Hỗ trợ nội bộ</p>
         <h1 id="welcome-title">Kết nối hỗ trợ.<br />Tiếp nối công việc.</h1>

@@ -2,8 +2,8 @@ import { useEffect, useId, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { Button } from './button'
 
-export function Dialog({ open, onOpenChange, title, description, children }: {
-  open: boolean; onOpenChange: (open: boolean) => void; title: string; description?: string; children: ReactNode
+export function Dialog({ open, onOpenChange, title, description, children, className = '' }: {
+  open: boolean; onOpenChange: (open: boolean) => void; title: string; description?: string; children: ReactNode; className?: string
 }) {
   const ref = useRef<HTMLDialogElement>(null)
   const titleId = useId()
@@ -17,7 +17,7 @@ export function Dialog({ open, onOpenChange, title, description, children }: {
   }, [open])
 
   return (
-    <dialog ref={ref} className="dialog" aria-labelledby={titleId}
+    <dialog ref={ref} className={`dialog ${className}`} aria-labelledby={titleId}
       aria-describedby={description ? descriptionId : undefined}
       onCancel={event => { event.preventDefault(); onOpenChange(false) }}
       onClose={() => { if (open) onOpenChange(false) }}>

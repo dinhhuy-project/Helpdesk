@@ -1,6 +1,6 @@
 # Lộ trình triển khai frontend Helpdesk
 
-Backend đã có API phần 1–17. Frontend đã hoàn thành [bước 1 — nền tảng](frontend-foundation.md): router/provider, API client, component dùng chung và tests; trang chủ có health request thật. Chưa có auth client hoặc màn hình nghiệp vụ. Các bước 2–15 dưới đây là thứ tự triển khai tiếp theo, chưa phải tính năng đã hoàn thành.
+Backend đã có API phần 1–17. Frontend đã hoàn thành [bước 1 — nền tảng](frontend-foundation.md), [bước 2 — auth/session](frontend-authentication.md) và [bước 3 — khung ứng dụng/quyền giao diện](frontend-shell.md). Các bước 4–15 dưới đây là thứ tự triển khai tiếp theo, chưa phải tính năng đã hoàn thành.
 
 Mục tiêu đầu tiên là chạy được luồng **đăng nhập → tạo Ticket → xem Ticket → trao đổi**. Sau đó hoàn thiện quản trị dữ liệu, phân công/xử lý, file, SLA, notification và báo cáo. Mỗi bước tích hợp API thật và nghiệm thu quyền truy cập trước khi chuyển tiếp.
 
@@ -133,4 +133,4 @@ Ngoài phạm vi frontend MVP hiện tại: OIDC, đăng ký công khai/quên m�
 - Tổng hợp: [notifications/SignalR](backend-notifications.md), [SLA](backend-sla.md), [dashboard/reporting](backend-reporting.md), [query review](report-query-review.md).
 - Hạ tầng và vận hành: [setup](backend-setup.md), [GitHub Actions](github-actions.md), [backend roadmap — bước 18](backend-roadmap.md).
 
-**Bước triển khai tiếp theo:** bước 2 — auth/session, rồi bước 3 — layout/menu/permission để xử lý phiên và quyền ổn định trước khi mở rộng màn hình nghiệp vụ. Xem [kết quả và hướng dẫn chạy bước 1](frontend-foundation.md).
+**Bước triển khai tiếp theo:** bước 4 — danh sách/chi tiết Ticket, rồi tạo Ticket. Xem [nền tảng bước 1](frontend-foundation.md), [auth/session bước 2](frontend-authentication.md) và [khung ứng dụng/quyền giao diện bước 3](frontend-shell.md).

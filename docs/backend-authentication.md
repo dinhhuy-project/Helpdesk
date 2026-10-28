@@ -92,7 +92,7 @@ Có `POST /api/v1/auth/refresh` và `POST /api/v1/auth/logout`, đều nhận JS
 4. Copy `accessToken`, chọn **Authorize** và dán token (không cần thêm tiền tố Bearer với scheme HTTP bearer).
 5. Gọi `GET /api/v1/users/me`; kiểm tra hồ sơ, role và permission.
 
-Swagger đánh dấu bearer cho endpoint có `[Authorize]`; login/refresh/logout được mô tả anonymous vì tự kiểm tra credentials trong JSON. Frontend hiện còn là starter template, chưa có UI đăng nhập hoặc API client auth; response contract được ghi ở đây để tích hợp sau.
+Swagger đánh dấu bearer cho endpoint có `[Authorize]`; login/refresh/logout được mô tả anonymous vì tự kiểm tra credentials trong JSON. Frontend đã có [UI đăng nhập và API client auth](frontend-authentication.md), giữ token trong memory và xác nhận profile qua `/me`.
 
 ## Cấu trúc code và kiểm thử
 
