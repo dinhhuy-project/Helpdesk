@@ -6,19 +6,27 @@ Workflow [CI](../.github/workflows/ci.yml) chạy khi push lên bất kỳ branc
 
 | Job / status check | Nội dung |
 | --- | --- |
-| `Backend build and tests` | Restore, build Release với warning là lỗi; chạy toàn bộ xUnit với PostgreSQL 16; smoke test CLI `seed-identity`; kiểm tra publish API |
+| `Backend build and tests` | Restore, build Release với warning là lỗi; chạy toàn bộ xUnit với PostgreSQL 16 và MinIO tạm; smoke test CLI `seed-identity`; kiểm tra publish API |
 | `Frontend lint and build` | Node.js 24, `npm ci` theo lockfile, ESLint, TypeScript và Vite build |
 | `Docker and Compose validation` | Kiểm tra Compose bằng `.env.example` và giá trị giả dành cho CI; build image từ `be/Dockerfile` với context `be/` |
 
 Backend dùng SDK .NET 8 được chọn bằng `global.json` tạo riêng trên runner. File này không được thêm vào repository và không thay cách chọn SDK trên máy phát triển. Frontend dùng cache npm theo `fe/package-lock.json`. Hiện frontend chưa có test runner nên CI chỉ chạy các script lint/build đang tồn tại.
 
-PostgreSQL là service container mới cho từng job, không mount volume và dùng database `helpdesk_mapping_test_ci`, phù hợp điều kiện an toàn của bộ test. Suite kiểm tra migration/rollback, constraint, Identity/auth/session/permission, quản trị tài khoản (scope, version, audit, last-admin race, password revoke), Department, SupportTeam/membership (leader scope, version, deactivate/remove giữ lịch sử), TicketCategory (active ancestors, tên sibling/root, reparent/cycle race) và ACL Ticket (list/detail/checker cùng scope, negative writes/destination, quyền thay đổi, version race). Migration tests tạo thêm database con tạm trong chính service PostgreSQL để kiểm tra dữ liệu legacy; dùng tài khoản postgres của service test. CLI seed chạy sau test trên cùng database để kiểm tra tính idempotent. Không gọi script PowerShell tạo container lồng nhau và không cần Redis/MinIO để chạy các test hiện có.
+PostgreSQL là service container mới cho từng job, không mount volume và dùng database `helpdesk_mapping_test_ci`, phù hợp điều kiện an toàn của bộ test. Suite kiểm tra migration/rollback, constraint, Identity/auth/session/permission, quản trị tài khoản (scope, version, audit, last-admin race, password revoke), Department, SupportTeam/membership (leader scope, version, deactivate/remove giữ lịch sử), TicketCategory (active ancestors, tên sibling/root, reparent/cycle race) và ACL Ticket (list/detail/checker cùng scope, negative writes/destination, quyền thay đổi, version race). Migration tests tạo thêm database con tạm trong chính service PostgreSQL để kiểm tra dữ liệu legacy; dùng tài khoản postgres của service test. CLI seed chạy sau test trên cùng database để kiểm tra tính idempotent. CI chạy dotnet test trực tiếp, không gọi script PowerShell; Redis chưa cần cho suite.
 
 Phần 11 thêm test tạo Ticket (danh tính từ phiên, từ chối field server, category/ancestor, số database sinh khi tạo đồng thời, activity và rollback), filter UTC/sort/phân trang trong read scope và input không hợp lệ. Workflow tự chạy các test mới, không cần secret hoặc job mới.
 
 Phần 12 thêm unit tests bảng transition và integration tests route assign/transition: permission/resource scope, current assignment inactive, resolution/confirm/reopen, cùng version cạnh tranh, activity/SLA rollback sau SQL save và grant workflow chủ động/idempotent. Catalog hiện có 17 policy. Script PowerShell local còn smoke test grant-ticket-workflow trên PostgreSQL tạm; CI chạy các integration tests tương ứng cùng smoke seed hiện có.
 
+Phần 13 thêm integration tests comment/internal note/timeline: author từ phiên, strict body, public/internal grants, requester nhiều role vẫn bị chặn internal, visibility trước count/page, nested ID sai Ticket, quyền/membership bị thu hồi, history terminal, append đồng thời, rollback sau SQL save, audit whitelist và unknown action không xuất API. Không đổi migration/permission catalog hoặc workflow CI.
+
+Seed dữ liệu Development có tests riêng trên database con tạm: startup Identity/admin trước mẫu, login đọc Ticket, seed đồng thời, giữ dữ liệu/grant đã sửa, bỏ qua bảng nghiệp vụ đã dùng, từ chối Production/admin không hợp lệ/migration pending và rollback cả bộ mẫu sau SQL save. Test factory mặc định tắt DevelopmentData:SeedOnStartup để các suite khác không tự nhận dữ liệu mẫu; chỉ bài kiểm tra seed chủ động bật cờ.
+
 ## Secrets và artifact
+
+Phần 14 build MinIO từ `deploy/minio`, chạy container riêng không volume trên loopback 19000 và dừng bằng step `always()`. Backend job có timeout 35 phút cho lần build source đầu. SDK/API tests dùng bucket tên ngẫu nhiên: upload/download thật, anonymous bị chặn, bucket public bị từ chối; các tests khác kiểm tra ACL, quota, rollback metadata/activity và cleanup journal. Migration AttachmentStorage được apply/replay/rollback chỉ trong database tạm. Credentials MinIO CI là dữ liệu công khai của container tạm; không dùng bucket hay root credential của môi trường ứng dụng.
+
+MinIO image chứa client và entrypoint bootstrap; Compose healthcheck chờ cấu hình attachment hoàn tất. Với .env.example, storage mặc định disabled và app credentials trống vẫn hợp lệ. Docker job có timeout 25 phút và chạy Run-ComposeBootstrapTests.ps1 trên project GUID: khởi tạo ba service với volume trống, restart và reset/tạo lại volumes test; kiểm tra private bucket, app I/O và quyền bị chặn. CI không đọc .env, không dùng MinIO local, không sinh credentials .env hoặc ghi development user-secrets. minio-init chỉ là công cụ tùy chọn của profile storage-setup.
 
 Không cần tạo GitHub Actions Secrets cho workflow CI hiện tại. Mật khẩu `ci-test-only` là dữ liệu công khai chỉ dùng cho PostgreSQL tạm và việc kiểm tra cú pháp Compose; JWT trong test do test suite cung cấp. Workflow không đọc `.env` hay user-secrets trên máy phát triển, không bootstrap admin thật và không kết nối database Helpdesk đang dùng.
 
@@ -46,7 +54,7 @@ dotnet build be/be.sln --configuration Release --no-restore -warnaserror
 & ./be/tests/Run-PersistenceTests.ps1
 ```
 
-Script test local tạo PostgreSQL riêng bằng Docker và dọn container đó sau khi chạy; nó không dùng database ứng dụng. Trên CI, job chạy `dotnet test` trực tiếp với service container thay cho script này.
+Script test local tạo PostgreSQL và MinIO riêng bằng Docker, credential/port ngẫu nhiên, không mount volume và dọn cả hai trong finally; nó không dùng database/bucket ứng dụng. Nếu thiếu image `helpdesk-minio:latest`, script build từ `deploy/minio`. Trên CI, job chạy `dotnet test` trực tiếp với các container riêng thay cho script này.
 
 ```powershell
 cd fe

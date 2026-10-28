@@ -55,9 +55,9 @@ Policy `authentication` giới hạn theo `RemoteIpAddress`, hàng đợi bằng
 
 ### Tự động với profile Container (Dockerfile)
 
-Chọn profile **Container (Dockerfile)** và F5: `IdentityStartupSeeder` chạy trước khi API nhận request, tạo role/permission còn thiếu bằng cùng `IdentityInitializer.SeedAsync()`, sau đó gọi bootstrap admin đầu tiên từ user-secrets. Nếu catalog đã đầy đủ thì không ghi thay đổi; role đã có luôn giữ nguyên grant/description. Không tạo dữ liệu Ticket hoặc phòng ban.
+Chọn profile **Container (Dockerfile)** và F5: `IdentityStartupSeeder` chạy trước khi API nhận request, tạo role/permission còn thiếu bằng cùng `IdentityInitializer.SeedAsync()`, sau đó gọi bootstrap admin đầu tiên từ user-secrets. Nếu catalog đã đầy đủ thì không ghi thay đổi; role đã có luôn giữ nguyên grant/description. Tiếp theo, khi `DevelopmentData:SeedOnStartup=true` (đã bật trong profile Container), tạo [phòng ban/team/danh mục/Ticket mẫu](backend-development-data.md) nếu cả các bảng nghiệp vụ còn trống.
 
-Cả hai cờ `Identity:SeedOnStartup` và `Identity:BootstrapAdminOnStartup` mặc định false, được bật riêng trong `launchSettings.json` của profile Docker. Bootstrap tự chuẩn bị catalog trước, kể cả khi chỉ bật cờ bootstrap. Chế độ này chỉ cho phép môi trường Development; bật trong Production sẽ dừng startup. Compose và profile http/https không tự bật các cờ này.
+Cả ba cờ `Identity:SeedOnStartup`, `Identity:BootstrapAdminOnStartup` và `DevelopmentData:SeedOnStartup` mặc định false, được bật riêng trong `launchSettings.json` của profile Docker. Startup chuẩn bị catalog trước khi bootstrap/sample. Chế độ này chỉ cho phép môi trường Development; bật trong Production sẽ dừng startup. Compose và profile http/https không tự bật các cờ này. Có thể tắt riêng dữ liệu mẫu mà vẫn giữ seed Identity/bootstrap admin.
 
 Database phải kết nối được và đã áp dụng migration. Nếu seed/bootstrap thất bại, API không khởi động phục vụ request; kiểm tra kết nối PostgreSQL (host container Visual Studio thường dùng `host.docker.internal`), migration history và BootstrapAdmin trong user-secrets rồi chạy lại. Không tự migrate hoặc bỏ qua lỗi. Có thể tắt `Identity__BootstrapAdminOnStartup` trong profile nếu chỉ muốn seed catalog và dùng lệnh bootstrap thủ công bên dưới.
 

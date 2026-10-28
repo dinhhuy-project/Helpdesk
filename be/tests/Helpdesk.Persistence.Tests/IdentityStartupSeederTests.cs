@@ -1,4 +1,5 @@
 using be.Infrastructure.Identity;
+using be.Infrastructure.Seeding;
 using Npgsql;
 using System.Net.Sockets;
 using Microsoft.Extensions.Configuration;
@@ -58,6 +59,19 @@ public class IdentityStartupSeederTests
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
         {
             [IdentityStartupSeeder.BootstrapConfigurationKey] = "true"
+        }).Build();
+        var seeder = new IdentityStartupSeeder(provider.GetRequiredService<IServiceScopeFactory>(), configuration,
+            new TestEnvironment { EnvironmentName = "Production" }, NullLogger<IdentityStartupSeeder>.Instance);
+        await Assert.ThrowsAsync<IdentityInitializationException>(() => seeder.StartAsync(CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task ProductionCannotEnableDevelopmentDataEvenWhenIdentityFlagsAreDisabled()
+    {
+        using var provider = new ServiceCollection().BuildServiceProvider();
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [DevelopmentDataInitializer.ConfigurationKey] = "true"
         }).Build();
         var seeder = new IdentityStartupSeeder(provider.GetRequiredService<IServiceScopeFactory>(), configuration,
             new TestEnvironment { EnvironmentName = "Production" }, NullLogger<IdentityStartupSeeder>.Instance);

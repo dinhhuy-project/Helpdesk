@@ -16,12 +16,15 @@ jobs:
   backend:
     name: Backend build and tests
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 35
     env:
       DOTNET_CLI_TELEMETRY_OPTOUT: '1'
       DOTNET_NOLOGO: 'true'
       # Public credentials for this disposable CI database only.
       HELPDESK_TEST_CONNECTION: Host=127.0.0.1;Port=5432;Database=helpdesk_mapping_test_ci;Username=postgres;Password=ci-test-only
+      HELPDESK_TEST_MINIO_ENDPOINT: 127.0.0.1:19000
+      HELPDESK_TEST_MINIO_ACCESS_KEY: ci-minio-test
+      HELPDESK_TEST_MINIO_SECRET_KEY: ci-minio-test-password
     services:
       postgres:
         image: postgres:16-alpine
@@ -59,10 +62,26 @@ jobs:
       - name: Build Release
         run: dotnet build be/be.sln --configuration Release --no-restore -warnaserror
 
-      - name: Run all tests with PostgreSQL
+      - name: Start isolated MinIO for storage integration tests
+        run: |
+          docker build -t helpdesk-minio-test deploy/minio
+          docker run -d --rm --name helpdesk-minio-test -p 127.0.0.1:19000:9000 \
+            -e MINIO_ROOT_USER="$HELPDESK_TEST_MINIO_ACCESS_KEY" \
+            -e MINIO_ROOT_PASSWORD="$HELPDESK_TEST_MINIO_SECRET_KEY" helpdesk-minio-test server /data
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:19000/minio/health/live; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+
+      - name: Run all tests with PostgreSQL and MinIO
         run: >-
           dotnet test be/be.sln --configuration Release --no-build --no-restore
           --logger "trx;LogFileName=backend.trx" --results-directory artifacts/test-results
+
+      - name: Stop isolated MinIO
+        if: ${{ always() }}
+        run: docker stop helpdesk-minio-test || true
 
       - name: Smoke test Identity seed CLI
         env:
@@ -125,7 +144,7 @@ jobs:
   docker:
     name: Docker and Compose validation
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -143,3 +162,7 @@ jobs:
 
       - name: Build backend image
         run: docker build --file be/Dockerfile --tag helpdesk-api:ci be
+
+      - name: Verify automatic infrastructure bootstrap and volume reset
+        shell: pwsh
+        run: ./be/tests/Run-ComposeBootstrapTests.ps1

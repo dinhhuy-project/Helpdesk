@@ -94,7 +94,8 @@ public class TicketCategoryMigrationTests(PostgresFixture fixture)
                 await rollback.ExecuteNonQueryAsync();
                 Assert.Equal(4, (await context.Database.GetAppliedMigrationsAsync()).Count());
                 await upgrade.ExecuteNonQueryAsync();
-                Assert.Empty(await context.Database.GetPendingMigrationsAsync());
+                Assert.Contains("20261026151829_TicketCategoryAdministration", await context.Database.GetAppliedMigrationsAsync());
+                Assert.DoesNotContain("20261026151829_TicketCategoryAdministration", await context.Database.GetPendingMigrationsAsync());
             }
             var legacy = await context.TicketCategories.Where(x => x.Id == child)
                 .Select(x => new { x.Name, x.ParentId, x.IsActive }).SingleAsync();

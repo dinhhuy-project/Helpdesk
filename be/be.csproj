@@ -10,6 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Minio" Version="6.0.5" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.32" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.32" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.32" />

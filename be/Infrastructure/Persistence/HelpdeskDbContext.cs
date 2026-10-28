@@ -20,6 +20,7 @@ public class HelpdeskDbContext(DbContextOptions<HelpdeskDbContext> options) : Db
     public DbSet<Ticket> Tickets => Set<Ticket>();
     public DbSet<TicketComment> TicketComments => Set<TicketComment>();
     public DbSet<TicketAttachment> TicketAttachments => Set<TicketAttachment>();
+    public DbSet<AttachmentUploadIntent> AttachmentUploadIntents => Set<AttachmentUploadIntent>();
     public DbSet<TicketActivity> TicketActivities => Set<TicketActivity>();
     public DbSet<SlaPolicy> SlaPolicies => Set<SlaPolicy>();
     public DbSet<TicketSla> TicketSlas => Set<TicketSla>();

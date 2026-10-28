@@ -22,6 +22,10 @@ public sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger) : I
                 TicketError.NotFound => 404,
                 TicketError.Unauthenticated => 401,
                 TicketError.Forbidden => 403,
+                TicketError.StorageUnavailable => 503,
+                TicketError.UnsupportedFile => 415,
+                TicketError.AttachmentQuotaExceeded => 409,
+                TicketError.InvalidFile => 400,
                 TicketError.InvalidInput or TicketError.InvalidAssignment or TicketError.InvalidCategory or TicketError.ResolutionRequired => 400,
                 _ => 409
             },
@@ -104,6 +108,11 @@ public sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger) : I
         TicketError.InvalidAssignment => "Nhóm hoặc nhân viên được chọn không hợp lệ trong phạm vi phân công.",
         TicketError.InvalidTransition => "Không thể chuyển Ticket từ trạng thái hiện tại sang trạng thái được yêu cầu.",
         TicketError.ResolutionRequired => "Cần nhập nội dung kết quả giải quyết trước khi resolve Ticket.",
+        TicketError.InvalidFile => "File, tên file, nội dung hoặc kích thước không hợp lệ.",
+        TicketError.UnsupportedFile => "Định dạng hoặc MIME của file không được hỗ trợ.",
+        TicketError.AttachmentQuotaExceeded => "Đã đạt hạn mức file đính kèm cho phạm vi này của Ticket.",
+        TicketError.UploadExpired => "Phiên upload đã hết hạn hoặc đang được dọn dẹp. Vui lòng tải lại dữ liệu.",
+        TicketError.StorageUnavailable => "Dịch vụ lưu file chưa sẵn sàng. Vui lòng thử lại sau.",
         _ => "Ticket đã thay đổi. Vui lòng tải lại dữ liệu."
     };
 

@@ -37,6 +37,11 @@ public sealed class TicketScope(HelpdeskDbContext database, TimeProvider clock)
             TicketOperation.Confirm => RequesterScope(query, grants, actor.UserId, PermissionCodes.TicketConfirm),
             TicketOperation.Reopen => RequesterScope(query, grants, actor.UserId, PermissionCodes.TicketReopen),
             TicketOperation.Cancel => RequesterScope(query, grants, actor.UserId, PermissionCodes.TicketCancel),
+            TicketOperation.ReadInternal => InternalScope(query, grants, members, actor.UserId),
+            TicketOperation.CommentPublic => query.Where(ticket => ticket.Status != TicketStatus.Closed && ticket.Status != TicketStatus.Cancelled &&
+                grants.Contains(PermissionCodes.TicketCommentPublic)),
+            TicketOperation.CommentInternal => InternalScope(query, grants, members, actor.UserId)
+                .Where(ticket => ticket.Status != TicketStatus.Closed && ticket.Status != TicketStatus.Cancelled),
             _ => query.Where(_ => false)
         };
     }
@@ -44,6 +49,14 @@ public sealed class TicketScope(HelpdeskDbContext database, TimeProvider clock)
     public Task<bool> HasReadGrantAsync(AccountActor actor, CancellationToken cancellationToken) => Grants(actor.UserId)
         .AnyAsync(code => code == PermissionCodes.TicketReadOwn || code == PermissionCodes.TicketReadTeam || code == PermissionCodes.TicketReadAll,
             cancellationToken);
+
+    public IQueryable<TicketComment> CommentsFor(AccountActor actor)
+    {
+        var readable = For(actor, TicketOperation.Read).Select(ticket => ticket.Id);
+        var internalReadable = For(actor, TicketOperation.ReadInternal).Select(ticket => ticket.Id);
+        return database.TicketComments.AsNoTracking().Where(comment => readable.Contains(comment.TicketId) &&
+            (!comment.IsInternal || internalReadable.Contains(comment.TicketId)));
+    }
 
     public async Task<bool> CanAssignToAsync(AccountActor actor, Guid id, TicketAssignmentTarget target, CancellationToken cancellationToken)
     {
@@ -79,6 +92,11 @@ public sealed class TicketScope(HelpdeskDbContext database, TimeProvider clock)
     private static IQueryable<Ticket> RequesterScope(IQueryable<Ticket> query, IQueryable<string> grants, Guid userId, string permission) =>
         query.Where(ticket => ticket.Status != TicketStatus.Closed && ticket.Status != TicketStatus.Cancelled &&
             grants.Contains(permission) && (ticket.RequesterId == userId || grants.Contains(PermissionCodes.TicketReadAll)));
+
+    private static IQueryable<Ticket> InternalScope(IQueryable<Ticket> query, IQueryable<string> grants,
+        IQueryable<SupportTeamMember> members, Guid userId) => query.Where(ticket =>
+            ticket.RequesterId != userId && grants.Contains(PermissionCodes.TicketCommentInternal) &&
+            (grants.Contains(PermissionCodes.TicketReadAll) || members.Any(member => member.SupportTeamId == ticket.AssignedTeamId)));
 
     private IQueryable<string> Grants(Guid userId) =>
         from membership in database.UserRoles join grant in database.RolePermissions on membership.RoleId equals grant.RoleId

@@ -1,6 +1,6 @@
 # Ticket cơ bản
 
-Phần 11 bổ sung tạo Ticket và hoàn thiện truy vấn danh sách trên [scope phần 10](backend-ticket-access.md). Riêng phần 11 không cần migration, grant hoặc cấu hình mới. Hiện vẫn 19 entity/năm migration; phần 12 bổ sung ba quyền workflow, tổng 17 mã, theo [hướng dẫn nâng cấp](backend-ticket-workflow.md). Database đã áp dụng TicketCategoryAdministration tiếp tục dùng được. Profile Container (Dockerfile) vẫn chạy port 5000.
+Phần 11 bổ sung tạo Ticket và hoàn thiện truy vấn danh sách trên [scope phần 10](backend-ticket-access.md). Riêng phần 11 không cần migration, grant hoặc cấu hình mới; phần 12 bổ sung ba quyền workflow, tổng 17 mã, theo [hướng dẫn nâng cấp](backend-ticket-workflow.md). [Phần 14](backend-attachments.md) bổ sung upload journal, tổng model hiện tại 20 entity/sáu migration; cần review/apply AttachmentStorage trước chạy code mới. Profile Container (Dockerfile) vẫn chạy port 5000.
 
 ## API và danh tính
 
@@ -38,7 +38,7 @@ PostgreSQL sinh TicketNumber bằng BIGINT GENERATED ALWAYS AS IDENTITY và uniq
 
 Create mở transaction, lấy advisory lock chung `734205001`, khóa row người gọi rồi đọc lại session, trạng thái account và ticket.create từ database. Cùng quy tắc khóa với quản trị quyền/tổ chức/danh mục: thay đổi đã commit được kiểm tra trước khi ghi. Kiểm tra category trong transaction, save Ticket để nhận số/version, thêm TicketActivity rồi save và commit. Lỗi khi ghi activity rollback cả Ticket; sequence PostgreSQL vẫn có thể đã tăng. Không gọi dịch vụ ngoài khi đang giữ khóa. SQL writer ngoài ứng dụng cũng phải tuân thủ validation và quy tắc khóa này.
 
-Activity Action=`TicketCreated`, ActorId là người gọi, CreatedAt cùng thời điểm Ticket; OldValue null. NewValue JSON chỉ gồm TicketNumber, RequesterId, CreatedByUserId, CategoryId, Status và Priority (enum trong audit lưu tên). Không sao chép title/description vào audit. Chưa có API đọc timeline; khi mở API đó phải áp dụng ACL và quy tắc visibility tương ứng.
+Activity Action=`TicketCreated`, ActorId là người gọi, CreatedAt cùng thời điểm Ticket; OldValue null. NewValue JSON chỉ gồm TicketNumber, RequesterId, CreatedByUserId, CategoryId, Status và Priority (enum trong audit lưu tên). Không sao chép title/description vào audit. [API timeline phần 13](backend-ticket-comments.md) áp dụng ACL/visibility trước count/page và trả payload whitelist.
 
 Mỗi POST hợp lệ là một lần tạo mới, kể cả body giống nhau; hiện chưa có idempotency key. Client không tự retry POST sau lỗi mất kết nối khi chưa biết kết quả.
 
@@ -71,7 +71,7 @@ Ví dụ GET:
 
 ## SLA và bước tiếp theo
 
-Ticket tạo trong phần 11 được phép **chưa có TicketSla**, kể cả database đã có SlaPolicy. Chưa tính deadline, phát notification/SignalR hoặc upload file. Khi triển khai phần 16 cần snapshot SLA trong transaction theo quy tắc đã chốt; không tự gán deadline hồi tố cho Ticket hiện có. [Phần 12](backend-ticket-workflow.md) đã bổ sung phân công/transition, dùng TicketWriteGuard cùng activity/version trong transaction; nếu có SLA thì đồng bộ mốc resolved và giữ nguyên deadline.
+Ticket tạo trong phần 11 được phép **chưa có TicketSla**, kể cả database đã có SlaPolicy. Chưa tính deadline hoặc phát notification/SignalR. [File phần 14](backend-attachments.md) có API riêng sau khi tạo Ticket. Khi triển khai phần 16 cần snapshot SLA trong transaction theo quy tắc đã chốt; không tự gán deadline hồi tố cho Ticket hiện có. [Phần 12](backend-ticket-workflow.md) đã bổ sung phân công/transition, dùng TicketWriteGuard cùng activity/version trong transaction; nếu có SLA thì đồng bộ mốc resolved và giữ nguyên deadline.
 
 ## Kiểm chứng
 

@@ -22,6 +22,95 @@ namespace be.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("be.Domain.Entities.AttachmentUploadIntent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Bucket")
+                        .IsRequired()
+                        .HasMaxLength(63)
+                        .HasColumnType("character varying(63)")
+                        .HasColumnName("bucket");
+
+                    b.Property<Guid?>("CommentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("comment_id");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("content_type");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("file_name");
+
+                    b.Property<bool>("IsDeleting")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleting");
+
+                    b.Property<bool>("IsInternal")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_internal");
+
+                    b.Property<string>("ObjectKey")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)")
+                        .HasColumnName("object_key");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("size_bytes");
+
+                    b.Property<Guid>("TicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ticket_id");
+
+                    b.Property<Guid>("UploadedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("uploaded_by_user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_attachment_upload_intents");
+
+                    b.HasIndex("ExpiresAt")
+                        .HasDatabaseName("ix_attachment_upload_intents_expires_at");
+
+                    b.HasIndex("UploadedByUserId")
+                        .HasDatabaseName("ix_attachment_upload_intents_uploaded_by_user_id");
+
+                    b.HasIndex("Bucket", "ObjectKey")
+                        .IsUnique()
+                        .HasDatabaseName("ix_attachment_upload_intents_bucket_object_key");
+
+                    b.HasIndex("CommentId", "TicketId")
+                        .HasDatabaseName("ix_attachment_upload_intents_comment_id_ticket_id");
+
+                    b.HasIndex("TicketId", "IsInternal")
+                        .HasDatabaseName("ix_attachment_upload_intents_ticket_id_is_internal");
+
+                    b.ToTable("attachment_upload_intents", "helpdesk", t =>
+                        {
+                            t.HasCheckConstraint("ck_attachment_upload_intents_expiry", "expires_at > created_at");
+
+                            t.HasCheckConstraint("ck_attachment_upload_intents_size", "size_bytes > 0 AND size_bytes <= 10485760");
+                        });
+                });
+
             modelBuilder.Entity("be.Domain.Entities.Department", b =>
                 {
                     b.Property<Guid>("Id")
@@ -994,6 +1083,30 @@ namespace be.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_user_roles_role_id");
 
                     b.ToTable("user_roles", "identity");
+                });
+
+            modelBuilder.Entity("be.Domain.Entities.AttachmentUploadIntent", b =>
+                {
+                    b.HasOne("be.Domain.Entities.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_attachment_upload_intents_tickets_ticket_id");
+
+                    b.HasOne("be.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UploadedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_attachment_upload_intents_users_uploaded_by_user_id");
+
+                    b.HasOne("be.Domain.Entities.TicketComment", null)
+                        .WithMany()
+                        .HasForeignKey("CommentId", "TicketId")
+                        .HasPrincipalKey("Id", "TicketId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_attachment_upload_intents_ticket_comments_comment_id_ticket");
                 });
 
             modelBuilder.Entity("be.Domain.Entities.ExternalIdentity", b =>

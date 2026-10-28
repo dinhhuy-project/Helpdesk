@@ -14,6 +14,7 @@ using be.Application.Features.Categories;
 using be.Infrastructure.Categories;
 using be.Application.Features.Tickets;
 using be.Infrastructure.Tickets;
+using be.Infrastructure.Storage;
 using Microsoft.OpenApi.Models;
 
 namespace be
@@ -23,7 +24,8 @@ namespace be
         public static async Task<int> Main(string[] args)
         {
             var isIdentityCommand = IdentityCommands.IsCommand(args);
-            var builder = WebApplication.CreateBuilder(isIdentityCommand ? [] : args);
+            var isStorageCommand = args.Length > 0 && args[0] == "initialize-storage";
+            var builder = WebApplication.CreateBuilder(isIdentityCommand || isStorageCommand ? [] : args);
 
             // Add services to the container.
 
@@ -32,6 +34,7 @@ namespace be
             builder.Services.AddIdentityInitialization();
             builder.Services.AddHelpdeskAuthentication();
             builder.Services.AddHelpdeskAuthorization();
+            builder.Services.AddAttachmentStorage(builder.Configuration);
             builder.Services.AddScoped<IAccountAdministrationStore, AccountAdministrationStore>();
             builder.Services.AddScoped<AccountAdministrationService>();
             builder.Services.AddScoped<IDepartmentStore, DepartmentStore>();
@@ -48,6 +51,8 @@ namespace be
             builder.Services.AddScoped<TicketCreateService>();
             builder.Services.AddScoped<ITicketMutationStore, TicketMutationStore>();
             builder.Services.AddScoped<TicketMutationService>();
+            builder.Services.AddScoped<ITicketDiscussionStore, TicketDiscussionStore>();
+            builder.Services.AddScoped<TicketDiscussionService>();
             builder.Services.AddScoped<TicketWriteGuard>();
             // Framework diagnostics include raw exceptions; our handler emits safe trace-based logs.
             builder.Logging.AddFilter("Microsoft.AspNetCore.Diagnostics.ExceptionHandlerMiddleware", LogLevel.None);
@@ -63,9 +68,16 @@ namespace be
                     Description = "Dán accessToken nhận từ POST /api/v1/auth/login."
                 });
                 options.OperationFilter<AuthenticationOperationFilter>();
+                options.OperationFilter<FileResponseOperationFilter>();
             });
 
             var app = builder.Build();
+
+            if (isStorageCommand)
+            {
+                await using (app)
+                    return await StorageCommands.InitializeAsync(args, app.Services);
+            }
 
             if (isIdentityCommand)
             {

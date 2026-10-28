@@ -37,7 +37,7 @@ public sealed class TicketCreateStore(HelpdeskDbContext database, IAuthSessionSt
         // activity failure rolls back the Ticket while retaining normal identity sequence gaps.
         await database.SaveChangesAsync(cancellationToken);
         database.TicketActivities.Add(new TicketActivity { TicketId = ticket.Id, ActorId = actor.UserId,
-            Action = "TicketCreated", CreatedAt = now, NewValue = JsonSerializer.Serialize(new
+            Action = TicketActivityActions.Created, CreatedAt = now, NewValue = JsonSerializer.Serialize(new
             {
                 ticket.TicketNumber, ticket.RequesterId, ticket.CreatedByUserId, ticket.CategoryId,
                 Status = ticket.Status.ToString(), Priority = ticket.Priority.ToString()

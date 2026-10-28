@@ -41,7 +41,8 @@ Tài liệu này mô tả **phạm vi và thiết kế mục tiêu của hệ th
 | Bộ mã EF Core Schema Starter từ giai đoạn trước    | Có bản khởi tạo riêng                | **Bản cũ target .NET 10 / EF Core 10**, chưa phải backend `net8.0` hiện tại |
 | Backend API nghiệp vụ                              | Dự kiến                              | Auth, ticket, comment, SLA, notification, report                            |
 | Frontend React `^19.3.1`                           | Stack đã chọn                        | Chưa có mã frontend được cung cấp trong phạm vi tài liệu này                |
-| SignalR / Redis / MinIO nghiệp vụ                  | Dự kiến                              | Hạ tầng có thể chạy bằng Docker; chức năng cần được tích hợp                |
+| MinIO nghiệp vụ                                    | Đã triển khai phần 14                | File private theo ACL Ticket/comment, cần review SQL và cấu hình storage    |
+| SignalR / Redis nghiệp vụ                          | Dự kiến                              | Hạ tầng Redis có thể chạy bằng Docker; realtime/cache chưa tích hợp         |
 | AI                                                 | Sau MVP, nếu còn thời gian           | Không phải yêu cầu bắt buộc                                                 |
 
 **Backend hiện đã khởi tạo:** Domain, persistence/migration, nền tảng API, seed Identity/bootstrap admin, login email/mật khẩu, JWT validation, `/api/v1/users/me`, refresh token rotation/logout và permission policies đọc trạng thái tài khoản/quyền hiện tại từ database. Profile Docker tiếp tục tự seed/bootstrap admin khi cần. Xem [API Authentication](docs/backend-authentication.md), [quản lý phiên](docs/backend-sessions.md), [phân quyền](docs/backend-authorization.md), [nền tảng Identity](docs/backend-identity-foundation.md) và [persistence](docs/backend-persistence.md). Chưa có UI đăng nhập.
@@ -62,7 +63,15 @@ Tài liệu này mô tả **phạm vi và thiết kế mục tiêu của hệ th
 
 **Phân công và workflow:** Phần 12 đã có POST assign/transition, kiểm tra team/agent, bảng chuyển trạng thái, summary khi resolve, Version/xmin và activity cùng transaction. Confirm/reopen/cancel có quyền riêng; database có role cũ cần seed rồi chủ động grant theo [hướng dẫn workflow](docs/backend-ticket-workflow.md). Không có migration mới. SLA hiện có chỉ đồng bộ mốc resolved, chưa phát notification.
 
-**Kế hoạch tiếp theo:** [Lộ trình backend](docs/backend-roadmap.md); bước 13 triển khai comment công khai và internal note.
+**Comment và internal note:** Phần 13 đã có POST/GET comment và GET activity list/detail, phân trang sau ACL, author từ phiên và comment/activity cùng transaction. Requester không nhận internal note, kể cả trong timeline hoặc count; audit trả payload whitelist. Xem [contract thảo luận Ticket](docs/backend-ticket-comments.md). Comment chỉ thêm mới; không cần migration/grant mới.
+
+**File đính kèm:** Phần 14 đã có upload/list/metadata/download qua API, bucket private, ACL Ticket/comment/internal, kiểm tra định dạng/hạn mức và journal dọn object upload thất bại. Xem [contract và cấu hình MinIO](docs/backend-attachments.md). Cần [review/apply AttachmentStorage](docs/attachment-storage-review.md), bootstrap bucket và tạo app credentials riêng trước khi bật storage; không tự nâng cấp database hoặc dùng root làm tài khoản API.
+
+**Kế hoạch tiếp theo:** [Lộ trình backend](docs/backend-roadmap.md); bước 15 triển khai notification và SignalR.
+
+**Khởi động lại hạ tầng:** Giữ `.env` hiện có, chạy `docker compose up -d --build --wait postgres redis minio`. MinIO tự tạo bucket private, app user/policy và chỉ báo healthy sau khi cấu hình xong, kể cả khi volume mới trống. Nếu xóa volume PostgreSQL, cần áp dụng lại migrations đã review trước khi chạy API. Xem [setup](docs/backend-setup.md).
+
+**Dữ liệu mẫu Development:** F5 profile Container sau khi migrate sẽ seed Identity/admin rồi tạo 3 phòng ban, 3 team, 7 danh mục và 5 Ticket mẫu nếu các bảng nghiệp vụ còn trống. Chạy lặp giữ dữ liệu đã sửa; có thể tắt riêng `DevelopmentData__SeedOnStartup`. Xem [chi tiết bộ mẫu](docs/backend-development-data.md).
 
 > **Quan trọng:** Không sử dụng trực tiếp package EF Core 10 trong project `net8.0`. Phải chuyển project cũ từ `net10.0` sang `net8.0` và thay các gói EF Core/Npgsql/NamingConventions bằng phiên bản **8.x tương thích** trước khi tạo migration. Mọi ví dụ endpoint/cấu trúc module ở README đều là **đề xuất thiết kế**, cần điều chỉnh theo source code thực tế khi triển khai.
 
@@ -396,7 +405,7 @@ Cấu trúc trên là **đích kiến trúc**, không phải cấu trúc đã c�
 
 ## 11. Thiết lập môi trường phát triển
 
-**Hạ tầng local đã có:** dùng `docker-compose.yml` tại root và làm theo [hướng dẫn backend](docs/backend-setup.md) để chạy PostgreSQL, Redis, MinIO và API .NET 8. Các ví dụ Schema Starter dưới đây là tham khảo; hướng dẫn mới phản ánh cấu hình thực tế hiện tại. Backend đã có EF Core mapping và InitialCreate; chưa có client Redis/MinIO. Áp dụng migration là thao tác riêng sau review SQL.
+**Hạ tầng local đã có:** dùng `docker-compose.yml` tại root và làm theo [hướng dẫn backend](docs/backend-setup.md) để chạy PostgreSQL, Redis, MinIO và API .NET 8. Các ví dụ Schema Starter dưới đây là tham khảo; hướng dẫn mới phản ánh cấu hình thực tế hiện tại. Backend đã có EF Core, migrations và MinIO client cho attachments; Redis chưa tích hợp nghiệp vụ. Áp dụng migration là thao tác riêng sau review SQL.
 
 ### 11.1. Yêu cầu
 

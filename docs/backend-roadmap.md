@@ -1,12 +1,12 @@
 # Kế hoạch backend sau Identity và phân quyền
 
-Phần 6–9 đã có code/API/tests và người dùng xác nhận review/apply database. Phần 10 đã có [scope Ticket dùng chung, API đọc và guard ghi](backend-ticket-access.md); phần 11 đã có [tạo Ticket, truy vấn và activity](backend-tickets.md). Phần 12 đã có [phân công và workflow](backend-ticket-workflow.md), không cần migration nhưng có ba quyền mới và lệnh grant chủ động cho role cũ. Các bước 13–18 dưới đây là kế hoạch tiếp theo. Ưu tiên các phần nhỏ có API, test và tài liệu để kiểm tra độc lập; frontend tích hợp theo từng phần đã ổn định.
+Phần 6–9 đã có code/API/tests và người dùng xác nhận review/apply database. Phần 10 đã có [scope Ticket dùng chung, API đọc và guard ghi](backend-ticket-access.md); phần 11 đã có [tạo Ticket, truy vấn và activity](backend-tickets.md). Phần 12 đã có [phân công và workflow](backend-ticket-workflow.md); người dùng xác nhận cấp ba quyền mới cho bốn role mặc định. Phần 13 đã có [comment và internal note/timeline](backend-ticket-comments.md). Phần 14 đã có [file MinIO và cleanup journal](backend-attachments.md), còn bước operator [review/apply AttachmentStorage](attachment-storage-review.md) và cấu hình storage. Các bước 15–18 dưới đây là kế hoạch tiếp theo. Ưu tiên các phần nhỏ có API, test và tài liệu để kiểm tra độc lập; frontend tích hợp theo từng phần đã ổn định.
 
 ## Điểm xuất phát
 
 Đã có năm phần nền tảng: cấu hình/lỗi/bảo mật, seed Identity/bootstrap admin, login và `/users/me`, refresh rotation/logout, permission policies đọc database. Đã có GitHub Actions cho backend, frontend và Docker.
 
-Domain và EF mapping đã có 19 entity trong bốn schema, gồm audit Identity bổ sung cho 18 entity lõi, với InitialCreate, AccountAdministration, DepartmentAdministration, SupportTeamAdministration và TicketCategoryAdministration. API đã có Auth, Users/me, quản trị User/Identity, Department, SupportTeam/membership, TicketCategory, Ticket POST create/assign/transition, GET list/detail/access và WeatherForecast từ template. Frontend còn starter và chưa có auth client.
+Domain và EF mapping đã có 20 entity trong bốn schema: 18 entity lõi, IdentityAuditLog và AttachmentUploadIntent. Có sáu migration: InitialCreate, AccountAdministration, DepartmentAdministration, SupportTeamAdministration, TicketCategoryAdministration và AttachmentStorage. API đã có Auth, Users/me, quản trị User/Identity, Department, SupportTeam/membership, TicketCategory, Ticket POST create/assign/transition, GET list/detail/access, POST/GET comment, GET activity list/detail và POST/GET attachment/download, cùng WeatherForecast từ template. Frontend còn starter và chưa có auth client.
 
 Tận dụng model hiện có; chỉ tạo migration mới khi cần thay đổi field/index/constraint đã review. Không chỉnh InitialCreate đã áp dụng và không tự apply migration vào database đang dùng.
 
@@ -95,4 +95,4 @@ Có thể bắt đầu auth UI sau khi contract hiện tại ổn định: login
 
 Các tính năng AI, business-hour SLA và tối ưu cache dành sau MVP. Dùng Redis khi đã có query pattern và quy tắc invalidation rõ ràng; không cache permission mặc định để thay thế việc đọc quyền hiện tại.
 
-Bước tiếp theo đề xuất: **13 — Comment và internal note**. Dùng read scope chung, permission public/internal riêng, author từ phiên; requester không được đọc internal note qua bất kỳ list/detail/activity/file nào. Xác định rule edit/audit trước khi mở cập nhật comment, giữ ghi dữ liệu và activity cùng transaction.
+Bước tiếp theo đề xuất: **15 — Notification và SignalR**. Persist notification và trạng thái đã đọc; chốt recipients theo Ticket/internal visibility và phát sau commit. JWT/group phải kiểm tra quyền hiện tại, xử lý mất membership hoặc thu hồi phiên; xác định outbox khi cần delivery tin cậy. Comment và attachment hiện chỉ thêm mới; sửa/xóa/đổi visibility cần contract, permission và audit riêng trước khi mở.

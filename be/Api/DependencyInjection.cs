@@ -48,6 +48,12 @@ public static class DependencyInjection
         services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            options.AddPolicy(ApiPolicies.AttachmentUpload, context => RateLimitPartition.GetFixedWindowLimiter(
+                context.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = context.RequestServices.GetRequiredService<IOptions<MinioOptions>>().Value.UploadsPerMinute,
+                    Window = TimeSpan.FromMinutes(1), QueueLimit = 0, AutoReplenishment = true
+                }));
             options.AddPolicy(ApiPolicies.AuthenticationRateLimit, context =>
             {
                 var settings = context.RequestServices.GetRequiredService<IOptions<AuthRateLimitOptions>>().Value;

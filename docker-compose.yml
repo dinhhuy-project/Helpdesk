@@ -41,6 +41,9 @@ services:
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER in .env}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in .env}
+      MINIO_ENABLED: ${MINIO_ENABLED:-false}
+      MINIO_APP_ACCESS_KEY: ${MINIO_APP_ACCESS_KEY:-}
+      MINIO_APP_SECRET_KEY: ${MINIO_APP_SECRET_KEY:-}
     command: ["server", "/data", "--console-address", ":9001"]
     ports:
       - "127.0.0.1:${MINIO_API_PORT:-9000}:9000"
@@ -48,11 +51,39 @@ services:
     volumes:
       - minio-data:/data
     healthcheck:
-      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:9000/minio/health/live"]
-      interval: 10s
+      # --wait succeeds only after attachment bootstrap completes, including after a volume reset.
+      test: ["CMD-SHELL", "test -f /tmp/helpdesk-minio-ready && curl --fail --silent http://localhost:9000/minio/health/live"]
+      interval: 5s
       timeout: 5s
-      retries: 10
-      start_period: 10s
+      retries: 12
+      start_period: 30s
+
+  minio-init:
+    profiles: ["storage-setup"]
+    build:
+      context: ./deploy/minio-client
+    restart: "no"
+    user: "10001:10001"
+    read_only: true
+    tmpfs:
+      - /tmp:mode=1777
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    environment:
+      MC_CONFIG_DIR: /tmp/mc
+      MINIO_ENABLED: ${MINIO_ENABLED:-false}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in .env}
+      MINIO_APP_ACCESS_KEY: ${MINIO_APP_ACCESS_KEY:-}
+      MINIO_APP_SECRET_KEY: ${MINIO_APP_SECRET_KEY:-}
+    volumes:
+      - ./deploy/minio/initialize.sh:/setup/initialize.sh:ro
+      - ./deploy/minio/attachments-policy.json:/setup/attachments-policy.json:ro
+      - ./deploy/minio/verify.sh:/setup/verify.sh:ro
+    entrypoint: ["/bin/sh", "/setup/initialize.sh"]
+    depends_on:
+      minio:
+        condition: service_healthy
 
   api:
     profiles: ["backend"]
@@ -68,12 +99,13 @@ services:
       Jwt__SigningKey: ${JWT_SIGNING_KEY:-}
       Jwt__AccessTokenMinutes: ${JWT_ACCESS_TOKEN_MINUTES:-15}
       Jwt__RefreshTokenDays: ${JWT_REFRESH_TOKEN_DAYS:-7}
-      # DbContext uses Helpdesk; Redis/MinIO clients will be wired in subsequent features.
+      # Redis integration is deferred; attachment storage is explicitly enabled after setup.
       ConnectionStrings__Helpdesk: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-helpdesk};Username=${POSTGRES_USER:-helpdesk};Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}"
       Redis__Configuration: "redis:6379,password=${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}"
       Minio__Endpoint: "minio:9000"
-      Minio__AccessKey: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER in .env}
-      Minio__SecretKey: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in .env}
+      Minio__Enabled: ${MINIO_ENABLED:-false}
+      Minio__AccessKey: ${MINIO_APP_ACCESS_KEY:-}
+      Minio__SecretKey: ${MINIO_APP_SECRET_KEY:-}
       Minio__Bucket: helpdesk-attachments
       Minio__UseSsl: "false"
     ports:

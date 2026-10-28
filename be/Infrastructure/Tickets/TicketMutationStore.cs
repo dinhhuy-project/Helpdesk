@@ -2,6 +2,7 @@ using System.Text.Json;
 using be.Application.Features.Accounts;
 using be.Application.Features.Tickets;
 using be.Domain.Entities;
+using be.Domain.Constants;
 using be.Domain.Enums;
 using be.Domain.Rules;
 using be.Infrastructure.Persistence;
@@ -21,7 +22,7 @@ public sealed class TicketMutationStore(HelpdeskDbContext database, TicketWriteG
             ticket.AssignedTeamId = command.TeamId;
             ticket.AssignedAgentId = command.AgentId;
             ticket.UpdatedAt = UtcNow();
-            database.TicketActivities.Add(new TicketActivity { TicketId = id, ActorId = actor.UserId, Action = "TicketAssigned",
+            database.TicketActivities.Add(new TicketActivity { TicketId = id, ActorId = actor.UserId, Action = TicketActivityActions.Assigned,
                 CreatedAt = ticket.UpdatedAt.Value, OldValue = oldValue,
                 NewValue = JsonSerializer.Serialize(new { ticket.AssignedTeamId, ticket.AssignedAgentId }) });
             await database.SaveChangesAsync(cancellationToken);
@@ -65,7 +66,7 @@ public sealed class TicketMutationStore(HelpdeskDbContext database, TicketWriteG
             var sla = await database.TicketSlas.SingleOrDefaultAsync(x => x.TicketId == id, cancellationToken);
             if (sla is not null) sla.ResolvedAt = ticket.ResolvedAt;
         }
-        database.TicketActivities.Add(new TicketActivity { TicketId = id, ActorId = actor.UserId, Action = "TicketStatusChanged",
+        database.TicketActivities.Add(new TicketActivity { TicketId = id, ActorId = actor.UserId, Action = TicketActivityActions.StatusChanged,
             CreatedAt = now, OldValue = oldValue, NewValue = State(ticket) });
         await database.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);

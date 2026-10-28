@@ -1,6 +1,6 @@
 # Persistence với EF Core / PostgreSQL
 
-`be/Infrastructure/Persistence` chứa `HelpdeskDbContext`, đăng ký DI và 19 lớp `IEntityTypeConfiguration<T>`: 18 entity lõi cùng IdentityAuditLog. Domain giữ nguyên C# thuần. Có InitialCreate, [AccountAdministration](account-administration-review.md), [DepartmentAdministration](department-administration-review.md), [SupportTeamAdministration](support-team-administration-review.md) và [TicketCategoryAdministration](ticket-category-administration-review.md). Không gọi `EnsureCreated` hoặc `Migrate` khi API khởi động. Profile Container (Dockerfile) có seed catalog Identity tùy chọn như [hướng dẫn Identity](backend-identity-foundation.md).
+`be/Infrastructure/Persistence` chứa `HelpdeskDbContext`, đăng ký DI và 20 lớp `IEntityTypeConfiguration<T>`: 18 entity lõi, IdentityAuditLog và AttachmentUploadIntent. Domain giữ nguyên C# thuần. Có InitialCreate, [AccountAdministration](account-administration-review.md), [DepartmentAdministration](department-administration-review.md), [SupportTeamAdministration](support-team-administration-review.md), [TicketCategoryAdministration](ticket-category-administration-review.md) và [AttachmentStorage](attachment-storage-review.md). Migration mới chỉ thêm journal upload phục vụ cleanup, không đổi metadata file lịch sử. Không gọi `EnsureCreated` hoặc `Migrate` khi API khởi động. Profile Container (Dockerfile) có seed catalog Identity tùy chọn như [hướng dẫn Identity](backend-identity-foundation.md).
 
 ## Packages và cấu hình
 
@@ -24,7 +24,7 @@ Khi debug bằng **Container (Dockerfile)** của Visual Studio, container chạ
 | --- | --- |
 | `identity` | users, external_identities, roles, permissions, user_roles, role_permissions, refresh_tokens |
 | `organization` | departments, support_teams, support_team_members |
-| `helpdesk` | ticket_categories, tickets, ticket_comments, ticket_attachments, ticket_activities, sla_policies, ticket_slas |
+| `helpdesk` | ticket_categories, tickets, ticket_comments, ticket_attachments, attachment_upload_intents, ticket_activities, sla_policies, ticket_slas |
 | `communication` | notifications |
 
 - UUID tạo ở Domain; các join entity có khóa ghép. `TicketSla.TicketId` là shared primary key cho quan hệ 1–0..1.

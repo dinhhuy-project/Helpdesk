@@ -1,5 +1,6 @@
 using System.Net.Sockets;
 using Npgsql;
+using be.Infrastructure.Seeding;
 
 namespace be.Infrastructure.Identity;
 
@@ -16,9 +17,10 @@ public sealed class IdentityStartupSeeder(
     {
         var seed = configuration.GetValue<bool>(ConfigurationKey);
         var bootstrapAdmin = configuration.GetValue<bool>(BootstrapConfigurationKey);
-        if (!seed && !bootstrapAdmin) return;
+        var seedDevelopmentData = configuration.GetValue<bool>(DevelopmentDataInitializer.ConfigurationKey);
+        if (!seed && !bootstrapAdmin && !seedDevelopmentData) return;
         if (!environment.IsDevelopment())
-            throw new IdentityInitializationException("Startup Identity seeding and admin bootstrap are supported only in Development.");
+            throw new IdentityInitializationException("Startup Identity seeding, admin bootstrap and sample data are supported only in Development.");
 
         try
         {
@@ -32,6 +34,13 @@ public sealed class IdentityStartupSeeder(
                     ?? new BootstrapAdminOptions();
                 var created = await initializer.BootstrapAdminAsync(settings, cancellationToken);
                 logger.LogInformation(created ? "Initial administrator created at startup." : "An administrator already exists. No account was changed.");
+            }
+            if (seedDevelopmentData)
+            {
+                var created = await scope.ServiceProvider.GetRequiredService<DevelopmentDataInitializer>().SeedAsync(cancellationToken);
+                logger.LogInformation(created
+                    ? "Development sample data created: 3 departments, 3 teams, 7 categories and 5 tickets."
+                    : "Development sample data skipped because business data already exists. No existing data was changed.");
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -56,7 +65,7 @@ public sealed class IdentityStartupSeeder(
         for (Exception? cause = exception; cause is not null; cause = cause.InnerException)
         {
             if (cause is IdentityInitializationException)
-                return "Identity initialization prerequisites are not met. Check applied migrations and BootstrapAdmin:Email, DisplayName, Password in user-secrets. An existing user cannot be promoted by bootstrap.";
+                return "Initialization prerequisites are not met. Check applied migrations and BootstrapAdmin:Email, DisplayName, Password in user-secrets. Sample data requires an active SystemAdmin with ticket.read.all and ticket.update.status. Existing accounts and grants were preserved.";
             if (cause is PostgresException postgres)
                 return postgres.SqlState switch
                 {

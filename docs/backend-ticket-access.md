@@ -33,9 +33,11 @@ Danh sách nhận `page=1`, `pageSize=20` (1–100), `search` theo title tối �
 
 Status/priority nhận tên enum hoặc giá trị hợp lệ trong query; response JSON hiện dùng enum số theo serializer mặc định: status New=1, InProgress=2, WaitingForRequester=3, Resolved=4, Closed=5, Cancelled=6, Reopened=7; priority Low=1, Normal=2, High=3, Urgent=4. Giá trị enum không đăng ký, page sai hoặc Guid.Empty trong filter trả 400.
 
-DTO summary gồm ID/number/title/status/priority, requester/category/assigned team/agent ID, timestamps và Version. Detail bổ sung Description, ResolutionSummary và resolved/closed timestamps. Không trả EF entity, email, token/hash, comment/activity/internal note hoặc dữ liệu file. Comment/internal attachment phải thêm scope và permission riêng ở phần 13–14; đọc được Ticket không tự cho đọc internal notes. Response dùng no-store; Swagger mô tả Bearer và 401/403/404 tương ứng.
+DTO summary gồm ID/number/title/status/priority, requester/category/assigned team/agent ID, timestamps và Version. Detail bổ sung Description, ResolutionSummary và resolved/closed timestamps. Không trả EF entity, email, token/hash, comment/activity/internal note hoặc dữ liệu file. [Comment/activity phần 13](backend-ticket-comments.md) và [file phần 14](backend-attachments.md) có route riêng, cùng Ticket scope và internal ACL. Đọc được Ticket không tự cho đọc internal notes/files. Response dùng no-store; Swagger mô tả Bearer và 401/403/404 tương ứng.
 
 Phần 11 đã bổ sung [POST tạo cho chính mình](backend-tickets.md) bằng ticket.create và mở rộng truy vấn; create không tự cấp read grant. Phần 12 đã có POST assign/transition dùng guard, kiểm tra destination/workflow/current assignment và ghi activity trong cùng transaction. `/access` vẫn giữ ba cờ hiện có, không đại diện các action requester hoặc thay thế bảng transition.
+
+Phần 13 thêm operation ReadInternal, CommentPublic, CommentInternal trong cùng TicketScope. ReadInternal cần read scope + ticket.comment.internal + không phải requester + (read.all hoặc active membership/team/department); CommentInternal thêm điều kiện chưa terminal, CommentPublic dùng read scope + ticket.comment.public + chưa terminal. `LockCommentAsync` dùng cùng khóa/recheck nhưng không nhận Version vì append độc lập, không sửa Ticket. ReadInternal vẫn đọc lịch sử trên Ticket terminal; `/access` giữ ba cờ, không đại diện quyền note.
 
 ## Phạm vi đích phân công
 

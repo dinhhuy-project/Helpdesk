@@ -1,4 +1,4 @@
-param()
+param([string]$Filter = '')
 
 $ErrorActionPreference = 'Stop'
 $testSuffix = [Guid]::NewGuid().ToString('N')
@@ -9,6 +9,13 @@ $previousDatabase = $env:POSTGRES_DB
 $previousConnection = $env:HELPDESK_TEST_CONNECTION
 $previousApiConnection = $env:ConnectionStrings__Helpdesk
 $testContainerStarted = $false
+$storageContainer = "helpdesk-storage-test-$testSuffix"
+$storageStarted = $false
+$previousStorageEndpoint = $env:HELPDESK_TEST_MINIO_ENDPOINT
+$previousStorageAccess = $env:HELPDESK_TEST_MINIO_ACCESS_KEY
+$previousStorageSecret = $env:HELPDESK_TEST_MINIO_SECRET_KEY
+$previousStorageRoot = $env:MINIO_ROOT_USER
+$previousStoragePassword = $env:MINIO_ROOT_PASSWORD
 
 try {
     $env:POSTGRES_PASSWORD = [Guid]::NewGuid().ToString('N') + [Guid]::NewGuid().ToString('N')
@@ -31,7 +38,31 @@ try {
     if (-not $testReady) { throw 'PostgreSQL test container did not become ready.' }
 
     $env:HELPDESK_TEST_CONNECTION = "Host=127.0.0.1;Port=$testPort;Database=$testDatabase;Username=postgres;Password=$env:POSTGRES_PASSWORD"
-    dotnet test (Join-Path $PSScriptRoot '../be.sln') --no-restore
+    $env:MINIO_ROOT_USER = 'helpdesk-test'
+    $env:MINIO_ROOT_PASSWORD = [Guid]::NewGuid().ToString('N') + [Guid]::NewGuid().ToString('N')
+    $storageImage = 'helpdesk-minio:latest'
+    docker image inspect $storageImage *> $null
+    if ($LASTEXITCODE -ne 0) {
+        docker build -t $storageImage (Join-Path $PSScriptRoot '../../deploy/minio')
+        if ($LASTEXITCODE -ne 0) { throw 'Cannot build the isolated MinIO test image.' }
+    }
+    docker run -d --rm --name $storageContainer --env MINIO_ROOT_USER --env MINIO_ROOT_PASSWORD `
+        -p '127.0.0.1::9000' $storageImage server /data | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'Cannot start isolated MinIO.' }
+    $storageStarted = $true
+    $storagePort = (docker port $storageContainer 9000/tcp).Trim().Split(':')[-1]
+    $env:HELPDESK_TEST_MINIO_ENDPOINT = "127.0.0.1:$storagePort"
+    $env:HELPDESK_TEST_MINIO_ACCESS_KEY = $env:MINIO_ROOT_USER
+    $env:HELPDESK_TEST_MINIO_SECRET_KEY = $env:MINIO_ROOT_PASSWORD
+    $storageReady = $false
+    for ($attempt = 0; $attempt -lt 30; $attempt++) {
+        docker exec $storageContainer curl --fail --silent http://localhost:9000/minio/health/live *> $null
+        if ($LASTEXITCODE -eq 0) { $storageReady = $true; break }
+        Start-Sleep -Seconds 1
+    }
+    if (-not $storageReady) { throw 'MinIO test container did not become ready.' }
+    if ($Filter) { dotnet test (Join-Path $PSScriptRoot '../be.sln') --no-restore --filter $Filter }
+    else { dotnet test (Join-Path $PSScriptRoot '../be.sln') --no-restore }
     if ($LASTEXITCODE -ne 0) { throw 'Persistence tests failed.' }
 
     # Exercise the real CLI entry point only against this test container.
@@ -46,6 +77,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Ticket workflow grant CLI smoke check failed.' }
 }
 finally {
+    if ($storageStarted) { docker stop $storageContainer | Out-Null }
     if ($testContainerStarted) {
         docker stop $testContainer | Out-Null
     }
@@ -53,4 +85,9 @@ finally {
     $env:POSTGRES_DB = $previousDatabase
     $env:HELPDESK_TEST_CONNECTION = $previousConnection
     $env:ConnectionStrings__Helpdesk = $previousApiConnection
+    $env:HELPDESK_TEST_MINIO_ENDPOINT = $previousStorageEndpoint
+    $env:HELPDESK_TEST_MINIO_ACCESS_KEY = $previousStorageAccess
+    $env:HELPDESK_TEST_MINIO_SECRET_KEY = $previousStorageSecret
+    $env:MINIO_ROOT_USER = $previousStorageRoot
+    $env:MINIO_ROOT_PASSWORD = $previousStoragePassword
 }

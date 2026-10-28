@@ -15,7 +15,7 @@ public class ModelTests
     {
         using var context = CreateContext();
         var entities = context.Model.GetEntityTypes().ToArray();
-        Assert.Equal(19, entities.Length);
+        Assert.Equal(20, entities.Length);
         Assert.Equal(new[] { "communication", "helpdesk", "identity", "organization" },
             entities.Select(x => x.GetSchema()).Distinct().OrderBy(x => x));
         foreach (var entity in entities)
@@ -56,12 +56,13 @@ public class ModelTests
         using var context = CreateContext();
         Assert.False(context.Database.HasPendingModelChanges());
         var migrations = context.Database.GetMigrations().ToArray();
-        Assert.Equal(5, migrations.Length);
+        Assert.Equal(6, migrations.Length);
         Assert.EndsWith("_InitialCreate", migrations[0]);
         Assert.EndsWith("_AccountAdministration", migrations[1]);
         Assert.EndsWith("_DepartmentAdministration", migrations[2]);
         Assert.EndsWith("_SupportTeamAdministration", migrations[3]);
         Assert.EndsWith("_TicketCategoryAdministration", migrations[4]);
+        Assert.EndsWith("_AttachmentStorage", migrations[5]);
         var migrator = context.GetService<IMigrator>();
         var forward = migrator.GenerateScript("0", migrations[0], MigrationsSqlGenerationOptions.Idempotent);
         var rollback = migrator.GenerateScript(migrations[0], "0");
@@ -83,6 +84,10 @@ public class ModelTests
             NormalizeSql(ReadSql("TicketCategoryAdministration.sql")));
         Assert.Equal(NormalizeSql(migrator.GenerateScript(migrations[4], migrations[3])),
             NormalizeSql(ReadSql("TicketCategoryAdministration.Rollback.sql")));
+        Assert.Equal(NormalizeSql(migrator.GenerateScript(migrations[4], migrations[5], MigrationsSqlGenerationOptions.Idempotent)),
+            NormalizeSql(ReadSql("AttachmentStorage.sql")));
+        Assert.Equal(NormalizeSql(migrator.GenerateScript(migrations[5], migrations[4])),
+            NormalizeSql(ReadSql("AttachmentStorage.Rollback.sql")));
     }
 
     internal static string ReadSql(string fileName) =>

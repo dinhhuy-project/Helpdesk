@@ -104,6 +104,9 @@ internal sealed class TicketAccessTestContext(TestAccounts accounts) : IAsyncDis
     {
         await using var database = Accounts.Database();
         await database.TicketActivities.Where(x => _tickets.Contains(x.TicketId)).ExecuteDeleteAsync();
+        await database.AttachmentUploadIntents.Where(x => _tickets.Contains(x.TicketId)).ExecuteDeleteAsync();
+        await database.TicketAttachments.Where(x => _tickets.Contains(x.TicketId)).ExecuteDeleteAsync();
+        await database.TicketComments.Where(x => _tickets.Contains(x.TicketId)).ExecuteDeleteAsync();
         await database.TicketSlas.Where(x => _tickets.Contains(x.TicketId)).ExecuteDeleteAsync();
         await database.Tickets.Where(x => _tickets.Contains(x.Id)).ExecuteDeleteAsync();
         await database.SlaPolicies.Where(x => _slaPolicies.Contains(x.Id)).ExecuteDeleteAsync();
