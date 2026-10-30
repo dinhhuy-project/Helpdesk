@@ -113,7 +113,9 @@ public sealed class TicketCategoryStore(HelpdeskDbContext database, IPermissionC
     {
         var available = AvailableIds();
         return query.Select(x => new TicketCategoryDetails(x.Id, x.ParentId, x.Name, x.Description, x.IsActive,
-            available.Contains(x.Id), database.TicketCategories.Any(child => child.ParentId == x.Id), x.CreatedAt, x.UpdatedAt, x.Version));
+            available.Contains(x.Id), database.TicketCategories.Any(child => child.ParentId == x.Id), x.CreatedAt, x.UpdatedAt, x.Version,
+            database.TicketCategories.Where(parent => parent.Id == x.ParentId).Select(parent => parent.Name).FirstOrDefault(),
+            x.ParentId == null || available.Contains(x.ParentId.Value)));
     }
 
     // Start at active roots and walk only active edges: no inactive-ancestor descendants,

@@ -42,6 +42,12 @@ public class UsersController(AuthService authentication, AccountAdministrationSe
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public Task<AccountUser> Get(Guid id, CancellationToken cancellationToken) => accounts.GetAsync(id, cancellationToken);
 
+    [HttpGet("{id:guid}/administration-access")]
+    [RequirePermission(PermissionCodes.UserManage)]
+    [ProducesResponseType<AccountAdministrationAccess>(StatusCodes.Status200OK)]
+    public Task<AccountAdministrationAccess> AdministrationAccess(Guid id, CancellationToken cancellationToken) =>
+        accounts.AccessAsync(CurrentAccountActor.From(User), id, cancellationToken);
+
     [HttpPost]
     [Consumes("application/json")]
     [RequestSizeLimit(8192)]

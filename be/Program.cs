@@ -60,6 +60,8 @@ namespace be
             builder.Services.AddScoped<TicketCreateService>();
             builder.Services.AddScoped<ITicketMutationStore, TicketMutationStore>();
             builder.Services.AddScoped<TicketMutationService>();
+            builder.Services.AddScoped<ITicketWorkflowReadStore, TicketWorkflowReadStore>();
+            builder.Services.AddScoped<TicketWorkflowReadService>();
             builder.Services.AddScoped<ITicketDiscussionStore, TicketDiscussionStore>();
             builder.Services.AddScoped<TicketDiscussionService>();
             builder.Services.AddScoped<TicketWriteGuard>();

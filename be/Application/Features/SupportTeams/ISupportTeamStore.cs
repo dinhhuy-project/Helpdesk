@@ -1,4 +1,5 @@
 using be.Application.Features.Accounts;
+using be.Application.Features.Departments;
 
 namespace be.Application.Features.SupportTeams;
 
@@ -6,6 +7,9 @@ public interface ISupportTeamStore
 {
     Task<PagedResult<SupportTeamDetails>> ListAsync(AccountActor actor, TeamSearch search, CancellationToken cancellationToken);
     Task<SupportTeamDetails> GetAsync(AccountActor actor, Guid id, CancellationToken cancellationToken);
+    Task<TeamAdministrationAccess> AccessAsync(AccountActor actor, Guid? id, CancellationToken cancellationToken);
+    Task<PagedResult<DepartmentLookup>> DepartmentsAsync(AccountActor actor, TeamLookupSearch search, CancellationToken cancellationToken);
+    Task<PagedResult<TeamMemberCandidate>> CandidatesAsync(AccountActor actor, Guid id, TeamLookupSearch search, CancellationToken cancellationToken);
     Task<PagedResult<TeamMemberDetails>> MembersAsync(AccountActor actor, Guid id, TeamMemberSearch search, CancellationToken cancellationToken);
     Task<SupportTeamDetails> CreateAsync(AccountActor actor, CreateSupportTeam command, CancellationToken cancellationToken);
     Task<SupportTeamDetails> UpdateAsync(AccountActor actor, Guid id, UpdateSupportTeam command, CancellationToken cancellationToken);

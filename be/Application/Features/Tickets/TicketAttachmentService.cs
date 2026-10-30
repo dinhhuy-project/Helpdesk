@@ -10,9 +10,15 @@ public sealed record AttachmentObject(TicketAttachmentDetails Details, string Bu
 public sealed record AttachmentReservation(Guid Id, string Bucket, string ObjectKey);
 public sealed record AttachmentLimits(int MaxFiles, long MaxBytes);
 public sealed record AttachmentDownload(TicketAttachmentDetails Details, Stream Content);
+public sealed record AttachmentFileType(string Extension, string ContentType);
+public sealed record AttachmentUploadPolicy(bool Enabled, long MaxFileSizeBytes, int MaxFilesPerVisibility,
+    long MaxTotalSizeBytesPerVisibility, IReadOnlyList<AttachmentFileType> FileTypes);
+public sealed record TicketAttachmentAccess(bool CanReadInternal, bool CanUploadPublic, bool CanUploadInternal);
+public sealed record TicketAttachmentOptions(TicketAttachmentAccess Access, AttachmentUploadPolicy Policy);
 
 public interface ITicketAttachmentStore
 {
+    Task<TicketAttachmentAccess> AccessAsync(AccountActor actor, Guid ticketId, Guid? commentId, CancellationToken cancellationToken);
     Task<AttachmentReservation> ReserveAsync(AccountActor actor, Guid ticketId, UploadTicketAttachment command, string bucket,
         AttachmentLimits limits, CancellationToken cancellationToken);
     Task<TicketAttachmentDetails> CompleteAsync(AccountActor actor, Guid ticketId, Guid reservationId, CancellationToken cancellationToken);
@@ -22,6 +28,14 @@ public interface ITicketAttachmentStore
 
 public sealed class TicketAttachmentService(ITicketAttachmentStore store, IAttachmentStorage storage, IAttachmentFileValidator files)
 {
+    public async Task<TicketAttachmentOptions> OptionsAsync(AccountActor actor, Guid ticketId, Guid? commentId, CancellationToken cancellationToken)
+    {
+        if (ticketId == Guid.Empty || commentId == Guid.Empty) throw new TicketOperationException(TicketError.InvalidInput);
+        var access = await store.AccessAsync(actor, ticketId, commentId, cancellationToken);
+        var policy = files.Policy;
+        return new(access with { CanUploadPublic = policy.Enabled && access.CanUploadPublic,
+            CanUploadInternal = policy.Enabled && access.CanUploadInternal }, policy);
+    }
     public async Task<TicketAttachmentDetails> UploadAsync(AccountActor actor, Guid ticketId, UploadTicketAttachment command, Stream input, CancellationToken cancellationToken)
     {
         if (ticketId == Guid.Empty || command.CommentId == Guid.Empty) throw new TicketOperationException(TicketError.InvalidInput);

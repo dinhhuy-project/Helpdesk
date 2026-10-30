@@ -10,6 +10,8 @@ Profile Visual Studio **Container (Dockerfile)** tiếp tục dùng port 5000, s
 
 ## API và quyền
 
+Frontend bước 7 bổ sung API đọc capability và chọn target theo scope: `GET /users/{id}/administration-access` (`user.manage`), `GET /identity/administration-access`, `GET /identity/assignment-users` và `GET /identity/assignment-users/{id}` (`role.manage`), cùng prefix `/api/v1`. Assignment list lọc phạm vi trước count/page; detail ngoài phạm vi hoặc tự gán role trả 404. Đây là API đọc, không thay policy mutation, grant/seed hay database. Xem [contract và cách dùng giao diện](frontend-accounts.md).
+
 | API | Điều kiện | Kết quả thành công |
 | --- | --- | --- |
 | `GET /api/v1/users` | `user.manage` | 200, danh sách phân trang |
@@ -30,7 +32,7 @@ Profile Visual Studio **Container (Dockerfile)** tiếp tục dùng port 5000, s
 
 Query: `page=1`, `pageSize=20` (1–100), `search` tối đa 200 ký tự, `isActive`, `sortBy=createdAt|email|displayName`, `descending=true`. Page tối đa 1.000.000; sort có tie-break ID. Search email/tên không phân biệt hoa/thường, được tham số hóa qua EF. Response: `items`, `page`, `pageSize`, `totalCount`; count và items là các query đọc thông thường nên có thể thay đổi giữa hai query khi hệ thống đang được cập nhật.
 
-DTO user quản trị gồm `id`, `email`, `displayName`, `isActive`, `departmentId`, `createdAt`, `updatedAt`, `version`, `roles: [{id,name}]`. Không có password/hash, token/hash hoặc EF entity. Các endpoint quản trị và đổi mật khẩu dùng `Cache-Control: no-store` qua controller; lỗi không echo credential.
+DTO user quản trị gồm `id`, `email`, `displayName`, `isActive`, `departmentId`, `departmentName`, `createdAt`, `updatedAt`, `version`, `roles: [{id,name}]`. `departmentName` bổ sung ở frontend bước 7, lấy cả tên phòng ban lịch sử inactive để hiển thị liên kết mà không cần quyền quản trị phòng ban. Không có password/hash, token/hash hoặc EF entity. Các endpoint quản trị và đổi mật khẩu dùng `Cache-Control: no-store` qua controller; lỗi không echo credential.
 
 ### Tạo tài khoản
 

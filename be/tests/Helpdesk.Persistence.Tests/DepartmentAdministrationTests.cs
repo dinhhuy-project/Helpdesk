@@ -115,7 +115,9 @@ public class DepartmentAdministrationTests(PostgresFixture fixture)
         Assert.Equal(HttpStatusCode.OK, deactivate.StatusCode);
         var inactive = (await deactivate.Content.ReadFromJsonAsync<DepartmentDetails>())!;
         Assert.False(inactive.IsActive);
-        Assert.Equal(department.Id, (await test.Accounts.GetAsync(user.Id)).DepartmentId);
+        var historical = await test.Accounts.GetAsync(user.Id);
+        Assert.Equal(department.Id, historical.DepartmentId);
+        Assert.Equal(department.Name, historical.DepartmentName);
         Assert.True((await database.SupportTeams.AsNoTracking().SingleAsync(x => x.Id == team.Id)).IsActive);
         using var me = await userClient.GetAsync("/api/v1/users/me");
         Assert.Equal(HttpStatusCode.OK, me.StatusCode);

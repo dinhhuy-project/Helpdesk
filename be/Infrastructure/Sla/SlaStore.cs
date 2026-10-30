@@ -81,16 +81,21 @@ public sealed class SlaStore(HelpdeskDbContext database, IPermissionChecker perm
     }
     public async Task<TicketSlaDetails> GetTicketAsync(AccountActor actor, Guid id, CancellationToken cancellationToken)
     {
+        // Ticket status, read scope and SLA must describe one snapshot, including during resolve/reopen.
+        await using var transaction = await database.Database.BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead, cancellationToken);
         if (!await sessions.IsActiveAsync(actor.UserId, actor.SessionId, cancellationToken)) throw new SlaOperationException(SlaError.Unauthenticated);
         if (!await scope.HasReadGrantAsync(actor, cancellationToken)) throw new SlaOperationException(SlaError.Forbidden);
         var ticket = await scope.For(actor, TicketOperation.Read).AsNoTracking().Where(x => x.Id == id).Select(x => new { x.Id, x.Status })
             .SingleOrDefaultAsync(cancellationToken) ?? throw new SlaOperationException(SlaError.NotFound);
         var readable = scope.For(actor, TicketOperation.Read).Select(x => x.Id);
         var sla = await database.TicketSlas.AsNoTracking().SingleOrDefaultAsync(x => x.TicketId == id && readable.Contains(x.TicketId), cancellationToken);
-        return new(ticket.Id, sla is null ? null : new(sla.SlaPolicyId, sla.PolicyName, sla.Priority, sla.FirstResponseMinutes, sla.ResolutionMinutes,
+        var asOf = Now;
+        var result = new TicketSlaDetails(ticket.Id, sla is null ? null : new(sla.SlaPolicyId, sla.PolicyName, sla.Priority, sla.FirstResponseMinutes, sla.ResolutionMinutes,
             sla.AppliedAt, sla.FirstResponseDueAt, sla.ResolutionDueAt, sla.FirstRespondedAt, sla.ResolvedAt,
-            SlaRules.FirstResponseBreached(sla, ticket.Status, Now), SlaRules.ResolutionBreached(sla, ticket.Status, Now),
-            sla.FirstResponseBreachedAt, sla.ResolutionBreachedAt));
+            SlaRules.FirstResponseBreached(sla, ticket.Status, asOf), SlaRules.ResolutionBreached(sla, ticket.Status, asOf),
+            sla.FirstResponseBreachedAt, sla.ResolutionBreachedAt), ticket.Status, asOf);
+        await transaction.CommitAsync(cancellationToken);
+        return result;
     }
     private async Task<IDbContextTransaction> BeginAsync(AccountActor actor, CancellationToken cancellationToken)
     {

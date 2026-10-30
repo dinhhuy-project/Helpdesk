@@ -40,8 +40,8 @@ describe('API error normalization', () => {
     expect(toApiError(httpError(403, { status: 200 })).status).toBe(403)
   })
 
-  it('preserves rate-limit delay for the UI', () => {
-    const error = toApiError(httpError(429, {}, new AxiosHeaders({ 'retry-after': '12' })))
+  it.each(['retry-after', 'Retry-After'])('preserves case-insensitive %s rate-limit delay for the UI', name => {
+    const error = toApiError(httpError(429, {}, new AxiosHeaders({ [name]: '12' })))
     expect(error.retryAfterSeconds).toBe(12)
   })
 

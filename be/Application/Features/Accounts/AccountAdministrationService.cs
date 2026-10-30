@@ -5,6 +5,14 @@ public sealed class AccountAdministrationService(IAccountAdministrationStore sto
     public Task<PagedResult<AccountUser>> ListAsync(AccountSearch search, CancellationToken cancellationToken) =>
         store.ListAsync(search with { Search = search.Search?.Trim().ToLowerInvariant() }, cancellationToken);
     public Task<AccountUser> GetAsync(Guid id, CancellationToken cancellationToken) => store.GetAsync(id, cancellationToken);
+    public Task<AccountAdministrationAccess> AccessAsync(AccountActor actor, Guid id, CancellationToken cancellationToken) =>
+        store.AccessAsync(actor, id, cancellationToken);
+    public Task<RoleAdministrationAccess> RoleAccessAsync(AccountActor actor, CancellationToken cancellationToken) =>
+        store.RoleAccessAsync(actor, cancellationToken);
+    public Task<PagedResult<AccountUser>> AssignmentUsersAsync(AccountActor actor, AccountSearch search, CancellationToken cancellationToken) =>
+        store.AssignmentUsersAsync(actor, search with { Search = search.Search?.Trim().ToLowerInvariant() }, cancellationToken);
+    public Task<AccountUser> AssignmentUserAsync(AccountActor actor, Guid id, CancellationToken cancellationToken) =>
+        store.AssignmentUserAsync(actor, id, cancellationToken);
     public Task<AccountUser> CreateAsync(AccountActor actor, CreateAccount command, CancellationToken cancellationToken) =>
         store.CreateAsync(actor, command with { Email = command.Email.Trim().ToLowerInvariant(), DisplayName = command.DisplayName.Trim() }, cancellationToken);
     public Task<AccountUser> UpdateAsync(AccountActor actor, Guid id, UpdateAccount command, CancellationToken cancellationToken) =>

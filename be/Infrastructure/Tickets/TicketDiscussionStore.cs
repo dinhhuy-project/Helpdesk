@@ -14,6 +14,17 @@ namespace be.Infrastructure.Tickets;
 public sealed class TicketDiscussionStore(HelpdeskDbContext database, TicketScope scope, TicketWriteGuard guard,
     IAuthSessionStore sessions, TimeProvider clock, TicketNotificationWriter notifications, TicketSlaTracker sla) : ITicketDiscussionStore
 {
+    public async Task<TicketDiscussionAccess> AccessAsync(AccountActor actor, Guid ticketId, CancellationToken cancellationToken)
+    {
+        await RequireReadAsync(actor, ticketId, cancellationToken);
+        var internalRead = scope.For(actor, TicketOperation.ReadInternal).Select(x => x.Id);
+        var publicWrite = scope.For(actor, TicketOperation.CommentPublic).Select(x => x.Id);
+        var internalWrite = scope.For(actor, TicketOperation.CommentInternal).Select(x => x.Id);
+        return await scope.For(actor, TicketOperation.Read).Where(x => x.Id == ticketId)
+            .Select(x => new TicketDiscussionAccess(internalRead.Contains(x.Id), publicWrite.Contains(x.Id), internalWrite.Contains(x.Id)))
+            .SingleOrDefaultAsync(cancellationToken) ?? throw new TicketOperationException(TicketError.NotFound);
+    }
+
     public async Task<TicketCommentDetails> CreateAsync(AccountActor actor, Guid ticketId, CreateTicketComment command, CancellationToken cancellationToken)
     {
         await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);

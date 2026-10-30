@@ -8,6 +8,7 @@ Tất cả endpoint yêu cầu Bearer JWT, tài khoản active, phiên hợp l�
 
 | Endpoint | Kết quả |
 | --- | --- |
+| `GET /api/v1/tickets/{ticketId}/discussion-access` | Capability hiện tại canReadInternal/canCommentPublic/canCommentInternal từ TicketScope, phục vụ frontend bước 6 |
 | `POST /api/v1/tickets/{ticketId}/comments` | 201 Comment + Location; permission theo public/internal trong transaction |
 | `GET /api/v1/tickets/{ticketId}/comments` | 200, danh sách comment đọc được, phân trang |
 | `GET /api/v1/tickets/{ticketId}/comments/{commentId}` | 200, chi tiết comment đọc được |

@@ -53,6 +53,7 @@ export function createHttpClient(options: { baseURL: string; adapter?: AxiosAdap
       request<TResponse, TBody>(path, { ...config, method: 'PUT', data }),
     patch: <TResponse, TBody = unknown>(path: string, data: TBody, config?: RequestOptions<TBody>) =>
       request<TResponse, TBody>(path, { ...config, method: 'PATCH', data }),
+    delete: <TResponse = void>(path: string, config?: RequestOptions) => request<TResponse>(path, { ...config, method: 'DELETE' }),
   }
 }
 

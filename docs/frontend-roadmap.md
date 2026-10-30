@@ -1,6 +1,6 @@
 # Lộ trình triển khai frontend Helpdesk
 
-Backend đã có API phần 1–17. Frontend đã hoàn thành [bước 1 — nền tảng](frontend-foundation.md), [bước 2 — auth/session](frontend-authentication.md) và [bước 3 — khung ứng dụng/quyền giao diện](frontend-shell.md). Các bước 4–15 dưới đây là thứ tự triển khai tiếp theo, chưa phải tính năng đã hoàn thành.
+Backend đã có API phần 1–17. Frontend đã hoàn thành [bước 1 — nền tảng](frontend-foundation.md), [bước 2 — auth/session](frontend-authentication.md), [bước 3 — khung ứng dụng/quyền giao diện](frontend-shell.md), [bước 4 — danh sách/chi tiết Ticket](frontend-tickets.md), [bước 5 — tạo Ticket](frontend-create-ticket.md), [bước 6 — comment/internal note/activity](frontend-ticket-discussion.md), [bước 7 — quản trị tài khoản/quyền](frontend-accounts.md), [bước 8 — tổ chức/danh mục](frontend-catalogs.md), [bước 9 — phân công/workflow](frontend-ticket-workflow.md), [bước 10 — file đính kèm](frontend-attachments.md) và [bước 11 — SLA và quản trị policy](frontend-sla.md). Các bước 12–15 dưới đây là thứ tự triển khai tiếp theo, chưa phải tính năng đã hoàn thành.
 
 Mục tiêu đầu tiên là chạy được luồng **đăng nhập → tạo Ticket → xem Ticket → trao đổi**. Sau đó hoàn thiện quản trị dữ liệu, phân công/xử lý, file, SLA, notification và báo cáo. Mỗi bước tích hợp API thật và nghiệm thu quyền truy cập trước khi chuyển tiếp.
 
@@ -22,7 +22,7 @@ Nếu cần duy trì đăng nhập qua reload, phải chốt thay đổi transpo
 
 Hiện `GET /api/v1/support-teams` và danh sách membership thuộc policy `team.manage`. `ticket.assign` không tự cấp quyền đọc các API quản trị này. DTO membership cũng chưa thể hiện đầy đủ grant để client tự xác định agent đủ điều kiện xử lý.
 
-Trước bước 9, thử bằng tài khoản có `ticket.assign` trong các scope dự kiến. Nếu API hiện tại không cung cấp đủ danh sách lựa chọn, cần bổ sung **lookup team/agent theo scope phân công** ở backend, trả dữ liệu tối thiểu và lọc điều kiện hợp lệ. Đây là việc cần chốt contract, chưa có endpoint lookup này để frontend gọi. Không cấp thêm `user.manage`/`team.manage` chỉ để mở combobox và không yêu cầu người dùng nhập UUID thủ công.
+Bước 9 đã bổ sung `GET /tickets/{id}/assignment-teams` và `GET /tickets/{id}/assignment-teams/{teamId}/agents`, lọc theo scope nguồn/đích và eligibility trước count/page. `GET /tickets/{id}/workflow` trả capability và các transition hiện được phép cùng version. Không cấp thêm `user.manage`/`team.manage` để mở combobox và không yêu cầu nhập UUID thủ công. Xem [contract và kiểm thử](frontend-ticket-workflow.md).
 
 ## 2. Thứ tự triển khai
 
@@ -72,7 +72,7 @@ Không dùng riêng admin trên Ticket mẫu để nghiệm thu ACL: admin mẫu
 
 ### Nội bộ, file và quyền tài nguyên
 
-- `GET /tickets/{id}/access` hiện có ba cờ `canRead`, `canUpdateStatus`, `canAssign`; không phải danh sách đầy đủ mọi transition hoặc quyền nội bộ. Kết hợp context/permission hiện tại cho UX và xử lý quyết định cuối từ backend.
+- `GET /tickets/{id}/access` có ba cờ `canRead`, `canUpdateStatus`, `canAssign`; không phải danh sách mọi transition hoặc quyền nội bộ. Panel dùng `GET /tickets/{id}/workflow` cho thao tác hiện được phép, discussion có capability riêng; backend vẫn kiểm tra lại từng command.
 - Role TeamLeader không thay thế membership `IsLeader` hợp lệ của từng team. Assignee không tự có quyền đọc; `user.manage` không bao gồm cấp role/grant. Không hardcode “SystemAdmin làm được mọi việc”.
 - Requester bị loại khỏi nội dung nội bộ kể cả khi đồng thời có role quản trị. Không tải nội dung nội bộ rồi chỉ ẩn bằng CSS, không trộn vào cache/preview/notification công khai.
 - FormData dùng multipart boundary do browser tạo. File không thành công không đồng nghĩa Ticket/comment chưa được tạo; hiển thị kết quả từng bước, tải lại metadata trước khi thử lại nếu kết quả upload chưa rõ.
@@ -133,4 +133,4 @@ Ngoài phạm vi frontend MVP hiện tại: OIDC, đăng ký công khai/quên m�
 - Tổng hợp: [notifications/SignalR](backend-notifications.md), [SLA](backend-sla.md), [dashboard/reporting](backend-reporting.md), [query review](report-query-review.md).
 - Hạ tầng và vận hành: [setup](backend-setup.md), [GitHub Actions](github-actions.md), [backend roadmap — bước 18](backend-roadmap.md).
 
-**Bước triển khai tiếp theo:** bước 4 — danh sách/chi tiết Ticket, rồi tạo Ticket. Xem [nền tảng bước 1](frontend-foundation.md), [auth/session bước 2](frontend-authentication.md) và [khung ứng dụng/quyền giao diện bước 3](frontend-shell.md).
+**Bước triển khai tiếp theo:** bước 12 — notification inbox, số chưa đọc và đánh dấu đã đọc; bước 13 tích hợp SignalR vào phiên/cache. Các bước 1–11 đã có trang, typed API và kiểm thử; xem tài liệu từng tính năng ở đầu lộ trình.

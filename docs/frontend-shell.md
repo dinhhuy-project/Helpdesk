@@ -33,7 +33,7 @@ Nguồn permission là `/users/me` hoặc profile trong response refresh, không
 
 `hasPermissions` hỗ trợ anyOf/allOf, có thể kết hợp hai điều kiện; danh sách policy rỗng được gửi rõ ràng sẽ fail closed. Không có bypass theo tên SystemAdmin/TeamLeader. Giao diện dùng union permission server trả về cho user nhiều role; backend tiếp tục kiểm tra permission và scope từng resource.
 
-Menu và route guard dùng chung catalog/rule, tránh trường hợp ẩn menu nhưng deep link lại bỏ qua policy. Các module Ticket/quản trị/notification/report **chưa có trang nghiệp vụ frontend** được đánh dấu **Sắp có**, không có href hoặc dữ liệu mô phỏng. Những URL đã dành cho module này được guard trước: thiếu permission trả UI 403; có permission vẫn 404 đến khi trang thật được triển khai. Đây không phải API đọc Ticket và không thay thế ACL backend.
+Menu và route guard dùng chung catalog/rule, tránh trường hợp ẩn menu nhưng deep link lại bỏ qua policy. Ticket đã mở ở bước 4–6, workflow/file ở bước 9–10; quản trị tài khoản/tổ chức ở bước 7–8 và [SLA/policy ở bước 11](frontend-sla.md). Notification/dashboard/report **chưa có trang nghiệp vụ frontend** được đánh dấu **Sắp có**, không có href hoặc dữ liệu mô phỏng. Những URL đã dành cho module này được guard trước: thiếu permission trả UI 403; có permission vẫn 404 đến khi trang thật được triển khai. Đây không phải API đọc Ticket và không thay thế ACL backend.
 
 Để thêm feature ở bước sau: triển khai page/API/hook, thay route 404 dự phòng bằng page thật bên trong policy hiện có, rồi đổi availability của menu. Kiểm tra action permission và scope tài nguyên riêng ở feature; việc menu được hiện không cho phép tự bỏ kiểm tra requester/team/internal ở backend.
 
@@ -91,4 +91,4 @@ npm run build
 - Edge headless desktop/mobile với API fixtures: sidebar/breakpoint, menu modal, Escape/focus/scroll restore, title/focus khi điều hướng, thay grant trên URL đang mở, profile lỗi, 403/404. Chạy lại smoke auth của bước 2; không có page error hoặc overflow ngang trong các màn kiểm tra.
 - Lượt này không chạy lại toàn bộ persistence suite; đã chạy riêng integration SignalR mới trên PostgreSQL thật. Không thay mật khẩu hay ghi dữ liệu lên DB Helpdesk để kiểm tra UI.
 
-Bước tiếp theo: [bước 4 — danh sách và chi tiết Ticket](frontend-roadmap.md), dùng authenticated client, scope/query keys và policy đã chuẩn bị.
+[Bước 4 — danh sách/chi tiết Ticket](frontend-tickets.md), [bước 5 — tạo Ticket](frontend-create-ticket.md) và [bước 6 — thảo luận](frontend-ticket-discussion.md) đã triển khai trên authenticated client, scope/query keys và policy của shell. Bước tiếp theo là quản trị tài khoản/quyền theo [lộ trình](frontend-roadmap.md).

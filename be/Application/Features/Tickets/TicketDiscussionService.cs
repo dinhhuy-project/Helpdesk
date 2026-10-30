@@ -3,6 +3,7 @@ using be.Application.Features.Accounts;
 namespace be.Application.Features.Tickets;
 
 public sealed record CreateTicketComment(string Content, bool IsInternal = false);
+public sealed record TicketDiscussionAccess(bool CanReadInternal, bool CanCommentPublic, bool CanCommentInternal);
 public sealed record TicketDiscussionSearch(int Page = 1, int PageSize = 20, bool Descending = false, bool? IsInternal = null);
 public sealed record TicketCommentDetails(Guid Id, Guid TicketId, Guid AuthorId, string Content, bool IsInternal,
     DateTime CreatedAt, DateTime? UpdatedAt);
@@ -15,6 +16,7 @@ public sealed record TicketActivityDetails(Guid Id, Guid TicketId, Guid? ActorId
 
 public interface ITicketDiscussionStore
 {
+    Task<TicketDiscussionAccess> AccessAsync(AccountActor actor, Guid ticketId, CancellationToken cancellationToken);
     Task<TicketCommentDetails> CreateAsync(AccountActor actor, Guid ticketId, CreateTicketComment command, CancellationToken cancellationToken);
     Task<PagedResult<TicketCommentDetails>> ListCommentsAsync(AccountActor actor, Guid ticketId, TicketDiscussionSearch search, CancellationToken cancellationToken);
     Task<TicketCommentDetails> GetCommentAsync(AccountActor actor, Guid ticketId, Guid commentId, CancellationToken cancellationToken);
@@ -24,6 +26,8 @@ public interface ITicketDiscussionStore
 
 public sealed class TicketDiscussionService(ITicketDiscussionStore store)
 {
+    public Task<TicketDiscussionAccess> AccessAsync(AccountActor actor, Guid ticketId, CancellationToken cancellationToken) =>
+        store.AccessAsync(actor, ticketId, cancellationToken);
     public const int ContentLimit = 20_000;
     public Task<TicketCommentDetails> CreateAsync(AccountActor actor, Guid ticketId, CreateTicketComment command, CancellationToken cancellationToken)
     {

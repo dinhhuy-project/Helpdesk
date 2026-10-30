@@ -97,16 +97,22 @@ public sealed class TicketScope(HelpdeskDbContext database, TimeProvider clock)
     {
         if (target.TeamId == Guid.Empty || target.AgentId == Guid.Empty ||
             !await For(actor, TicketOperation.Assign).AnyAsync(x => x.Id == id, cancellationToken)) return false;
-        var grants = Grants(actor.UserId);
-        var leaders = ActiveMembers(actor.UserId).Where(m => m.IsLeader);
         // Validate destination independently of current Ticket scope: client IDs cannot widen access.
-        return await database.SupportTeams.AnyAsync(team => team.Id == target.TeamId && team.IsActive &&
-            database.Departments.Any(d => d.Id == team.DepartmentId && d.IsActive) &&
-            (grants.Contains(PermissionCodes.TicketReadAll) || leaders.Any(m => m.SupportTeamId == team.Id)), cancellationToken) &&
+        return await AssignmentTeams(actor).AnyAsync(team => team.Id == target.TeamId, cancellationToken) &&
             await IsAssignmentActiveAsync(target, cancellationToken);
     }
 
-    public Task<bool> IsAssignmentActiveAsync(TicketAssignmentTarget target, CancellationToken cancellationToken)
+    // Shared by mutation validation and Ticket-specific selection queries. No administration grant is implied.
+    public IQueryable<SupportTeam> AssignmentTeams(AccountActor actor)
+    {
+        var grants = Grants(actor.UserId);
+        var leaders = ActiveMembers(actor.UserId).Where(m => m.IsLeader);
+        return database.SupportTeams.Where(team => team.IsActive &&
+            database.Departments.Any(d => d.Id == team.DepartmentId && d.IsActive) &&
+            (grants.Contains(PermissionCodes.TicketReadAll) || leaders.Any(m => m.SupportTeamId == team.Id)));
+    }
+
+    public IQueryable<User> AssignmentAgents(Guid teamId)
     {
         var processors = from membership in database.UserRoles
                          join grant in database.RolePermissions on membership.RoleId equals grant.RoleId
@@ -117,8 +123,13 @@ public sealed class TicketScope(HelpdeskDbContext database, TimeProvider clock)
                       join permission in database.Permissions on grant.PermissionId equals permission.Id
                       where permission.Code == PermissionCodes.TicketReadTeam || permission.Code == PermissionCodes.TicketReadAll
                       select membership.UserId;
-        var agents = database.Users.Where(user => user.IsActive && processors.Contains(user.Id) && readers.Contains(user.Id) &&
-            database.SupportTeamMembers.Any(m => m.SupportTeamId == target.TeamId && m.UserId == user.Id && m.IsActive));
+        return database.Users.Where(user => user.IsActive && processors.Contains(user.Id) && readers.Contains(user.Id) &&
+            database.SupportTeamMembers.Any(m => m.SupportTeamId == teamId && m.UserId == user.Id && m.IsActive));
+    }
+
+    public Task<bool> IsAssignmentActiveAsync(TicketAssignmentTarget target, CancellationToken cancellationToken)
+    {
+        var agents = AssignmentAgents(target.TeamId);
         return database.SupportTeams.AnyAsync(team => team.Id == target.TeamId && team.IsActive &&
             database.Departments.Any(d => d.Id == team.DepartmentId && d.IsActive) &&
             (target.AgentId == null || agents.Any(user => user.Id == target.AgentId)), cancellationToken);

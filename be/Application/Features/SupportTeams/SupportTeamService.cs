@@ -1,9 +1,22 @@
 using be.Application.Features.Accounts;
+using be.Application.Features.Departments;
 
 namespace be.Application.Features.SupportTeams;
 
 public sealed class SupportTeamService(ISupportTeamStore store)
 {
+    public Task<TeamAdministrationAccess> AccessAsync(AccountActor actor, Guid? id, CancellationToken cancellationToken) =>
+        store.AccessAsync(actor, id, cancellationToken);
+    public Task<PagedResult<DepartmentLookup>> DepartmentsAsync(AccountActor actor, TeamLookupSearch search, CancellationToken cancellationToken) =>
+        store.DepartmentsAsync(actor, Lookup(search), cancellationToken);
+    public Task<PagedResult<TeamMemberCandidate>> CandidatesAsync(AccountActor actor, Guid id, TeamLookupSearch search, CancellationToken cancellationToken) =>
+        store.CandidatesAsync(actor, id, Lookup(search), cancellationToken);
+    private static TeamLookupSearch Lookup(TeamLookupSearch search)
+    {
+        Page(search.Page, search.PageSize);
+        if (search.Search?.Length > 200) Invalid();
+        return search with { Search = search.Search?.Trim() };
+    }
     public Task<PagedResult<SupportTeamDetails>> ListAsync(AccountActor actor, TeamSearch search, CancellationToken cancellationToken)
     {
         Page(search.Page, search.PageSize);

@@ -15,6 +15,11 @@ namespace be.Controllers;
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
 public sealed class TicketDiscussionController(TicketDiscussionService discussion) : ControllerBase
 {
+    [HttpGet("discussion-access")]
+    [ProducesResponseType<TicketDiscussionAccess>(StatusCodes.Status200OK)]
+    public Task<TicketDiscussionAccess> Access(Guid ticketId, CancellationToken cancellationToken) =>
+        discussion.AccessAsync(CurrentAccountActor.From(User), ticketId, cancellationToken);
+
     // Visibility determines the required permission inside the transaction; public/internal
     // are alternatives, not two AND policies. Author identity never comes from the request.
     [HttpPost("comments")]

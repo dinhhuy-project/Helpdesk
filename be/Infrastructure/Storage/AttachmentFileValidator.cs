@@ -9,6 +9,11 @@ namespace be.Infrastructure.Storage;
 
 public sealed class AttachmentFileValidator(IOptions<MinioOptions> settings) : IAttachmentFileValidator
 {
+    private static readonly IReadOnlyList<AttachmentFileType> FileTypes = Array.AsReadOnly(new[] {
+        new AttachmentFileType(".txt", "text/plain"), new AttachmentFileType(".pdf", "application/pdf"),
+        new AttachmentFileType(".png", "image/png"), new AttachmentFileType(".jpg", "image/jpeg"), new AttachmentFileType(".jpeg", "image/jpeg") });
+    public AttachmentUploadPolicy Policy => new(settings.Value.Enabled, settings.Value.MaxFileSizeBytes,
+        Limits.MaxFiles, Limits.MaxBytes, FileTypes);
     public Stream CreateDownloadBuffer() => AttachmentBuffers.Create();
     public AttachmentLimits Limits => new(settings.Value.MaxFilesPerVisibility, settings.Value.MaxTotalSizeMiBPerVisibility * 1024L * 1024);
     public UploadTicketAttachment ValidateMetadata(UploadTicketAttachment command)
@@ -20,10 +25,7 @@ public sealed class AttachmentFileValidator(IOptions<MinioOptions> settings) : I
         if (string.IsNullOrWhiteSpace(name) || name.Length > 255 || name != name.Trim() || name.StartsWith('.') || name.EndsWith('.') ||
             name.Contains("..") || name.Any(character => char.IsControl(character) || "<>:\"/\\|?*".Contains(character)))
             throw new TicketOperationException(TicketError.InvalidFile);
-        var expected = Path.GetExtension(name).ToLowerInvariant() switch
-        {
-            ".txt" => "text/plain", ".pdf" => "application/pdf", ".png" => "image/png", ".jpg" or ".jpeg" => "image/jpeg", _ => null
-        };
+        var expected = FileTypes.SingleOrDefault(type => type.Extension == Path.GetExtension(name).ToLowerInvariant())?.ContentType;
         if (expected is null || !MediaTypeHeaderValue.TryParse(command.ContentType, out var media) ||
             !string.Equals(media.MediaType, expected, StringComparison.OrdinalIgnoreCase))
             throw new TicketOperationException(TicketError.UnsupportedFile);

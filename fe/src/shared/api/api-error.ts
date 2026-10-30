@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axios, { AxiosHeaders } from 'axios'
 
 export interface ProblemDetails {
   type?: string
@@ -44,6 +44,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export function parseProblemDetails(value: unknown): ProblemDetails {
+  // Download failures use the same ProblemDetails contract, even with responseType=arraybuffer.
+  if (value instanceof ArrayBuffer || ArrayBuffer.isView(value)) {
+    const bytes = value instanceof ArrayBuffer ? new Uint8Array(value) : new Uint8Array(value.buffer, value.byteOffset, value.byteLength)
+    if (bytes.byteLength > 65_536) return {}
+    try { value = JSON.parse(new TextDecoder().decode(bytes)) } catch { return {} }
+  }
   if (!isRecord(value)) return {}
   const problem: ProblemDetails = {}
   for (const key of ['type', 'title', 'detail', 'instance', 'code', 'traceId'] as const) {
@@ -87,9 +93,12 @@ export function toApiError(error: unknown): ApiError {
   if (error.response) {
     const status = error.response.status
     const problem = parseProblemDetails(error.response.data)
+    const headers = error.response.headers
+    const retryAfter = headers instanceof AxiosHeaders ? headers.get('retry-after')
+      : Object.entries(headers).find(([name]) => name.toLowerCase() === 'retry-after')?.[1]
     return new ApiError(
       problem.title || statusMessages[status] || 'Dịch vụ đang gặp sự cố. Vui lòng thử lại sau.',
-      'http', status, problem, parseRetryAfter(error.response.headers['retry-after']),
+      'http', status, problem, parseRetryAfter(retryAfter),
     )
   }
   if (['ECONNABORTED', 'ETIMEDOUT'].includes(error.code ?? '')) {

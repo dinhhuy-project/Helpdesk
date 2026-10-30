@@ -12,6 +12,7 @@ public interface IAttachmentStorage
 public interface IAttachmentFileValidator
 {
     AttachmentLimits Limits { get; }
+    AttachmentUploadPolicy Policy { get; }
     Stream CreateDownloadBuffer();
     UploadTicketAttachment ValidateMetadata(UploadTicketAttachment command);
     Task<Stream> BufferAsync(Stream input, UploadTicketAttachment command, CancellationToken cancellationToken);

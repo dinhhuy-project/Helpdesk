@@ -37,13 +37,7 @@ public sealed class TicketMutationStore(HelpdeskDbContext database, TicketWriteG
 
     public async Task<TicketMutationResult> TransitionAsync(AccountActor actor, Guid id, TransitionTicket command, CancellationToken cancellationToken)
     {
-        var operation = command.Status switch
-        {
-            TicketStatus.Closed => TicketOperation.Confirm,
-            TicketStatus.Reopened => TicketOperation.Reopen,
-            TicketStatus.Cancelled => TicketOperation.Cancel,
-            _ => TicketOperation.UpdateStatus
-        };
+        var operation = TicketTransitionOperation.For(command.Status);
         await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
         var ticket = await guard.LockAsync(actor, id, operation, command.Version, cancellationToken);
         var oldValue = State(ticket);

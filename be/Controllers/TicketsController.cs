@@ -13,7 +13,8 @@ namespace be.Controllers;
 [Route("api/v1/tickets")]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
-public sealed class TicketsController(TicketReadService tickets, TicketCreateService creation, TicketMutationService mutations) : ControllerBase
+public sealed class TicketsController(TicketReadService tickets, TicketCreateService creation, TicketMutationService mutations,
+    TicketWorkflowReadService workflow) : ControllerBase
 {
     [HttpPost]
     [RequirePermission(PermissionCodes.TicketCreate)]
@@ -47,6 +48,26 @@ public sealed class TicketsController(TicketReadService tickets, TicketCreateSer
     [ProducesResponseType<TicketAccess>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public Task<TicketAccess> Access(Guid id, CancellationToken cancellationToken) => tickets.AccessAsync(CurrentAccountActor.From(User), id, cancellationToken);
+
+    [HttpGet("{id:guid}/workflow")]
+    [ProducesResponseType<TicketWorkflowContext>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public Task<TicketWorkflowContext> Workflow(Guid id, CancellationToken cancellationToken) =>
+        workflow.ContextAsync(CurrentAccountActor.From(User), id, cancellationToken);
+
+    [HttpGet("{id:guid}/assignment-teams")]
+    [RequirePermission(PermissionCodes.TicketAssign)]
+    [ProducesResponseType<PagedResult<TicketAssignmentTeam>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public Task<PagedResult<TicketAssignmentTeam>> AssignmentTeams(Guid id, [FromQuery] TicketAssignmentSearchRequest request, CancellationToken cancellationToken) =>
+        workflow.TeamsAsync(CurrentAccountActor.From(User), id, new(request.Page, request.PageSize, request.Search), cancellationToken);
+
+    [HttpGet("{id:guid}/assignment-teams/{teamId:guid}/agents")]
+    [RequirePermission(PermissionCodes.TicketAssign)]
+    [ProducesResponseType<PagedResult<TicketAssignmentAgent>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public Task<PagedResult<TicketAssignmentAgent>> AssignmentAgents(Guid id, Guid teamId, [FromQuery] TicketAssignmentSearchRequest request, CancellationToken cancellationToken) =>
+        workflow.AgentsAsync(CurrentAccountActor.From(User), id, teamId, new(request.Page, request.PageSize, request.Search), cancellationToken);
 
     [HttpPost("{id:guid}/assign")]
     [RequirePermission(PermissionCodes.TicketAssign)]

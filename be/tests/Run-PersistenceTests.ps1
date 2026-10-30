@@ -2,9 +2,9 @@ param([string]$Filter = '')
 
 $ErrorActionPreference = 'Stop'
 $frontendRoot = Join-Path $PSScriptRoot '../../fe'
-if (-not $Filter -and (-not (Get-Command node -ErrorAction SilentlyContinue) -or
+if ((-not $Filter -or $Filter -match 'Frontend(?:Discussion|Account|Catalog|Workflow|Attachment|Sla)Journey|SignalRJavaScript') -and (-not (Get-Command node -ErrorAction SilentlyContinue) -or
     -not (Test-Path -LiteralPath (Join-Path $frontendRoot 'node_modules/@microsoft/signalr/package.json')))) {
-    throw 'Node.js and frontend dependencies are required for the SignalR JS compatibility test. Run npm ci in fe/ first.'
+    throw 'Node.js and frontend dependencies are required for frontend API/SignalR integration tests. Run npm ci in fe/ first.'
 }
 $testSuffix = [Guid]::NewGuid().ToString('N')
 $testContainer = "helpdesk-mapping-test-$testSuffix"

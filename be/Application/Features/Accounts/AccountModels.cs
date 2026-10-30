@@ -3,9 +3,11 @@ namespace be.Application.Features.Accounts;
 public sealed record AccountActor(Guid UserId, Guid SessionId);
 public sealed record AccountRole(Guid Id, string Name);
 public sealed record AccountUser(Guid Id, string Email, string DisplayName, bool IsActive, Guid? DepartmentId,
-    DateTime CreatedAt, DateTime? UpdatedAt, uint Version, IReadOnlyList<AccountRole> Roles);
+    DateTime CreatedAt, DateTime? UpdatedAt, uint Version, IReadOnlyList<AccountRole> Roles, string? DepartmentName);
 public sealed record AccountRoleDetails(Guid Id, string Name, string? Description, uint Version, IReadOnlyList<string> Permissions);
 public sealed record AccountPermission(Guid Id, string Code);
+public sealed record AccountAdministrationAccess(bool CanUpdateProfile, bool CanChangeStatus, bool IsLastActiveAdmin);
+public sealed record RoleAdministrationAccess(bool CanManageGrants, bool CanReadAudit, IReadOnlyList<Guid> AssignableRoleIds);
 public sealed record AccountAudit(Guid Id, Guid? ActorId, Guid? TargetUserId, Guid? TargetRoleId, string Action, string? Data, DateTime CreatedAt);
 public sealed record PagedResult<T>(IReadOnlyList<T> Items, int Page, int PageSize, int TotalCount);
 public sealed record AccountSearch(int Page = 1, int PageSize = 20, string? Search = null,

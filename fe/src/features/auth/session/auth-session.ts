@@ -249,7 +249,11 @@ export function createAuthSession({ api, onScopeChange }: { api: AuthApi; onScop
   }
 
   const authorizeRequest: AuthorizeRequest = (send, signal) => authorize(send, signal)
-  return { store, login, logout, refreshProfile, changePassword, expireIfNeeded, authorize: authorizeRequest }
+  // Only discard the known current local session; this sends no administrative revoke request.
+  function endRevokedSession(expectedScope: string) {
+    if (store.getState().scope === expectedScope) reset('revoked')
+  }
+  return { store, login, logout, refreshProfile, changePassword, expireIfNeeded, endRevokedSession, authorize: authorizeRequest }
 }
 
 export type AuthSession = ReturnType<typeof createAuthSession>

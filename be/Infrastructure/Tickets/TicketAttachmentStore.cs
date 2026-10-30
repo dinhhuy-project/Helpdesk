@@ -13,6 +13,20 @@ namespace be.Infrastructure.Tickets;
 public sealed class TicketAttachmentStore(HelpdeskDbContext database, TicketScope scope, TicketWriteGuard guard,
     IAuthSessionStore sessions, TimeProvider clock, TicketNotificationWriter notifications) : ITicketAttachmentStore
 {
+    public async Task<TicketAttachmentAccess> AccessAsync(AccountActor actor, Guid ticketId, Guid? commentId, CancellationToken cancellationToken)
+    {
+        await using var transaction = await database.Database.BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead, cancellationToken);
+        await RequireReadAsync(actor, ticketId, cancellationToken);
+        var comment = await CommentAsync(actor, ticketId, commentId, cancellationToken);
+        var own = comment is null || comment.AuthorId == actor.UserId;
+        var canReadInternal = await scope.For(actor, TicketOperation.ReadInternal).AnyAsync(x => x.Id == ticketId, cancellationToken);
+        var publicWrite = own && (comment is null || !comment.IsInternal) &&
+            await scope.For(actor, TicketOperation.CommentPublic).AnyAsync(x => x.Id == ticketId, cancellationToken);
+        var internalWrite = own && (comment is null || comment.IsInternal) &&
+            await scope.For(actor, TicketOperation.CommentInternal).AnyAsync(x => x.Id == ticketId, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return new(canReadInternal, publicWrite, internalWrite);
+    }
     public async Task<AttachmentReservation> ReserveAsync(AccountActor actor, Guid ticketId, UploadTicketAttachment command,
         string bucket, AttachmentLimits limits, CancellationToken cancellationToken)
     {

@@ -1,6 +1,6 @@
 # Helpdesk frontend
 
-React 19.3.1 + TypeScript + Vite. Đã có nền tảng, login/phiên/tài khoản, khung sidebar/header responsive, guard theo permission và 403/404. Các màn hình Ticket/quản trị triển khai tiếp; mục Sắp có chưa phải trang nghiệp vụ đã hoàn thành.
+React 19.3.1 + TypeScript + Vite. Đã có nền tảng, auth/session, shell/permission, Ticket list/detail/create/discussion/workflow/attachments/SLA, quản trị tài khoản/role/grant/audit, phòng ban/team/membership/category và SLA policy theo scope/permission server. File upload/download qua Bearer API, giữ ACL Ticket/comment và visibility. Mục Sắp có chưa phải trang nghiệp vụ đã hoàn thành.
 
 ```powershell
 npm ci
@@ -20,6 +20,14 @@ Node 22.12+ trong major 22, Node 24 hoặc 26+ theo `package.json`; `.nvmrc`/CI 
 - [Cấu trúc, phiên bản, API/cache và cách cấu hình](../docs/frontend-foundation.md)
 - [Đăng nhập, phiên, tài khoản và đổi mật khẩu](../docs/frontend-authentication.md)
 - [Khung ứng dụng, permission guards và kiểm tra SignalR JS 10/server 8](../docs/frontend-shell.md)
+- [Danh sách/chi tiết Ticket, filter trên URL và activity](../docs/frontend-tickets.md)
+- [Tạo Ticket, cây danh mục phân trang và xử lý kết quả chưa rõ](../docs/frontend-create-ticket.md)
+- [Comment/internal note/activity, cache theo visibility và nghiệm thu hai tài khoản](../docs/frontend-ticket-discussion.md)
+- [Quản trị tài khoản/role/grant/audit, phòng ban và phiên bị thu hồi](../docs/frontend-accounts.md)
+- [Phòng ban/team/membership/category, leadership và version](../docs/frontend-catalogs.md)
+- [Phân công/workflow, lookup theo Ticket và xử lý conflict](../docs/frontend-ticket-workflow.md)
+- [File đính kèm Ticket/comment, multipart, visibility và download Blob](../docs/frontend-attachments.md)
+- [SLA snapshot/deadline, timezone và quản trị policy/version](../docs/frontend-sla.md)
 - [Lộ trình và tiêu chí nghiệm thu](../docs/frontend-roadmap.md)
 - [Quy tắc repository](../guides.md)
 

@@ -28,6 +28,8 @@ function fixture(initial: UserProfile) {
       return { ...response, data: backend.gate ? await backend.gate : backend.user }
     }
     if (config.url === '/api/v1/auth/logout') return { ...response, status: 204 }
+    if (config.url === '/api/v1/ticket-categories/lookup') return { ...response, data: { items: [], page: 1, pageSize: 20, totalCount: 0 } }
+    if (config.url === '/api/v1/users') return { ...response, data: { items: [], page: 1, pageSize: 20, totalCount: 0 } }
     throw new Error('Unexpected fixture route')
   }
   return { backend, services: createAppServices({ baseURL: '/', adapter }) }
@@ -63,16 +65,16 @@ describe('application shell, permissions and error pages', () => {
   })
 
   it('keeps future modules disabled and returns 404 after their guard accepts a deep link', async () => {
-    await openShell({ ...userA, permissions: [Permission.UserManage] }, '/admin/users')
+    await openShell({ ...userA, permissions: [Permission.TicketReadOwn] }, '/dashboard')
     expect(screen.getByRole('heading', { name: 'Không tìm thấy trang' })).toBeInTheDocument()
     expect(within(screen.getByRole('navigation', { name: 'Điều hướng chính' }))
-      .getByText('Tài khoản người dùng').closest('[aria-disabled]')).toHaveAttribute('aria-disabled', 'true')
-    expect(screen.queryByRole('link', { name: 'Tài khoản người dùng' })).not.toBeInTheDocument()
+      .getByText('Tổng quan').closest('[aria-disabled]')).toHaveAttribute('aria-disabled', 'true')
+    expect(screen.queryByRole('link', { name: 'Tổng quan' })).not.toBeInTheDocument()
   })
 
-  it('does not require read permission just to authorize the future create route', async () => {
+  it('opens the create route with ticket.create without requiring read permission', async () => {
     await openShell({ ...userA, permissions: [Permission.TicketCreate] }, '/tickets/new')
-    expect(screen.getByRole('heading', { name: 'Không tìm thấy trang' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Tạo yêu cầu' })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Không có quyền truy cập' })).not.toBeInTheDocument()
   })
 

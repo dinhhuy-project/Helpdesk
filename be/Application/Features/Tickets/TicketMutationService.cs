@@ -9,6 +9,17 @@ public sealed record TransitionTicket(TicketStatus Status, string? ResolutionSum
 public sealed record TicketMutationResult(Guid Id, TicketStatus Status, Guid? AssignedTeamId, Guid? AssignedAgentId,
     DateTime? UpdatedAt, DateTime? ResolvedAt, DateTime? ClosedAt, uint Version);
 
+public static class TicketTransitionOperation
+{
+    public static TicketOperation For(TicketStatus status) => status switch
+    {
+        TicketStatus.Closed => TicketOperation.Confirm,
+        TicketStatus.Reopened => TicketOperation.Reopen,
+        TicketStatus.Cancelled => TicketOperation.Cancel,
+        _ => TicketOperation.UpdateStatus
+    };
+}
+
 public interface ITicketMutationStore
 {
     Task<TicketMutationResult> AssignAsync(AccountActor actor, Guid id, AssignTicket command, CancellationToken cancellationToken);

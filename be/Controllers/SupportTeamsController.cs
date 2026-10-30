@@ -1,6 +1,7 @@
 using be.Api.Authorization;
 using be.Application.Features.Accounts;
 using be.Application.Features.SupportTeams;
+using be.Application.Features.Departments;
 using be.Contracts.Requests;
 using be.Domain.Constants;
 using Microsoft.AspNetCore.Mvc;
@@ -13,6 +14,31 @@ namespace be.Controllers;
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class SupportTeamsController(SupportTeamService teams) : ControllerBase
 {
+    [HttpGet("administration-access")]
+    [ProducesResponseType<TeamAdministrationAccess>(StatusCodes.Status200OK)]
+    public Task<TeamAdministrationAccess> AdministrationAccess(CancellationToken cancellationToken) =>
+        teams.AccessAsync(CurrentAccountActor.From(User), null, cancellationToken);
+
+    [HttpGet("{id:guid}/administration-access")]
+    [ProducesResponseType<TeamAdministrationAccess>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public Task<TeamAdministrationAccess> TeamAccess(Guid id, CancellationToken cancellationToken) =>
+        teams.AccessAsync(CurrentAccountActor.From(User), id, cancellationToken);
+
+    [HttpGet("department-lookup")]
+    [ProducesResponseType<PagedResult<DepartmentLookup>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    public Task<PagedResult<DepartmentLookup>> DepartmentLookup([FromQuery] DepartmentLookupRequest request, CancellationToken cancellationToken) =>
+        teams.DepartmentsAsync(CurrentAccountActor.From(User), new(request.Page, request.PageSize, request.Search), cancellationToken);
+
+    [HttpGet("{id:guid}/member-candidates")]
+    [ProducesResponseType<PagedResult<TeamMemberCandidate>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public Task<PagedResult<TeamMemberCandidate>> Candidates(Guid id, [FromQuery] DepartmentLookupRequest request, CancellationToken cancellationToken) =>
+        teams.CandidatesAsync(CurrentAccountActor.From(User), id, new(request.Page, request.PageSize, request.Search), cancellationToken);
+
     [HttpGet]
     [ProducesResponseType<PagedResult<SupportTeamDetails>>(StatusCodes.Status200OK)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]

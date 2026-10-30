@@ -19,6 +19,24 @@ async function signedIn() {
 afterEach(() => { vi.useRealTimers() })
 
 describe('authentication and memory-only identity', () => {
+  it('ends a confirmed revoked current session without making a revoke/logout request', async () => {
+    const { session, api, onScopeChange } = await signedIn()
+    const scope = session.store.getState().scope
+    expect(scope).not.toBeNull()
+    session.endRevokedSession(scope ?? '')
+    expect(session.store.getState()).toMatchObject({ status: 'anonymous', user: null, reason: 'revoked' })
+    expect(api.logout).not.toHaveBeenCalled()
+    expect(onScopeChange).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not let a late self-deactivation receipt end a newer login', async () => {
+    const { session } = await signedIn()
+    const previousScope = session.store.getState().scope
+    await session.login(loginCommand)
+    session.endRevokedSession(previousScope ?? '')
+    expect(session.store.getState().status).toBe('authenticated')
+    expect(session.store.getState().scope).not.toBe(previousScope)
+  })
   it('does not publish an authenticated user before /me confirms it', async () => {
     const api = createMockAuthApi()
     const me = deferred<UserProfile>()

@@ -15,8 +15,10 @@ public sealed class AccountAdministrationStore(HelpdeskDbContext database, IPerm
     IAuthSessionStore sessions, IPasswordHasher<User> passwordHasher, TimeProvider clock) : IAccountAdministrationStore
 {
     public async Task<PagedResult<AccountUser>> ListAsync(AccountSearch search, CancellationToken cancellationToken)
+        => await ListQueryAsync(database.Users.AsNoTracking(), search, cancellationToken);
+
+    private async Task<PagedResult<AccountUser>> ListQueryAsync(IQueryable<User> query, AccountSearch search, CancellationToken cancellationToken)
     {
-        var query = database.Users.AsNoTracking();
         if (search.IsActive is not null) query = query.Where(x => x.IsActive == search.IsActive);
         if (!string.IsNullOrEmpty(search.Search))
             query = query.Where(x => x.NormalizedEmail.Contains(search.Search) || x.DisplayName.ToLower().Contains(search.Search));
@@ -37,6 +39,62 @@ public sealed class AccountAdministrationStore(HelpdeskDbContext database, IPerm
 
     public async Task<AccountUser> GetAsync(Guid id, CancellationToken cancellationToken) =>
         await Project(database.Users.AsNoTracking().Where(x => x.Id == id)).SingleOrDefaultAsync(cancellationToken)
+        ?? throw Error(AccountError.NotFound);
+
+    public async Task<AccountAdministrationAccess> AccessAsync(AccountActor actor, Guid id, CancellationToken cancellationToken)
+    {
+        await RequireActorAsync(actor, PermissionCodes.UserManage, cancellationToken);
+        var target = await GetAsync(id, cancellationToken);
+        var privileged = target.Roles.Any(x => x.Name == RoleNames.SystemAdmin) ||
+            await UserGrants(id).AnyAsync(x => x == PermissionCodes.UserManage || x == PermissionCodes.RoleManage, cancellationToken);
+        var allowed = !privileged || (await IsAdminAsync(actor.UserId, cancellationToken) &&
+            await permissions.HasPermissionAsync(actor.UserId, actor.SessionId, PermissionCodes.RoleManage, cancellationToken));
+        var last = target.IsActive && target.Roles.Any(x => x.Name == RoleNames.SystemAdmin) &&
+            !await (from membership in database.UserRoles join role in database.Roles on membership.RoleId equals role.Id
+                    join user in database.Users on membership.UserId equals user.Id
+                    where role.Name == RoleNames.SystemAdmin && user.IsActive && user.Id != id select user.Id).AnyAsync(cancellationToken);
+        return new(allowed, allowed && !last, last);
+    }
+
+    public async Task<RoleAdministrationAccess> RoleAccessAsync(AccountActor actor, CancellationToken cancellationToken)
+    {
+        await RequireActorAsync(actor, PermissionCodes.RoleManage, cancellationToken);
+        var admin = await IsAdminAsync(actor.UserId, cancellationToken);
+        var assignable = await AssignableRolesAsync(actor, admin, cancellationToken);
+        return new(admin, admin, assignable);
+    }
+
+    private async Task<Guid[]> AssignableRolesAsync(AccountActor actor, bool admin, CancellationToken cancellationToken)
+    {
+        var query = database.Roles.AsNoTracking();
+        if (!admin)
+        {
+            var grants = await UserGrants(actor.UserId).Distinct().ToArrayAsync(cancellationToken);
+            query = query.Where(role => role.Name != RoleNames.SystemAdmin && !database.RolePermissions.Any(rp => rp.RoleId == role.Id &&
+                database.Permissions.Any(p => p.Id == rp.PermissionId &&
+                    (p.Code == PermissionCodes.UserManage || p.Code == PermissionCodes.RoleManage || !grants.Contains(p.Code)))));
+        }
+        return await query.Select(x => x.Id).ToArrayAsync(cancellationToken);
+    }
+
+    private async Task<IQueryable<User>> AssignmentQueryAsync(AccountActor actor, CancellationToken cancellationToken)
+    {
+        await RequireActorAsync(actor, PermissionCodes.RoleManage, cancellationToken);
+        var admin = await IsAdminAsync(actor.UserId, cancellationToken);
+        var query = database.Users.AsNoTracking().Where(user => user.Id != actor.UserId);
+        if (!admin)
+        {
+            var allowed = await AssignableRolesAsync(actor, false, cancellationToken);
+            query = query.Where(user => !database.UserRoles.Any(ur => ur.UserId == user.Id && !allowed.Contains(ur.RoleId)));
+        }
+        return query;
+    }
+
+    public async Task<PagedResult<AccountUser>> AssignmentUsersAsync(AccountActor actor, AccountSearch search, CancellationToken cancellationToken) =>
+        await ListQueryAsync(await AssignmentQueryAsync(actor, cancellationToken), search, cancellationToken);
+
+    public async Task<AccountUser> AssignmentUserAsync(AccountActor actor, Guid id, CancellationToken cancellationToken) =>
+        await Project((await AssignmentQueryAsync(actor, cancellationToken)).Where(x => x.Id == id)).SingleOrDefaultAsync(cancellationToken)
         ?? throw Error(AccountError.NotFound);
 
     public async Task<AccountUser> CreateAsync(AccountActor actor, CreateAccount command, CancellationToken cancellationToken)
@@ -198,7 +256,8 @@ public sealed class AccountAdministrationStore(HelpdeskDbContext database, IPerm
     private IQueryable<AccountUser> Project(IQueryable<User> query) => query.Select(user => new AccountUser(
         user.Id, user.Email, user.DisplayName, user.IsActive, user.DepartmentId, user.CreatedAt, user.UpdatedAt, user.Version,
         (from membership in database.UserRoles join role in database.Roles on membership.RoleId equals role.Id
-         where membership.UserId == user.Id orderby role.Name select new AccountRole(role.Id, role.Name)).ToList()));
+         where membership.UserId == user.Id orderby role.Name select new AccountRole(role.Id, role.Name)).ToList(),
+        database.Departments.Where(department => department.Id == user.DepartmentId).Select(department => department.Name).FirstOrDefault()));
 
     private IQueryable<AccountRoleDetails> ProjectRoles(IQueryable<Role> query) => query.Select(role => new AccountRoleDetails(
         role.Id, role.Name, role.Description, role.Version,

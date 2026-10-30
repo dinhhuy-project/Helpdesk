@@ -15,7 +15,7 @@ public sealed record SaveSlaPolicy(string Name, TicketPriority Priority, int Fir
 public sealed record TicketSlaSnapshot(Guid PolicyId, string? PolicyName, TicketPriority? Priority, int? FirstResponseMinutes, int? ResolutionMinutes,
     DateTime AppliedAt, DateTime FirstResponseDueAt, DateTime ResolutionDueAt, DateTime? FirstRespondedAt, DateTime? ResolvedAt,
     bool FirstResponseBreached, bool ResolutionBreached, DateTime? FirstResponseBreachedAt, DateTime? ResolutionBreachedAt);
-public sealed record TicketSlaDetails(Guid TicketId, TicketSlaSnapshot? Sla);
+public sealed record TicketSlaDetails(Guid TicketId, TicketSlaSnapshot? Sla, TicketStatus Status, DateTime AsOf);
 public interface ISlaStore
 {
     Task<PagedResult<SlaPolicyDetails>> ListAsync(AccountActor actor, int page, int pageSize, CancellationToken cancellationToken);

@@ -19,6 +19,26 @@ namespace Helpdesk.Persistence.Tests;
 public class TicketCategoryAdministrationTests(PostgresFixture fixture)
 {
     [PostgresFact]
+    public async Task FrontendParentNameAndActivationCapabilityPreserveInactiveHierarchy()
+    {
+        await using var test = await Categories.CreateAsync(fixture.ConnectionString);
+        var root = await test.CreateAsync("Root");
+        var child = await test.CreateAsync("Child", root.Id);
+        Assert.Equal(root.Name, child.ParentName);
+        Assert.True(child.CanActivate);
+        using var disabled = await test.Accounts.Admin.PutAsJsonAsync($"/api/v1/ticket-categories/{root.Id}/status", new { IsActive = false, root.Version });
+        Assert.Equal(HttpStatusCode.OK, disabled.StatusCode);
+        child = await test.GetAsync(child.Id);
+        Assert.True(child.IsActive);
+        Assert.False(child.IsAvailable || child.CanActivate);
+        Assert.Equal(root.Name, child.ParentName);
+        using var rename = await test.Accounts.Admin.PatchAsJsonAsync($"/api/v1/ticket-categories/{child.Id}",
+            new { Name = test.Prefix + "Historical child", Description = (string?)null, child.ParentId, child.Version });
+        Assert.Equal(HttpStatusCode.OK, rename.StatusCode);
+        Assert.Equal(root.Name, (await rename.Content.ReadFromJsonAsync<TicketCategoryDetails>())!.ParentName);
+    }
+
+    [PostgresFact]
     public async Task TreeCanBeBrowsedAndReparentedWithStablePagingAndExplicitParent()
     {
         await using var test = await Categories.CreateAsync(fixture.ConnectionString);

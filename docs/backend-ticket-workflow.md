@@ -81,6 +81,16 @@ TicketStatusChanged activity lưu old/new: Status (tên enum), ResolutionSummary
 
 Nếu đã có TicketSla: resolve đồng bộ ResolvedAt, dừng đồng hồ; reopen xóa ResolvedAt và tiếp tục deadline gốc. Giữ snapshot/first response và breach lịch sử. [Phần 16](backend-sla.md) phát hiện vi phạm trong cùng transaction chuyển trạng thái và có worker cho overdue; bỏ qua Closed/Cancelled. Ticket cũ chưa có SLA tiếp tục không có, chỉ tạo mới qua API với policy active phù hợp mới snapshot. [Phần 15](backend-notifications.md) dispatch SignalR sau commit.
 
+## Projection phục vụ frontend workflow
+
+Frontend bước 9 bổ sung ba API đọc, không đổi schema hoặc các lệnh ghi:
+
+- `GET /api/v1/tickets/{id}/workflow`: version/status, assignment hiện tại với tên hiển thị, `canAssign`, `assignmentIsValid` và `transitions` số. Dùng cùng bảng Domain transition, mapping operation và TicketScope với command; requester/global actions không đòi assignment active.
+- `GET /api/v1/tickets/{id}/assignment-teams`: lookup team/department active trong phạm vi phân công.
+- `GET /api/v1/tickets/{id}/assignment-teams/{teamId}/agents`: lookup active membership/user có grant xử lý và đọc team/all. Kiểm tra Ticket nguồn trước team đích, không cho đoán team để mở rộng scope.
+
+Lookup dùng `ticket.assign` cùng scope tài nguyên, không cần `team.manage`/`user.manage`; trả ID/tên tối thiểu, có search/page/pageSize và scope trước count/page. Mỗi read dùng transaction RepeatableRead để version/capabilities hoặc count/page cùng snapshot; command vẫn recheck dưới write lock. Chi tiết contract và giao diện: [frontend workflow](frontend-ticket-workflow.md).
+
 ## Nâng cấp quyền trên database hiện có
 
 Không có migration mới. Startup Container seed ba permission còn thiếu nhưng **không tự cấp vào role cũ**. Với cấu hình development/user-secrets đang dùng, chạy từ root trên host:

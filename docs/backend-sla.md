@@ -68,6 +68,8 @@ Sửa policy/status dùng xmin, shared advisory lock như Ticket, recheck permis
 ```json
 {
   "ticketId": "<UUID>",
+  "status": 1,
+  "asOf": "2026-10-28T12:00:00Z",
   "sla": {
     "policyId": "<UUID>",
     "policyName": "Normal 24/7",
@@ -87,7 +89,7 @@ Sửa policy/status dùng xmin, shared advisory lock như Ticket, recheck permis
 }
 ```
 
-Ticket có quyền đọc nhưng chưa có snapshot trả **200 `{ "ticketId": "...", "sla": null }`**. Cờ breach gồm lịch sử marker và tính toán thời gian để UI không phải chờ poll; marker có thể còn null trước lượt worker. Không trả EF entities hoặc lấy target hiện tại của policy để giả lập snapshot.
+Ticket có quyền đọc nhưng chưa có snapshot trả **200 `{ "ticketId": "...", "sla": null, "status": 1, "asOf": "...Z" }`**. `status` và snapshot được đọc trong cùng transaction RepeatableRead; `asOf` là UTC server dùng đánh giá cả hai cờ breach. Các field này được bổ sung khi tích hợp frontend bước 11, không đổi schema. Cờ breach gồm lịch sử marker và tính toán thời gian để UI không phải chờ poll; marker có thể còn null trước lượt worker. Không trả EF entities hoặc lấy target hiện tại của policy để giả lập snapshot. Xem [panel và quản trị policy trên frontend](frontend-sla.md).
 
 ## Worker, activity và SignalR
 

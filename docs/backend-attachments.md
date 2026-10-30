@@ -10,12 +10,15 @@ Mọi route yêu cầu Bearer, account active và session hợp lệ. Response n
 | --- | --- |
 | `POST /api/v1/tickets/{ticketId}/attachments` | multipart/form-data, 201 metadata + Location |
 | `GET /api/v1/tickets/{ticketId}/attachments` | Danh sách metadata trong ACL, phân trang |
+| `GET /api/v1/tickets/{ticketId}/attachments/options?commentId=...` | Capability hiện tại và policy giới hạn file cho frontend |
 | `GET /api/v1/tickets/{ticketId}/attachments/{attachmentId}` | Metadata file đọc được |
 | `GET /api/v1/tickets/{ticketId}/attachments/{attachmentId}/download` | Bytes qua API sau kiểm tra ACL; không redirect/presign |
 
 POST nhận đúng **một file** tên field `file`, cùng `commentId` và `isInternal` tùy chọn. Không nhận bucket/objectKey/uploader/sizeBytes/version hoặc field khác, không nhận field trùng hoặc nhiều file. UploadedByUserId từ phiên; object key là attachments/<GUID> do server sinh, không dùng tên file làm path. Chưa mở sửa/xóa/move file hoặc gắn lại file vào comment khác. Thêm file vào Ticket không sửa Version/xmin, UpdatedAt, status hoặc SLA của Ticket.
 
 Metadata DTO gồm id/ticketId/commentId/uploadedByUserId/fileName/contentType/sizeBytes/isInternal/createdAt. Không trả bucket, object key, credential hoặc URL storage. Timestamp UTC precision microsecond. File tạo mới là bất biến; mỗi POST hợp lệ là một bản mới, chưa có idempotency key. Không tự retry POST sau mất kết nối khi chưa biết kết quả.
+
+[Frontend bước 10](frontend-attachments.md) bổ sung options: `access` gồm canReadInternal/canUploadPublic/canUploadInternal; `policy` gồm enabled/maxFileSizeBytes/maxFilesPerVisibility/maxTotalSizeBytesPerVisibility/fileTypes (extension/contentType). Read scope và comment được kiểm tra trước capability, author/visibility/terminal theo cùng operation scope với upload; mỗi read capability dùng một snapshot RepeatableRead. Policy lấy từ chính validator/MinioOptions, không trả cấu hình storage hoặc quota đang dùng. Storage disabled khóa upload nhưng giữ đọc metadata. Không có migration/grant mới và không thay contract upload/download.
 
 ## ACL Ticket và comment
 

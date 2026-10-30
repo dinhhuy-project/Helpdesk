@@ -17,6 +17,10 @@ namespace be.Controllers;
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
 public sealed class TicketAttachmentsController(TicketAttachmentService attachments) : ControllerBase
 {
+    [HttpGet("options")]
+    [ProducesResponseType<TicketAttachmentOptions>(StatusCodes.Status200OK)]
+    public Task<TicketAttachmentOptions> Options(Guid ticketId, [FromQuery] Guid? commentId, CancellationToken cancellationToken) =>
+        attachments.OptionsAsync(CurrentAccountActor.From(User), ticketId, commentId, cancellationToken);
     [HttpPost]
     [Consumes("multipart/form-data")]
     [EnableRateLimiting(ApiPolicies.AttachmentUpload)]

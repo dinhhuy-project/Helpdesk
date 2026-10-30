@@ -22,6 +22,8 @@ Thiếu/sai/thu hồi JWT hoặc user inactive trả 401; thiếu `team.manage` 
 
 ## API
 
+Frontend bước 8 bổ sung GET `/administration-access`, `/{id}/administration-access`, `/department-lookup`, `/{id}/member-candidates` dưới base route này. Đều dùng `team.manage`, kiểm tra scope trước identity/count; lookup không yêu cầu thêm `user.manage`/`department.manage`. DTO team thêm `departmentName`; member thêm eligibility `canBeLeader` do server tính. Không đổi rule ghi hoặc schema. Xem [contract và nghiệm thu giao diện](frontend-catalogs.md).
+
 Base route: `/api/v1/support-teams`.
 
 | Method và route | Thành công | Phạm vi bổ sung |
@@ -93,7 +95,7 @@ Deactivate nhóm hoặc gỡ membership giữ Ticket.AssignedTeamId/AssignedAgen
 
 Luồng ghi dùng advisory transaction lock `734205001`, sau đó khóa user người gọi rồi nhóm/member, cùng thứ tự với tài khoản/phòng ban/Identity. Gán member/activate/leadership không vượt qua deactivate user hoặc phòng ban đã commit qua module quản trị. Khóa ở PostgreSQL nên có hiệu lực giữa nhiều API instance. SQL writer ngoài ứng dụng phải tuân thủ cùng quy tắc nếu thay đổi trực tiếp dữ liệu tổ chức.
 
-Audit trong `identity.identity_audit_logs`: `SupportTeamCreated`, `SupportTeamUpdated`, `SupportTeamStatusChanged`, `TeamMemberAdded`, `TeamMemberStatusChanged`, `TeamLeadershipChanged`. Data whitelist chứa TeamId, DepartmentId/UserId khi cần, tên field hoặc trạng thái trước/sau; không copy tên/mô tả/body tự do. Audit dùng chung transaction, đọc qua API audit phần 6 với scope quản trị hiện có. Chưa có cache/realtime hoặc UI cho module này; frontend vẫn là starter.
+Audit trong `identity.identity_audit_logs`: `SupportTeamCreated`, `SupportTeamUpdated`, `SupportTeamStatusChanged`, `TeamMemberAdded`, `TeamMemberStatusChanged`, `TeamLeadershipChanged`. Data whitelist chứa TeamId, DepartmentId/UserId khi cần, tên field hoặc trạng thái trước/sau; không copy tên/mô tả/body tự do. Audit dùng chung transaction, đọc qua API audit phần 6 với scope quản trị hiện có. Chưa có cache/realtime cho tổ chức; giao diện quản trị đã có ở [frontend bước 8](frontend-catalogs.md).
 
 ## Bắt đầu sử dụng
 

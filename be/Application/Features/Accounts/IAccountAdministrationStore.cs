@@ -4,6 +4,10 @@ public interface IAccountAdministrationStore
 {
     Task<PagedResult<AccountUser>> ListAsync(AccountSearch search, CancellationToken cancellationToken);
     Task<AccountUser> GetAsync(Guid id, CancellationToken cancellationToken);
+    Task<AccountAdministrationAccess> AccessAsync(AccountActor actor, Guid id, CancellationToken cancellationToken);
+    Task<RoleAdministrationAccess> RoleAccessAsync(AccountActor actor, CancellationToken cancellationToken);
+    Task<PagedResult<AccountUser>> AssignmentUsersAsync(AccountActor actor, AccountSearch search, CancellationToken cancellationToken);
+    Task<AccountUser> AssignmentUserAsync(AccountActor actor, Guid id, CancellationToken cancellationToken);
     Task<AccountUser> CreateAsync(AccountActor actor, CreateAccount command, CancellationToken cancellationToken);
     Task<AccountUser> UpdateAsync(AccountActor actor, Guid id, UpdateAccount command, CancellationToken cancellationToken);
     Task<AccountUser> SetStatusAsync(AccountActor actor, Guid id, AccountStatus command, CancellationToken cancellationToken);

@@ -20,6 +20,81 @@ namespace Helpdesk.Persistence.Tests;
 public class SupportTeamAdministrationTests(PostgresFixture fixture)
 {
     [PostgresFact]
+    public async Task FrontendLookupsAndCapabilitiesUseTeamScopeWithoutUserOrDepartmentManagement()
+    {
+        await using var test = await Teams.CreateAsync(fixture.ConnectionString);
+        var own = await test.CreateTeamAsync("Own");
+        var outsideDepartment = await test.DepartmentAsync();
+        var outside = await test.CreateTeamAsync("Outside", outsideDepartment);
+        var leader = await test.LeaderAsync(own.Id);
+        var candidate = await test.Accounts.NewUserAsync();
+        using var client = await test.Accounts.ClientAsync(leader);
+        var global = await client.GetFromJsonAsync<TeamAdministrationAccess>("/api/v1/support-teams/administration-access");
+        Assert.NotNull(global);
+        Assert.False(global.CanCreate || global.CanManageLeadership || global.CanChangeStatus);
+        var access = await client.GetFromJsonAsync<TeamAdministrationAccess>($"/api/v1/support-teams/{own.Id}/administration-access");
+        Assert.NotNull(access);
+        Assert.True(access.CanAddMembers);
+        var departments = await client.GetFromJsonAsync<PagedResult<be.Application.Features.Departments.DepartmentLookup>>(
+            $"/api/v1/support-teams/department-lookup?search={test.Prefix}&pageSize=1");
+        Assert.NotNull(departments);
+        Assert.Equal(1, departments.TotalCount);
+        Assert.Equal(own.DepartmentId, Assert.Single(departments.Items).Id);
+        var candidates = await client.GetFromJsonAsync<PagedResult<TeamMemberCandidate>>($"/api/v1/support-teams/{own.Id}/member-candidates?pageSize=100");
+        Assert.NotNull(candidates);
+        Assert.Contains(candidates.Items, x => x.Id == candidate.Id);
+        Assert.DoesNotContain(candidates.Items, x => x.Id == leader.Id);
+        using var userList = await client.GetAsync("/api/v1/users");
+        using var departmentList = await client.GetAsync("/api/v1/departments");
+        Assert.Equal(HttpStatusCode.Forbidden, userList.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, departmentList.StatusCode);
+        foreach (var suffix in new[] { "administration-access", "member-candidates" })
+        {
+            using var hidden = await client.GetAsync($"/api/v1/support-teams/{outside.Id}/{suffix}");
+            Assert.Equal(HttpStatusCode.NotFound, hidden.StatusCode);
+        }
+        var added = await test.AddAsync(own.Id, candidate.Id, client);
+        Assert.False(added.Member.CanBeLeader);
+        using var removed = await client.DeleteAsync($"/api/v1/support-teams/{own.Id}/members/{candidate.Id}?version={added.Member.Version}&teamVersion={added.Team.Version}");
+        Assert.Equal(HttpStatusCode.NoContent, removed.StatusCode);
+        candidates = await client.GetFromJsonAsync<PagedResult<TeamMemberCandidate>>($"/api/v1/support-teams/{own.Id}/member-candidates?pageSize=100");
+        Assert.DoesNotContain(candidates!.Items, x => x.Id == candidate.Id); // Inactive rows must be reactivated.
+        var members = await client.GetFromJsonAsync<PagedResult<TeamMemberDetails>>($"/api/v1/support-teams/{own.Id}/members");
+        Assert.True(Assert.Single(members!.Items, x => x.UserId == leader.Id).CanBeLeader);
+        Assert.DoesNotContain("email", await (await client.GetAsync($"/api/v1/support-teams/{own.Id}/member-candidates")).Content.ReadAsStringAsync(), StringComparison.OrdinalIgnoreCase);
+        using var invalid = await client.GetAsync($"/api/v1/support-teams/{own.Id}/member-candidates?pageSize=101");
+        Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
+    }
+
+    [PostgresFact]
+    public async Task TeamCapabilitiesAndLookupsRecheckInactiveParentsAndRevokedCurrentGrant()
+    {
+        await using var test = await Teams.CreateAsync(fixture.ConnectionString);
+        var team = await test.CreateTeamAsync();
+        var leader = await test.LeaderAsync(team.Id);
+        using var client = await test.Accounts.ClientAsync(leader);
+        await using var database = test.Accounts.Database();
+        var name = await database.Departments.Where(x => x.Id == team.DepartmentId).Select(x => x.Name).SingleAsync();
+        Assert.Equal(name, team.DepartmentName);
+        var admin = await test.Accounts.Admin.GetFromJsonAsync<TeamAdministrationAccess>($"/api/v1/support-teams/{team.Id}/administration-access");
+        Assert.True(admin!.CanCreate && admin.CanManageLeadership && admin.CanChangeStatus && admin.CanAddMembers);
+        await database.Departments.Where(x => x.Id == team.DepartmentId).ExecuteUpdateAsync(setters => setters.SetProperty(x => x.IsActive, false));
+        using var hidden = await client.GetAsync($"/api/v1/support-teams/{team.Id}/member-candidates");
+        Assert.Equal(HttpStatusCode.NotFound, hidden.StatusCode);
+        admin = await test.Accounts.Admin.GetFromJsonAsync<TeamAdministrationAccess>($"/api/v1/support-teams/{team.Id}/administration-access");
+        Assert.False(admin!.CanAddMembers);
+        var members = await test.Accounts.Admin.GetFromJsonAsync<PagedResult<TeamMemberDetails>>($"/api/v1/support-teams/{team.Id}/members");
+        Assert.All(members!.Items, x => Assert.False(x.CanBeLeader));
+        using var inactive = await test.Accounts.Admin.GetAsync($"/api/v1/support-teams/{team.Id}/member-candidates");
+        Assert.Equal(HttpStatusCode.Conflict, inactive.StatusCode);
+        var current = await test.Accounts.GetAsync(leader.Id);
+        using var revoked = await test.Accounts.Admin.PutAsJsonAsync($"/api/v1/users/{leader.Id}/roles", new { RoleIds = Array.Empty<Guid>(), current.Version });
+        Assert.Equal(HttpStatusCode.OK, revoked.StatusCode);
+        using var denied = await client.GetAsync("/api/v1/support-teams/administration-access");
+        Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
+    }
+
+    [PostgresFact]
     public async Task TeamsHaveImmutableDepartmentAndNamesAreUniqueWithinDepartmentIncludingInactive()
     {
         await using var test = await Teams.CreateAsync(fixture.ConnectionString);

@@ -3,6 +3,7 @@ using be.Application.Common.Authorization;
 using be.Application.Features.Accounts;
 using be.Application.Features.Auth;
 using be.Application.Features.SupportTeams;
+using be.Application.Features.Departments;
 using be.Domain.Constants;
 using be.Domain.Entities;
 using be.Infrastructure.Persistence;
@@ -15,6 +16,43 @@ namespace be.Infrastructure.SupportTeams;
 public sealed class SupportTeamStore(HelpdeskDbContext database, IPermissionChecker permissions,
     IAuthSessionStore sessions, TimeProvider clock) : ISupportTeamStore
 {
+    public async Task<TeamAdministrationAccess> AccessAsync(AccountActor actor, Guid? id, CancellationToken cancellationToken)
+    {
+        await RequireActorAsync(actor, cancellationToken);
+        var team = id is null ? null : await GetAsync(actor, id.Value, cancellationToken);
+        var admin = await IsAdminAsync(actor.UserId, cancellationToken);
+        return new(admin, admin && team is not null && (team.IsActive || team.DepartmentIsActive), admin,
+            team is not null && team.IsActive && team.DepartmentIsActive);
+    }
+
+    public async Task<PagedResult<DepartmentLookup>> DepartmentsAsync(AccountActor actor, TeamLookupSearch search, CancellationToken cancellationToken)
+    {
+        await RequireActorAsync(actor, cancellationToken);
+        var admin = await IsAdminAsync(actor.UserId, cancellationToken);
+        var visible = Visible(actor, admin);
+        var query = database.Departments.AsNoTracking().Where(x => x.IsActive && (admin || visible.Any(t => t.DepartmentId == x.Id)));
+        if (!string.IsNullOrEmpty(search.Search)) query = query.Where(x => x.NormalizedName.Contains(search.Search.ToLower()));
+        var count = await query.CountAsync(cancellationToken);
+        var items = await query.OrderBy(x => x.NormalizedName).ThenBy(x => x.Id).Skip((search.Page - 1) * search.PageSize).Take(search.PageSize)
+            .Select(x => new DepartmentLookup(x.Id, x.Name)).ToListAsync(cancellationToken);
+        return new(items, search.Page, search.PageSize, count);
+    }
+
+    public async Task<PagedResult<TeamMemberCandidate>> CandidatesAsync(AccountActor actor, Guid id, TeamLookupSearch search, CancellationToken cancellationToken)
+    {
+        var team = await GetAsync(actor, id, cancellationToken); // Scope before candidate names or count.
+        if (!team.IsActive || !team.DepartmentIsActive) throw Error(TeamError.InactiveTeam);
+        // An inactive existing membership must be reactivated, never re-created.
+        var query = database.Users.AsNoTracking().Where(user => user.IsActive &&
+            !database.SupportTeamMembers.Any(member => member.SupportTeamId == id && member.UserId == user.Id));
+        if (!string.IsNullOrEmpty(search.Search)) query = query.Where(x => x.DisplayName.ToLower().Contains(search.Search.ToLower()));
+        var count = await query.CountAsync(cancellationToken);
+        var items = await query.OrderBy(x => x.DisplayName).ThenBy(x => x.Id).Skip((search.Page - 1) * search.PageSize).Take(search.PageSize)
+            .Select(x => new TeamMemberCandidate(x.Id, x.DisplayName,
+                database.Departments.Where(d => d.Id == x.DepartmentId).Select(d => d.Name).FirstOrDefault())).ToListAsync(cancellationToken);
+        return new(items, search.Page, search.PageSize, count);
+    }
+
     public async Task<PagedResult<SupportTeamDetails>> ListAsync(AccountActor actor, TeamSearch search, CancellationToken cancellationToken)
     {
         await RequireActorAsync(actor, cancellationToken);
@@ -175,7 +213,8 @@ public sealed class SupportTeamStore(HelpdeskDbContext database, IPermissionChec
     }
     private IQueryable<SupportTeamDetails> Project(IQueryable<SupportTeam> query) => query.Select(x =>
         new SupportTeamDetails(x.Id, x.DepartmentId, x.Name, x.Description, x.IsActive,
-            database.Departments.Any(d => d.Id == x.DepartmentId && d.IsActive), x.CreatedAt, x.UpdatedAt, x.Version));
+            database.Departments.Any(d => d.Id == x.DepartmentId && d.IsActive), x.CreatedAt, x.UpdatedAt, x.Version,
+            database.Departments.Where(d => d.Id == x.DepartmentId).Select(d => d.Name).Single()));
     private IQueryable<TeamMemberDetails> MemberQuery(Guid id, Guid? userId = null, bool? isActive = null)
     {
         var query = from member in database.SupportTeamMembers.AsNoTracking()
@@ -187,7 +226,12 @@ public sealed class SupportTeamStore(HelpdeskDbContext database, IPermissionChec
         // Filter/sort columns before constructing a positional DTO so EF can translate them.
         return query.OrderBy(x => x.User.DisplayName).ThenBy(x => x.User.Id).Select(x =>
             new TeamMemberDetails(x.User.Id, x.User.DisplayName, x.User.IsActive, x.Member.IsActive,
-                x.Member.IsLeader, x.Member.JoinedAt, x.Member.UpdatedAt, x.Member.Version));
+                x.Member.IsLeader, x.Member.JoinedAt, x.Member.UpdatedAt, x.Member.Version,
+                x.Member.IsActive && x.User.IsActive && database.SupportTeams.Any(team => team.Id == id && team.IsActive &&
+                    database.Departments.Any(d => d.Id == team.DepartmentId && d.IsActive)) &&
+                (from membership in database.UserRoles join grant in database.RolePermissions on membership.RoleId equals grant.RoleId
+                 join permission in database.Permissions on grant.PermissionId equals permission.Id
+                 where membership.UserId == x.User.Id && permission.Code == PermissionCodes.TeamManage select permission.Id).Any()));
     }
     private Task<SupportTeamDetails> DetailsAsync(Guid id, CancellationToken cancellationToken) =>
         Project(database.SupportTeams.AsNoTracking().Where(x => x.Id == id)).SingleAsync(cancellationToken);

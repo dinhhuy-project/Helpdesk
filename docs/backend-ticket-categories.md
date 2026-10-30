@@ -1,5 +1,7 @@
 # Danh mục Ticket
 
+Frontend bước 8 đã có màn hình cây/tạo/sửa/reparent/status tại `/admin/categories`. DTO quản trị bổ sung `parentName` và `canActivate` cho lịch sử/UX; lookup Ticket vẫn giữ contract và `ticket.create`, mutation giữ rule `category.manage`/cycle/version cũ. Không cần migration mới. Xem [quản trị tổ chức và danh mục](frontend-catalogs.md).
+
 Phần 9 triển khai cây TicketCategory, CRUD quản trị với deactivate, lookup cho form tạo Ticket và kiểm tra parent/vòng lặp. Phần 8 đã được người dùng xác nhận review/apply. Code mới cần [TicketCategoryAdministration](ticket-category-administration-review.md) trước khi F5; không có package hoặc secret mới.
 
 ## API và permission

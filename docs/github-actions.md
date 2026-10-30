@@ -47,6 +47,18 @@ Workflow chỉ cấp `contents: read`, checkout không giữ Git credentials, c�
 
 ## Bật trên GitHub
 
+Frontend bước 6 bổ sung `FrontendDiscussionJourneyTests` vào backend job: Node/Vite SSR chạy typed API/auth/cache thực tế với hai tài khoản trên application/PostgreSQL test, kiểm tra requester tạo Ticket và trao đổi public/internal. Node và frontend dependencies đã được cài cho SignalR nên không cần secret hoặc job mới. Browser mode tùy chọn chạy local với Playwright; CI hiện chỉ chạy nhánh client/API thật, chưa chạy browser. Xem [nghiệm thu thảo luận](frontend-ticket-discussion.md).
+
+Frontend bước 7 bổ sung `AccountAdministrationAccessTests` và `FrontendAccountJourneyTests`: query scope/permission thực tế, client TypeScript quản trị user/department/role/grant/audit, đổi mật khẩu và trạng thái với phiên bị thu hồi. Dùng PostgreSQL tạm và credential stdin; browser mode local tùy chọn, CI không cần thêm secret. Xem [quản trị tài khoản và quyền](frontend-accounts.md).
+
+Frontend bước 8 bổ sung `FrontendCatalogJourneyTests`: client thật tạo/sửa dữ liệu tổ chức/danh mục, kiểm tra scope leader, dual-version membership, soft remove 204 và dùng dữ liệu vừa tạo trên Ticket rồi kiểm tra lịch sử khi deactivate. Chạy trong backend job hiện có với PostgreSQL tạm; browser mode local tùy chọn, không cần secret/job mới. Xem [contract và nghiệm thu](frontend-catalogs.md).
+
+Frontend bước 9 bổ sung `TicketWorkflowReadTests`, `FrontendWorkflowJourneyTests` và component tests workflow: lookup theo nguồn/đích, agent eligibility, requester actions, conflict giữ draft và client thật đi qua assign/process/wait/resolve/reopen/confirm/cancel. Backend job hiện có chạy nhánh TypeScript/API cùng PostgreSQL tạm; browser mode local kiểm tra thêm hai phiên cạnh tranh. Không có migration, secret hoặc job mới. Xem [phân công/workflow](frontend-ticket-workflow.md).
+
+Frontend bước 10 bổ sung `AttachmentOptionsTests`, `FrontendAttachmentJourneyTests` và component tests file: capability/limits, multipart và comment ownership, public/internal cache, progress, timeout không replay, binary ProblemDetails và Blob/object URL cleanup. Journey chạy client TypeScript thật với backend, PostgreSQL và MinIO tạm; browser local tùy chọn kiểm tra download đúng bytes và upload internal note. Backend job hiện có đã có MinIO/Node nên không cần secret/job/package mới. Xem [file đính kèm frontend](frontend-attachments.md).
+
+Frontend bước 11 bổ sung `SlaReadConsistencyTests`, `FrontendSlaJourneyTests` và component tests panel/policy: server breach/no SLA/legacy snapshot, permission riêng, pagination/validation, conflict giữ draft, status, grant revocation và response muộn. Journey chạy TypeScript/API thật trên PostgreSQL tạm, kiểm tra snapshot bất biến và public response; browser mode local thêm timezone/mobile và form policy. CI hiện có đủ Node/PostgreSQL; không thêm job/package/secret. Xem [SLA frontend](frontend-sla.md).
+
 1. Commit và push các thay đổi liên quan cùng thư mục `.github/` lên repository GitHub. Workflow dùng source đã commit; file còn untracked trên máy sẽ không có trên runner.
 2. Mở **Actions → CI** để xem ba job. Nếu Actions đang bị tắt, bật tại **Settings → Actions → General**. Nếu tổ chức hạn chế action, cần cho phép các action chính thức `actions/checkout`, `actions/setup-dotnet`, `actions/setup-node`, `actions/upload-artifact`.
 3. Có thể cấu hình ruleset/branch protection cho `main` hoặc `develop`, yêu cầu ba status check trong bảng trên pass trước khi merge. Thực hiện sau khi workflow đã chạy lần đầu để GitHub nhận diện tên check.

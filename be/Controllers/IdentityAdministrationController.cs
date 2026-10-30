@@ -12,6 +12,23 @@ namespace be.Controllers;
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public class IdentityAdministrationController(AccountAdministrationService accounts) : ControllerBase
 {
+    [HttpGet("administration-access")]
+    [ProducesResponseType<RoleAdministrationAccess>(StatusCodes.Status200OK)]
+    public Task<RoleAdministrationAccess> Access(CancellationToken cancellationToken) =>
+        accounts.RoleAccessAsync(CurrentAccountActor.From(User), cancellationToken);
+
+    [HttpGet("assignment-users")]
+    [ProducesResponseType<PagedResult<AccountUser>>(StatusCodes.Status200OK)]
+    public Task<PagedResult<AccountUser>> AssignmentUsers([FromQuery] AccountSearchRequest request, CancellationToken cancellationToken) =>
+        accounts.AssignmentUsersAsync(CurrentAccountActor.From(User),
+            new(request.Page, request.PageSize, request.Search, request.IsActive, request.SortBy, request.Descending), cancellationToken);
+
+    [HttpGet("assignment-users/{id:guid}")]
+    [ProducesResponseType<AccountUser>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public Task<AccountUser> AssignmentUser(Guid id, CancellationToken cancellationToken) =>
+        accounts.AssignmentUserAsync(CurrentAccountActor.From(User), id, cancellationToken);
+
     [HttpGet("roles")]
     [ProducesResponseType<IReadOnlyList<AccountRoleDetails>>(StatusCodes.Status200OK)]
     public Task<IReadOnlyList<AccountRoleDetails>> Roles(CancellationToken cancellationToken) => accounts.RolesAsync(cancellationToken);
