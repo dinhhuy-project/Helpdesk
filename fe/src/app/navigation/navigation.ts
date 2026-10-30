@@ -29,9 +29,9 @@ export const navigation: readonly NavigationItem[] = [
     rule: { allOf: [Permission.CategoryManage] } },
   { id: 'sla', label: 'Chính sách SLA', path: '/admin/sla-policies', group: 'Quản trị', available: true,
     rule: { allOf: [Permission.TicketManageSla] } },
-  { id: 'notifications', label: 'Thông báo', path: '/notifications', group: 'Theo dõi', available: false },
-  { id: 'dashboard', label: 'Tổng quan', path: '/dashboard', group: 'Theo dõi', available: false, rule: readTicketRule },
-  { id: 'reports', label: 'Báo cáo', path: '/reports/tickets', group: 'Theo dõi', available: false, rule: readTicketRule },
+  { id: 'notifications', label: 'Thông báo', path: '/notifications', group: 'Theo dõi', available: true },
+  { id: 'dashboard', label: 'Tổng quan', path: '/dashboard', group: 'Theo dõi', available: true, rule: readTicketRule },
+  { id: 'reports', label: 'Báo cáo', path: '/reports/tickets', group: 'Theo dõi', available: true, rule: readTicketRule },
 ]
 
 export function visibleNavigation(permissions: readonly string[], verified: boolean) {

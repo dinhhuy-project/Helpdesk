@@ -1,4 +1,5 @@
 import { QueryClientProvider } from '@tanstack/react-query'
+import { expectOnlyCurrentNotificationCount } from '../../../test/notification-cache'
 import { AxiosError, AxiosHeaders } from 'axios'
 import type { AxiosAdapter, InternalAxiosRequestConfig } from 'axios'
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react'
@@ -55,6 +56,7 @@ async function openTickets(path = '/tickets', profile: UserProfile = userA) {
     }
     if (config.url === '/api/v1/auth/login') return { ...response, data: tokenPair('tickets', backend.profile) }
     if (config.url === '/api/v1/users/me') return { ...response, data: backend.profile }
+    if (config.url === '/api/v1/notifications/unread-count') return { ...response, data: { count: 0 } }
     if (config.url === '/api/v1/auth/logout') return { ...response, status: 204 }
     if (config.url?.endsWith('/sla')) return { ...response, data: noSlaForPath(config.url) }
     if (config.url?.endsWith('/attachments/options')) return { ...response, data: noAttachmentUpload }
@@ -136,7 +138,7 @@ describe('Ticket list routing, server queries and permission UX', () => {
     await act(async () => { await test.services.session.refreshProfile() })
     expect(screen.getByRole('heading', { name: 'Không có quyền truy cập' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /HD-000042/ })).not.toBeInTheDocument()
-    expect(test.services.queryClient.getQueryCache().getAll()).toHaveLength(0)
+    expectOnlyCurrentNotificationCount(test.services.queryClient, test.services.session.store.getState().scope)
   })
 
   it('hides previous rows during filter changes even if a transport ignores cancellation', async () => {

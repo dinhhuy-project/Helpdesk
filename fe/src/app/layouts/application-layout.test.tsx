@@ -27,6 +27,7 @@ function fixture(initial: UserProfile) {
         { ...response, status: backend.status, data: { title: 'Không xác nhận được tài khoản.', traceId: 'profile-test' } })
       return { ...response, data: backend.gate ? await backend.gate : backend.user }
     }
+    if (config.url === '/api/v1/notifications/unread-count') return { ...response, data: { count: 0 } }
     if (config.url === '/api/v1/auth/logout') return { ...response, status: 204 }
     if (config.url === '/api/v1/ticket-categories/lookup') return { ...response, data: { items: [], page: 1, pageSize: 20, totalCount: 0 } }
     if (config.url === '/api/v1/users') return { ...response, data: { items: [], page: 1, pageSize: 20, totalCount: 0 } }
@@ -64,12 +65,12 @@ describe('application shell, permissions and error pages', () => {
     expect(document.title).toBe('Không có quyền truy cập | Helpdesk')
   })
 
-  it('keeps future modules disabled and returns 404 after their guard accepts a deep link', async () => {
-    await openShell({ ...userA, permissions: [Permission.TicketReadOwn] }, '/dashboard')
+  it('keeps implemented reporting links available and returns 404 for an unknown deep link', async () => {
+    await openShell({ ...userA, permissions: [Permission.TicketReadOwn] }, '/reports/tickets/unknown')
     expect(screen.getByRole('heading', { name: 'Không tìm thấy trang' })).toBeInTheDocument()
     expect(within(screen.getByRole('navigation', { name: 'Điều hướng chính' }))
-      .getByText('Tổng quan').closest('[aria-disabled]')).toHaveAttribute('aria-disabled', 'true')
-    expect(screen.queryByRole('link', { name: 'Tổng quan' })).not.toBeInTheDocument()
+      .getByRole('link', { name: 'Tổng quan' })).toHaveAttribute('href', '/dashboard')
+    expect(screen.getByRole('link', { name: 'Báo cáo' })).toHaveAttribute('href', '/reports/tickets')
   })
 
   it('opens the create route with ticket.create without requiring read permission', async () => {

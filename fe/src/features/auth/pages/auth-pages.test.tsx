@@ -9,6 +9,7 @@ import { createAppServices } from '../../../app/providers/app-services'
 import { appRoutes } from '../../../app/router/routes'
 import { deferred, tokenPair, userA } from '../../../test/auth-fixtures'
 import { AuthProvider } from '../providers/auth-provider'
+import { expectOnlyCurrentNotificationCount } from '../../../test/notification-cache'
 
 const disposal: (() => void)[] = []
 afterEach(() => { cleanup(); for (const dispose of disposal.splice(0)) dispose() })
@@ -22,6 +23,7 @@ function rejected(config: InternalAxiosRequestConfig, status: number, data: unkn
 
 function app(path = '/login', override?: AxiosAdapter) {
   const adapter = vi.fn<AxiosAdapter>(async config => {
+    if (config.url === '/api/v1/notifications/unread-count') return response(config, { count: 0 })
     if (override) return override(config)
     if (config.url === '/api/v1/auth/login') {
       expect(config.headers.get('Authorization')).toBeUndefined()
@@ -72,7 +74,7 @@ describe('login and account routes over the actual Axios/session wiring', () => 
     await fillLogin()
     await screen.findByRole('heading', { name: 'Tài khoản của tôi' })
     expect(screen.getByText(userA.displayName)).toBeInTheDocument()
-    expect(adapter.mock.calls.map(([config]) => config.url)).toEqual(['/api/v1/auth/login', '/api/v1/users/me'])
+    expect(adapter.mock.calls.map(([config]) => config.url)).toEqual(['/api/v1/auth/login', '/api/v1/users/me', '/api/v1/notifications/unread-count'])
     expect(queryClient.getMutationCache().getAll()).toHaveLength(0)
     expect(JSON.stringify(queryClient.getQueryCache().getAll())).not.toContain('test-only-password')
     expect(JSON.stringify(session.store.getState())).not.toContain('access-a')
@@ -157,7 +159,7 @@ describe('login and account routes over the actual Axios/session wiring', () => 
     permissions = []
     await act(async () => { fireEvent(window, new Event('focus')) })
     await screen.findByText('Quyền hiện tại (0)')
-    expect(queryClient.getQueryCache().getAll()).toHaveLength(0)
+    expectOnlyCurrentNotificationCount(queryClient, session.store.getState().scope)
   })
 
   it('starts anonymous after constructing a new app instance (hard reload)', async () => {

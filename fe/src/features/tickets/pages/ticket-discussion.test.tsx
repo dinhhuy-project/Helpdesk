@@ -40,6 +40,7 @@ async function fixture(internal = false, search = '') {
     }
     if (config.url === '/api/v1/auth/login') return { ...response, data: tokenPair('discussion', user) }
     if (config.url === '/api/v1/users/me') return { ...response, data: user }
+    if (config.url === '/api/v1/notifications/unread-count') return { ...response, data: { count: 0 } }
     if (config.url === '/api/v1/auth/logout') return { ...response, status: 204 }
     if (config.url?.endsWith('/sla')) return { ...response, data: noSlaForPath(config.url) }
     if (config.url?.endsWith('/attachments/options')) return { ...response, data: noAttachmentUpload }

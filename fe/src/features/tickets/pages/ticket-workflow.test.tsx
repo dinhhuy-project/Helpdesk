@@ -47,6 +47,7 @@ async function fixture() {
         headers: new AxiosHeaders({ 'Retry-After': '30' }), data: { title: 'Thao tác bị từ chối.', code, traceId: 'workflow-trace', errors: { ResolutionSummary: ['Kết quả chưa hợp lệ.'] } } })
     }
     if (config.url === '/api/v1/auth/login' || config.url === '/api/v1/auth/refresh') return { ...response, data: tokenPair('workflow', profile) }
+    if (config.url === '/api/v1/notifications/unread-count') return { ...response, data: { count: 0 } }
     if (config.url === '/api/v1/auth/logout') return { ...response, status: 204 }
     if (config.url?.endsWith('/sla')) return { ...response, data: noSlaForPath(config.url) }
     if (config.url?.endsWith('/attachments/options')) return { ...response, data: noAttachmentUpload }

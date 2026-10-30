@@ -1,4 +1,5 @@
 import { QueryClientProvider } from '@tanstack/react-query'
+import { expectOnlyCurrentNotificationCount } from '../../../test/notification-cache'
 import { AxiosError, AxiosHeaders } from 'axios'
 import type { AxiosAdapter, InternalAxiosRequestConfig } from 'axios'
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react'
@@ -112,7 +113,7 @@ describe('Catalog permission, scoped reads and server queries', () => {
     const test = await open(path, { ...userA, roles: ['SystemAdmin', 'TeamLeader'], permissions: [] })
     test.mount()
     expect(screen.getByRole('heading', { name: 'Không có quyền truy cập' })).toBeInTheDocument()
-    expect(test.requests.filter(r => r.url !== '/api/v1/auth/login' && r.url !== '/api/v1/users/me')).toHaveLength(0)
+    expect(test.requests.filter(r => r.url !== '/api/v1/auth/login' && r.url !== '/api/v1/users/me' && r.url !== '/api/v1/notifications/unread-count')).toHaveLength(0)
   })
   it('filters/sorts/pages at the server and restores the URL on back', async () => {
     const test = await open('/admin/departments?page=2&search=IT&isActive=false&sortBy=createdAt&descending=true')
@@ -159,7 +160,7 @@ describe('Catalog permission, scoped reads and server queries', () => {
     await act(async () => { gate.resolve(); await gate.promise })
     expect(screen.getByRole('heading', { name: 'Không có quyền truy cập' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: department.name })).not.toBeInTheDocument()
-    expect(test.services.queryClient.getQueryCache().getAll()).toHaveLength(0)
+    expectOnlyCurrentNotificationCount(test.services.queryClient, test.services.session.store.getState().scope)
   })
 })
 

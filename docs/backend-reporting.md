@@ -124,11 +124,13 @@ Tests cover own/team/all, role/membership không nhân đôi, filter âm, user/s
 
 Kết quả lượt triển khai phần 17: **497/497 tests đạt, 0 skipped**, cùng CLI seed/grant smoke tests; riêng reporting có 18 tests gồm query-plan A/B. Build Release `-warnaserror` đạt 0 warning/error. Chưa chạy workflow GitHub hoặc UI frontend; không có migration/DDL mới cần apply.
 
-## Trước khi frontend tích hợp
+Frontend bước 14 đã tích hợp `/dashboard` và `/reports/tickets`, dùng cohort/filter trên URL, group pagination và daily UTC; xem [giao diện và kiểm thử](frontend-reporting.md). SignalR JS 10/server 8 đã nghiệm thu ở [frontend bước 13](frontend-realtime.md).
+
+## Chuẩn bị dữ liệu và quy tắc tích hợp
 
 1. Database đã apply SlaMvp; phần 17 chỉ cần Stop Debugging/F5 code mới, giữ port Container 5000. Không cần thêm .env, role/grant, migration hoặc service.
 2. Nếu cần SLA, admin tạo policy active qua API theo [backend-sla.md](backend-sla.md). Lượt kiểm tra DB local thấy chưa có policy active; không tự seed cam kết thời gian. Ticket cũ không có snapshot vẫn được đếm withoutSla.
 3. Login bằng các role để thử Swagger, so số liệu với danh sách Ticket cùng ACL và **cùng CreatedFrom/To/filter**; kiểm tra đủ status/priority và quyền theo `/users/me`.
 4. Frontend dùng typed DTO/OpenAPI, query keys chứa user/session và filter/page; xóa cache khi logout, đổi user hoặc mất quyền, refetch khi 409. 401 refresh một lần theo luồng auth, 403 không retry vô hạn.
 5. REST command thành công cần invalidate Ticket/dashboard/report. SignalR chỉ là hint, không cập nhật KPI bằng cách cộng/trừ payload ID; reconnect hoặc NotificationsChanged thì refetch theo quyền hiện tại. Không phải mọi client đều nhận event cho mọi Ticket có thể thống kê, nên vẫn cần refresh khi mở lại tab hoặc cơ chế stale/refetch phù hợp.
-6. Client SignalR JS major 10 trong FE cần integration test với backend 8 trước khi coi realtime UI đã hoàn thiện. Chưa có UI/CSV export, dashboard cache chung hoặc report lịch sử trạng thái.
+6. Chưa có CSV/Excel export, dashboard cache chung hoặc report lịch sử trạng thái; đây là các contract riêng ngoài MVP hiện tại.

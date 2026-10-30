@@ -49,6 +49,7 @@ async function fixture(internal = false) {
     }
     if (config.url === '/api/v1/auth/login' || config.url === '/api/v1/auth/refresh') return { ...response, data: tokenPair('files', profile) }
     if (config.url === '/api/v1/users/me') return { ...response, data: profile }
+    if (config.url === '/api/v1/notifications/unread-count') return { ...response, data: { count: 0 } }
     if (config.url === '/api/v1/auth/logout') return { ...response, status: 204 }
     if (config.url?.endsWith('/sla')) return { ...response, data: noSlaForPath(config.url) }
     if (config.url?.endsWith('/attachments/options')) {

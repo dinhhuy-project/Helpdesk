@@ -18,6 +18,8 @@ import { CreateTicketPage } from '../../features/tickets/pages/create-ticket-pag
 import { AccountRouteBoundary, AccountListPage, AccountDetailPage, CreateAccountPage, RolesPage, RoleDetailPage, RoleAssignmentPage, AccountAuditPage } from '../../features/accounts/components/account-route-boundary'
 import { CatalogRouteBoundary, CatalogListPage, CreateCatalogPage, CatalogDetailPage, TeamDetailPage } from '../../features/catalogs/components/catalog-route-boundary'
 import { SlaRouteBoundary, SlaPolicyListPage, CreateSlaPolicyPage, SlaPolicyDetailPage } from '../../features/sla/components/sla-route-boundary'
+import { NotificationRouteBoundary, NotificationListPage, NotificationDetailPage } from '../../features/notifications/components/notification-route-boundary'
+import { ReportRouteBoundary, ReportPage } from '../../features/dashboard/components/report-route-boundary'
 
 export const appRoutes: RouteObject[] = [{
   path: '/',
@@ -28,6 +30,15 @@ export const appRoutes: RouteObject[] = [{
     { path: 'login', element: <LoginPage /> },
     { path: '403', element: <ForbiddenPage /> },
     { element: <RequireSession />, children: [
+      { element: <ReportRouteBoundary />, children: [
+        { path: 'dashboard', element: <ReportPage /> },
+        { path: 'reports/tickets', element: <ReportPage reports /> },
+      ] },
+      { path: 'notifications', element: <NotificationRouteBoundary />, children: [
+        { index: true, element: <NotificationListPage /> },
+        { path: ':id', element: <NotificationDetailPage /> },
+        { path: '*', element: <NotFoundPage /> },
+      ] },
       { path: 'admin/sla-policies', element: <SlaRouteBoundary />, children: [
         { index: true, element: <SlaPolicyListPage /> },
         { path: 'new', element: <CreateSlaPolicyPage /> },

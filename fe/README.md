@@ -1,13 +1,13 @@
 # Helpdesk frontend
 
-React 19.3.1 + TypeScript + Vite. Đã có nền tảng, auth/session, shell/permission, Ticket list/detail/create/discussion/workflow/attachments/SLA, quản trị tài khoản/role/grant/audit, phòng ban/team/membership/category và SLA policy theo scope/permission server. File upload/download qua Bearer API, giữ ACL Ticket/comment và visibility. Mục Sắp có chưa phải trang nghiệp vụ đã hoàn thành.
+React 19.3.1 + TypeScript + Vite. Đã có nền tảng, auth/session, shell/permission, Ticket list/detail/create/discussion/workflow/attachments/SLA, quản trị tài khoản/role/grant/audit, phòng ban/team/membership/category và SLA policy theo scope/permission server. Có notification/SignalR và dashboard/báo cáo dùng aggregation server theo cùng cohort/ACL/filter. File upload/download qua Bearer API, giữ ACL Ticket/comment và visibility.
 
 ```powershell
 npm ci
 npm run dev
 ```
 
-Mở `http://localhost:5173`; backend Visual Studio **Container (Dockerfile)** chạy tại port 5000. Vite proxy `/api` và `/health` về backend. Có thể copy `.env.example` thành `.env.local` để đổi cấu hình; restart Vite sau khi đổi. `VITE_*` là cấu hình public, không chứa secrets.
+Mở `http://localhost:5173`; backend Visual Studio **Container (Dockerfile)** chạy tại port 5000. Vite proxy `/api`, `/health` và `/hubs` (hỗ trợ WebSocket) về backend. SignalR tự nối theo phiên, refresh/reconnect/rewatch và refetch cache qua REST/ACL. Có thể copy `.env.example` thành `.env.local` để đổi cấu hình; restart Vite sau khi đổi. `VITE_*` là cấu hình public, không chứa secrets.
 
 ```powershell
 npm run lint
@@ -28,6 +28,9 @@ Node 22.12+ trong major 22, Node 24 hoặc 26+ theo `package.json`; `.nvmrc`/CI 
 - [Phân công/workflow, lookup theo Ticket và xử lý conflict](../docs/frontend-ticket-workflow.md)
 - [File đính kèm Ticket/comment, multipart, visibility và download Blob](../docs/frontend-attachments.md)
 - [SLA snapshot/deadline, timezone và quản trị policy/version](../docs/frontend-sla.md)
+- [Chuông/inbox/chi tiết notification và đồng bộ trạng thái đọc qua REST](../docs/frontend-notifications.md)
+- [SignalR theo phiên, refresh/reconnect/rewatch và cache/ACL](../docs/frontend-realtime.md)
+- [Dashboard/báo cáo theo cohort và ACL, phân trang group, SLA và daily UTC](../docs/frontend-reporting.md)
 - [Lộ trình và tiêu chí nghiệm thu](../docs/frontend-roadmap.md)
 - [Quy tắc repository](../guides.md)
 

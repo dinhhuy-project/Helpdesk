@@ -18,6 +18,7 @@ import { useTicketWorkflowActions, type TicketWorkflowActions } from '../hooks/u
 import { TicketWorkflowPanel } from '../components/ticket-workflow-panel'
 import { useTicketAttachmentUpload, type AttachmentUpload } from '../hooks/use-ticket-attachments'
 import { TicketSlaPanel } from '../../sla/components/ticket-sla-panel'
+import { useTicketWatch } from '../../notifications/realtime/use-ticket-watch'
 
 export function TicketDetailPage() {
   const { id } = useParams()
@@ -27,6 +28,7 @@ export function TicketDetailPage() {
 
 function TicketAccessBoundary({ id }: { id: string }) {
   const access = useTicketAccess(id)
+  useTicketWatch(id, access.data?.canRead === true && !access.isError)
   const { scope } = useAuth()
   const queries = useQueryClient()
   const [params, setParams] = useSearchParams()

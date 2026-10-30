@@ -36,12 +36,19 @@ export function createAuthSession({ api, onScopeChange }: { api: AuthApi; onScop
   let logoutFlight: Promise<void> | null = null
   let profileRevision = 0
   let refreshCooldown: { until: number; error: ApiError } | null = null
+  let credentialRevision = 0
+  const credentialListeners = new Set<() => void>()
+  function credentialsChanged() {
+    credentialRevision++
+    for (const listener of credentialListeners) listener()
+  }
 
   function reset(reason: SessionEndReason | null, status: AuthState['status'] = 'anonymous') {
     epoch++
     controller.abort()
     controller = new AbortController()
     credentials = null
+    credentialsChanged()
     refreshCooldown = null
     // Clear private cache before publishing the next identity to subscribers.
     onScopeChange()
@@ -93,6 +100,7 @@ export function createAuthSession({ api, onScopeChange }: { api: AuthApi; onScop
         refreshCooldown = null
         profileRevision++ // A profile response using the previous token cannot overwrite this one.
         if (store.getState().status === 'authenticated') publishUser(response.user)
+        credentialsChanged()
       } catch (error) {
         const failure = toApiError(error)
         if (currentEpoch === epoch) {
@@ -192,6 +200,7 @@ export function createAuthSession({ api, onScopeChange }: { api: AuthApi; onScop
       received = await api.login(command)
       if (currentEpoch !== epoch) throw cancelled()
       credentials = received
+      credentialsChanged()
       await refreshProfile()
       check(currentEpoch)
       if (!store.getState().user) throw unauthorized()
@@ -253,7 +262,21 @@ export function createAuthSession({ api, onScopeChange }: { api: AuthApi; onScop
   function endRevokedSession(expectedScope: string) {
     if (store.getState().scope === expectedScope) reset('revoked')
   }
-  return { store, login, logout, refreshProfile, changePassword, expireIfNeeded, endRevokedSession, authorize: authorizeRequest }
+  // The hub receives only an access token, through the same single-flight refresh path as REST.
+  // No credential is published to Zustand, React, Query cache or browser storage.
+  async function realtimeCredential(expectedScope: string) {
+    if (store.getState().scope !== expectedScope) throw cancelled()
+    return authorize(async token => {
+      if (store.getState().scope !== expectedScope) throw cancelled()
+      return { token, expiresAt: currentCredentials(epoch).expiresAt, revision: credentialRevision }
+    })
+  }
+  function subscribeCredentials(listener: () => void) {
+    credentialListeners.add(listener)
+    return () => { credentialListeners.delete(listener) }
+  }
+  return { store, login, logout, refreshProfile, changePassword, expireIfNeeded, endRevokedSession, authorize: authorizeRequest,
+    realtimeCredential, subscribeCredentials, credentialRevision: () => credentialRevision }
 }
 
 export type AuthSession = ReturnType<typeof createAuthSession>

@@ -1,4 +1,5 @@
 import { QueryClientProvider } from '@tanstack/react-query'
+import { expectOnlyCurrentNotificationCount } from '../../../test/notification-cache'
 import { AxiosError, AxiosHeaders } from 'axios'
 import type { AxiosAdapter, InternalAxiosRequestConfig } from 'axios'
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react'
@@ -48,6 +49,7 @@ async function open(path = '/admin/users', profile = admin) {
     }
     if (config.url === '/api/v1/auth/login') return { ...response, data: tokenPair('accounts', backend.user) }
     if (config.url === '/api/v1/users/me') return { ...response, data: backend.user }
+    if (config.url === '/api/v1/notifications/unread-count') return { ...response, data: { count: 0 } }
     if (config.url === '/api/v1/auth/logout') return { ...response, status: 204 }
     if (config.url === '/api/v1/identity/administration-access') return { ...response, data: backend.roleAccess }
     if (config.url?.endsWith('/administration-access')) return { ...response, data: backend.access }
@@ -165,7 +167,7 @@ describe('Account administration permission and query boundaries', () => {
     await act(async () => { gate.resolve(); await gate.promise })
     expect(screen.getByRole('heading', { name: 'Không có quyền truy cập' })).toBeInTheDocument()
     expect(screen.queryByText(target.email)).not.toBeInTheDocument()
-    expect(test.services.queryClient.getQueryCache().getAll()).toHaveLength(0)
+    expectOnlyCurrentNotificationCount(test.services.queryClient, test.services.session.store.getState().scope)
   })
 })
 
@@ -339,7 +341,7 @@ describe('Role assignment, grants and audit', () => {
     await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Xác nhận lưu grant' }))
     await screen.findByRole('heading', { name: 'Không có quyền truy cập' })
     expect(test.requests.filter(r => r.url === '/api/v1/users/me')).toHaveLength(2)
-    expect(test.services.queryClient.getQueryCache().getAll()).toHaveLength(0)
+    expectOnlyCurrentNotificationCount(test.services.queryClient, test.services.session.store.getState().scope)
     expect(JSON.parse(writes(test.requests)[0]?.data)).toEqual({ permissionIds: [permissionId], version: 12 })
   })
   it('reads paged audit only with server capability and renders metadata as text', async () => {

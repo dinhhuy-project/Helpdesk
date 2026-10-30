@@ -16,6 +16,7 @@ export default defineConfig(({ mode }) => {
       proxy: {
         '/api': { target, changeOrigin: true },
         '/health': { target, changeOrigin: true },
+        '/hubs': { target, changeOrigin: true, ws: true },
       },
     },
     test: {

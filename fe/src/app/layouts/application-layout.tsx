@@ -9,6 +9,7 @@ import { Dialog } from '../../shared/components/dialog'
 import { SidebarNavigation } from '../navigation/sidebar-navigation'
 import { Brand } from './brand'
 import { SessionActions } from './session-actions'
+import { NotificationBell } from '../../features/notifications/components/notification-bell'
 
 export function ApplicationLayout({ children }: { children: ReactNode }) {
   const auth = useAuth()
@@ -46,6 +47,7 @@ export function ApplicationLayout({ children }: { children: ReactNode }) {
               {auth.user.roles.length ? auth.user.roles.map(roleLabel).join(' · ') : 'Chưa được gán vai trò'}
             </p>}
           </div>
+          {verified && auth.status === 'authenticated' && <NotificationBell key={auth.scope} />}
           <SessionActions />
         </header>
         <main id="main-content" className="workspace-content" tabIndex={-1}>
