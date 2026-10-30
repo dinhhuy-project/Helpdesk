@@ -47,7 +47,7 @@ Workflow chỉ cấp `contents: read`, checkout không giữ Git credentials, c�
 
 ## Bật trên GitHub
 
-Frontend bước 6 bổ sung `FrontendDiscussionJourneyTests` vào backend job: Node/Vite SSR chạy typed API/auth/cache thực tế với hai tài khoản trên application/PostgreSQL test, kiểm tra requester tạo Ticket và trao đổi public/internal. Node và frontend dependencies đã được cài cho SignalR nên không cần secret hoặc job mới. Browser mode tùy chọn chạy local với Playwright; CI hiện chỉ chạy nhánh client/API thật, chưa chạy browser. Xem [nghiệm thu thảo luận](frontend-ticket-discussion.md).
+Frontend bước 6 bổ sung `FrontendDiscussionJourneyTests` vào backend job: Node/Vite SSR chạy typed API/auth/cache thực tế với hai tài khoản trên application/PostgreSQL test, kiểm tra requester tạo Ticket và trao đổi public/internal. Node và frontend dependencies đã được cài cho SignalR nên không cần secret hoặc job mới. Ban đầu browser chỉ chạy local; bước 15 đã đưa cả 9 browser journeys vào CI sau nhánh typed client/API. Xem [nghiệm thu thảo luận](frontend-ticket-discussion.md).
 
 Frontend bước 7 bổ sung `AccountAdministrationAccessTests` và `FrontendAccountJourneyTests`: query scope/permission thực tế, client TypeScript quản trị user/department/role/grant/audit, đổi mật khẩu và trạng thái với phiên bị thu hồi. Dùng PostgreSQL tạm và credential stdin; browser mode local tùy chọn, CI không cần thêm secret. Xem [quản trị tài khoản và quyền](frontend-accounts.md).
 
@@ -64,6 +64,16 @@ Frontend bước 12 bổ sung `FrontendNotificationJourneyTests` và component t
 Frontend bước 13 bổ sung `FrontendRealtimeJourneyTests` và tests controller/cache: guard/start-stop/StrictMode, single-flight/rotation/renew/logout, initial retry/reconnect/rewatch, event trùng và resource ACL. Journey chạy controller TypeScript cùng JS SignalR 10/hub .NET 8 thật qua LongPolling, gồm JWT hết hạn và mất group/membership. Control endpoint chỉ thuộc bridge fixture loopback; không đổi API/schema/package/secret. Browser mode local kiểm tra cập nhật giữa tài khoản/phiên, draft, visibility và mobile. Xem [SignalR frontend](frontend-realtime.md).
 
 Frontend bước 14 bổ sung `FrontendReportingJourneyTests`: typed client thật gọi dashboard/team/agent/daily trên PostgreSQL test, so server totalCount cùng cohort/ACL/filter, kiểm tra phân trang nhóm chưa phân công, inactive, SLA null/mẫu đo, UTC half-open và scope sau khi mất membership. CI dùng backend job Node/npm hiện có; không thêm package/job/secret/migration. Nhánh Playwright/Edge local kiểm tra ngày UTC ở timezone âm, bộ lọc/Back/keyboard và bảng mobile; xem [dashboard/báo cáo frontend](frontend-reporting.md).
+
+## Frontend bước 15 — browser acceptance và image phát hành
+
+Backend job cài Chromium sau `npm ci`, rồi chạy `node fe/scripts/run-browser-acceptance.mjs --release` với cùng PostgreSQL/MinIO fixture. Runner build production bundle, mở preview ở port ngẫu nhiên và chạy cả 9 C# frontend journeys với browser thật. C# kiểm tra browser receipt để không báo xanh khi nhánh browser bị bỏ qua. Playwright/axe là devDependencies được khóa version; không thêm secret.
+
+Release checks quét axe tại tám ngữ cảnh, kiểm tra keyboard/mobile, memory-only reload/đổi identity, lỗi GET và POST đã commit nhưng mất receipt không bị replay. Realtime journey riêng kiểm tra SignalR thực, rotation/expiry/reconnect/group ACL; các journey REST chủ động ngắt hub để giữ concurrency test có kiểm soát.
+
+Docker job build thêm `fe/Dockerfile`, chạy `verify-web-image.mjs`: TLS certificate tạm được trust đúng cách, HTTP redirect, deep links/asset/no-store/404, API/body/Bearer và WebSocket upgrade, log không chứa token probe. Probe dùng upstream protocol fixture; không giả định đã nghiệm thu authenticated SignalR xuyên public proxy.
+
+Artifact browser gồm TRX, screenshot dữ liệu test và JSON axe chỉ rule/impact/count, giữ 1 ngày; không lưu HAR/trace/raw credentials. Không tự publish/deploy. Chạy probe URL staging và hoàn tất backend bước 18 trước production; xem [hướng dẫn nghiệm thu/phát hành](frontend-release-acceptance.md).
 
 1. Commit và push các thay đổi liên quan cùng thư mục `.github/` lên repository GitHub. Workflow dùng source đã commit; file còn untracked trên máy sẽ không có trên runner.
 2. Mở **Actions → CI** để xem ba job. Nếu Actions đang bị tắt, bật tại **Settings → Actions → General**. Nếu tổ chức hạn chế action, cần cho phép các action chính thức `actions/checkout`, `actions/setup-dotnet`, `actions/setup-node`, `actions/upload-artifact`.

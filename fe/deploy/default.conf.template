@@ -1,0 +1,62 @@
+map $http_upgrade $helpdesk_connection {
+    default upgrade;
+    '' close;
+}
+
+# Never log query strings, Authorization, cookies or request bodies (SignalR uses access_token).
+log_format helpdesk '$remote_addr $request_method $uri $status $request_time';
+map "$status:$uri" $helpdesk_cache {
+    default "no-store";
+    ~^200:/assets/ "public, max-age=31536000, immutable";
+}
+
+server {
+    listen 8080;
+    server_name _;
+    access_log /dev/stdout helpdesk;
+    return 308 https://$host$request_uri;
+}
+
+server {
+    listen 8443 ssl;
+    server_name _;
+    ssl_certificate /etc/nginx/tls/fullchain.pem;
+    ssl_certificate_key /etc/nginx/tls/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    server_tokens off;
+    root /usr/share/nginx/html;
+    index index.html;
+    access_log /dev/stdout helpdesk;
+    add_header X-Content-Type-Options nosniff always;
+    add_header Referrer-Policy no-referrer always;
+    add_header Cache-Control $helpdesk_cache always;
+    client_max_body_size 12m;
+
+    location ~ ^/(api|hubs|health)(/|$) {
+        # Proxy paths must never fall back to index.html, including on 401/404/502.
+        proxy_pass ${API_UPSTREAM};
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $helpdesk_connection;
+        proxy_hide_header Cache-Control;
+        proxy_buffering off;
+        proxy_request_buffering off;
+        proxy_read_timeout 110s;
+        proxy_send_timeout 110s;
+        # Upstream-error diagnostics may contain the full hub query/token; use safe access status/timing instead.
+        error_log /dev/null;
+    }
+
+    location ^~ /assets/ {
+        try_files $uri =404;
+    }
+    location ~ /\. {
+        return 404;
+    }
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

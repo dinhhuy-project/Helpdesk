@@ -68,7 +68,7 @@ try {
   }
   process.stdout.write(JSON.stringify(result))
 } catch (failure) {
-  const location = failure instanceof Error ? failure.stack?.match(/ticket-workflow-(?:journey|browser)\.mjs:\d+:\d+/)?.[0] : undefined
+  const location = failure instanceof Error ? failure.stack?.match(/(?:ticket-workflow-(?:journey|browser)|release-acceptance-browser)\.mjs:\d+:\d+/)?.[0] : undefined
   const status = Number.isInteger(failure?.status) ? failure.status : 'none'
   const kind = ['http', 'network', 'timeout', 'cancelled', 'unexpected'].includes(failure?.kind) ? failure.kind : 'assertion/setup'
   process.stderr.write(`Frontend workflow journey failed (${location ?? 'module setup'}, status=${status}, kind=${kind}); credentials and response bodies omitted.\n`)

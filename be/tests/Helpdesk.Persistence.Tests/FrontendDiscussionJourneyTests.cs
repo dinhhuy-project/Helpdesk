@@ -65,6 +65,8 @@ public class FrontendDiscussionJourneyTests(PostgresFixture fixture)
             var location = System.Text.RegularExpressions.Regex.Match(diagnostic, @"ticket-discussion-(?:journey|browser)\.mjs:\d+:\d+").Value;
             Assert.True(process.ExitCode == 0, $"Frontend discussion runner failed at {(location.Length > 0 ? location : "module/transport setup")}; details omitted.");
             using var result = JsonDocument.Parse(await output);
+            if (Environment.GetEnvironmentVariable("HELPDESK_RELEASE_ACCEPTANCE") == "true")
+                Assert.True(result.RootElement.TryGetProperty("browserTicketId", out var browser) && browser.ValueKind == JsonValueKind.String, "Required browser acceptance did not run.");
             test.OwnTicket(result.RootElement.GetProperty("ticketId").GetGuid());
             if (result.RootElement.TryGetProperty("browserTicketId", out var browserTicket)) test.OwnTicket(browserTicket.GetGuid());
             Assert.True(result.RootElement.GetProperty("requesterCachePublic").GetBoolean());

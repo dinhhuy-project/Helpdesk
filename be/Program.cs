@@ -21,6 +21,7 @@ using be.Infrastructure.Sla;
 using be.Application.Features.Reporting;
 using be.Infrastructure.Reporting;
 using Microsoft.OpenApi.Models;
+using be.Infrastructure.Seeding;
 
 namespace be
 {
@@ -30,7 +31,8 @@ namespace be
         {
             var isIdentityCommand = IdentityCommands.IsCommand(args);
             var isStorageCommand = args.Length > 0 && args[0] == "initialize-storage";
-            var builder = WebApplication.CreateBuilder(isIdentityCommand || isStorageCommand ? [] : args);
+            var isDemoWeekCommand = args.Length > 0 && args[0] == "seed-demo-week";
+            var builder = WebApplication.CreateBuilder(isIdentityCommand || isStorageCommand || isDemoWeekCommand ? [] : args);
 
             // Add services to the container.
 
@@ -85,6 +87,12 @@ namespace be
             });
 
             var app = builder.Build();
+
+            if (isDemoWeekCommand)
+            {
+                await using (app)
+                    return await DemoWeekCommands.ExecuteAsync(args, app.Services, builder.Configuration);
+            }
 
             if (isStorageCommand)
             {

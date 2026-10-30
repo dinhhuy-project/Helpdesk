@@ -16,7 +16,7 @@ jobs:
   backend:
     name: Backend build and tests
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 45
     env:
       DOTNET_CLI_TELEMETRY_OPTOUT: '1'
       DOTNET_NOLOGO: 'true'
@@ -89,6 +89,21 @@ jobs:
           dotnet test be/be.sln --configuration Release --no-build --no-restore
           --logger "trx;LogFileName=backend.trx" --results-directory artifacts/test-results
 
+      - name: Install Chromium for browser acceptance
+        run: npx --prefix fe playwright install --with-deps chromium
+
+      - name: Browser acceptance against the production bundle and isolated API
+        run: node fe/scripts/run-browser-acceptance.mjs --release
+
+      - name: Upload sanitized browser acceptance results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: frontend-browser-acceptance
+          path: fe/test-results/acceptance/
+          if-no-files-found: error
+          retention-days: 1
+
       - name: Stop isolated MinIO
         if: ${{ always() }}
         run: docker stop helpdesk-minio-test || true
@@ -115,7 +130,7 @@ jobs:
           retention-days: 7
 
   frontend:
-    name: Frontend lint and build
+    name: Frontend lint, tests and build
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     defaults:
@@ -175,6 +190,17 @@ jobs:
 
       - name: Build backend image
         run: docker build --file be/Dockerfile --tag helpdesk-api:ci be
+
+      - name: Set up Node.js for web image acceptance
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '24.x'
+
+      - name: Build frontend image
+        run: docker build --file fe/Dockerfile --tag helpdesk-web:acceptance fe
+
+      - name: Verify HTTPS, SPA fallback and API/WebSocket reverse proxy
+        run: node fe/scripts/verify-web-image.mjs
 
       - name: Verify automatic infrastructure bootstrap and volume reset
         shell: pwsh

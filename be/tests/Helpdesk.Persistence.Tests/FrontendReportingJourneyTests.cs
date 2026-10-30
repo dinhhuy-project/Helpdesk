@@ -97,6 +97,8 @@ public class FrontendReportingJourneyTests(PostgresFixture fixture)
             var classification = System.Text.RegularExpressions.Regex.Match(diagnostic, @"status=(?:\d{3}|none), kind=(?:http|network|timeout|cancelled|unexpected|assertion/setup)").Value;
             Assert.True(process.ExitCode == 0, $"Frontend reporting runner failed at {(location.Length > 0 ? location : "module/transport setup")} ({classification}); details omitted.");
             using var result = JsonDocument.Parse(await output);
+            if (Environment.GetEnvironmentVariable("HELPDESK_RELEASE_ACCEPTANCE") == "true")
+                Assert.True(result.RootElement.TryGetProperty("browserVerified", out var browser) && browser.ValueKind == JsonValueKind.True, "Required browser acceptance did not run.");
             Assert.True(result.RootElement.GetProperty("reportsVerified").GetBoolean());
         }
         finally

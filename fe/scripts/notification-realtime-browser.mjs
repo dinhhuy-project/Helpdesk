@@ -4,7 +4,7 @@ import { join } from 'node:path'
 
 export async function runRealtimeBrowser(input) {
   const { chromium } = await import(pathToFileURL(process.env.HELPDESK_PLAYWRIGHT_MODULE).href)
-  const browser = await chromium.launch({ channel: process.env.HELPDESK_BROWSER_CHANNEL || 'msedge', headless: true })
+  const browser = await chromium.launch({ channel: process.env.HELPDESK_BROWSER_CHANNEL || undefined, headless: true })
   const pages = [], errors = [], requesterRequests = []
   let closing = false
   try {

@@ -2,7 +2,7 @@ param([string]$Filter = '')
 
 $ErrorActionPreference = 'Stop'
 $frontendRoot = Join-Path $PSScriptRoot '../../fe'
-if ((-not $Filter -or $Filter -match 'Frontend(?:Discussion|Account|Catalog|Workflow|Attachment|Sla|Notification|Realtime|Reporting)Journey|SignalRJavaScript') -and (-not (Get-Command node -ErrorAction SilentlyContinue) -or
+if ((-not $Filter -or $env:HELPDESK_BROWSER_ACCEPTANCE -eq 'true' -or $Filter -match 'Frontend(?:Discussion|Account|Catalog|Workflow|Attachment|Sla|Notification|Realtime|Reporting)Journey|SignalRJavaScript') -and (-not (Get-Command node -ErrorAction SilentlyContinue) -or
     -not (Test-Path -LiteralPath (Join-Path $frontendRoot 'node_modules/@microsoft/signalr/package.json')))) {
     throw 'Node.js and frontend dependencies are required for frontend API/SignalR integration tests. Run npm ci in fe/ first.'
 }
@@ -66,7 +66,8 @@ try {
         Start-Sleep -Seconds 1
     }
     if (-not $storageReady) { throw 'MinIO test container did not become ready.' }
-    if ($Filter) { dotnet test (Join-Path $PSScriptRoot '../be.sln') --no-restore --filter $Filter }
+    if ($env:HELPDESK_BROWSER_ACCEPTANCE -eq 'true') { node (Join-Path $frontendRoot 'scripts/run-browser-acceptance.mjs') }
+    elseif ($Filter) { dotnet test (Join-Path $PSScriptRoot '../be.sln') --no-restore --filter $Filter }
     else { dotnet test (Join-Path $PSScriptRoot '../be.sln') --no-restore }
     if ($LASTEXITCODE -ne 0) { throw 'Persistence tests failed.' }
 

@@ -12,6 +12,7 @@ public static class DependencyInjection
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
         services.AddScoped<IdentityInitializer>();
         services.AddScoped<DevelopmentDataInitializer>();
+        services.AddScoped<DemoWeekInitializer>();
         services.AddHostedService<IdentityStartupSeeder>();
         return services;
     }

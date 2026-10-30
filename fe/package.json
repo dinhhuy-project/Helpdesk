@@ -9,6 +9,9 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "node scripts/run-browser-acceptance.mjs",
+    "verify:web-image": "node scripts/verify-web-image.mjs",
+    "verify:deployment": "node scripts/verify-deployment.mjs",
     "preview": "vite preview"
   },
   "engines": {
@@ -25,6 +28,7 @@
     "zustand": "^5.0.16"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
     "@eslint/js": "^10.0.1",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^7.0.1",
@@ -40,6 +44,7 @@
     "eslint-plugin-react-refresh": "^0.5.7",
     "globals": "^17.13.0",
     "happy-dom": "^21.0.4",
+    "playwright": "1.64.1",
     "postcss": "^8.5.32",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.3",

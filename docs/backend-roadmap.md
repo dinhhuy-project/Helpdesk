@@ -1,5 +1,7 @@
 # Kế hoạch backend sau Identity và phân quyền
 
+Frontend 1–15 hiện đã có code và [bộ nghiệm thu/phát hành](frontend-release-acceptance.md): browser journeys, accessibility, HTTPS/SPA/API/hub probe. Phần chuẩn bị production tiếp theo vẫn là bước 18, đặc biệt trusted forwarded headers, readiness và backup/restore; không coi frontend đạt là đã hoàn tất vận hành.
+
 Phần 6–9 đã có code/API/tests và người dùng xác nhận review/apply database. Phần 10–13 có [scope](backend-ticket-access.md), [Ticket cơ bản](backend-tickets.md), [workflow](backend-ticket-workflow.md) và [comment/internal note](backend-ticket-comments.md). Phần 14 có [MinIO](backend-attachments.md), đã [rà soát MVP](attachment-completion-review.md). Phần 15 có [notification/SignalR](backend-notifications.md), phần 16 có [SLA MVP](backend-sla.md); người dùng xác nhận đã migrate và [kiểm tra lại phần 16](sla-completion-review.md) đạt. Phần 17 đã có [dashboard/báo cáo và checklist frontend](backend-reporting.md), không cần migration mới sau khi đo SQL/index. Backend còn phần 18 chuẩn bị vận hành; có thể bắt đầu frontend.
 
 ## Điểm xuất phát

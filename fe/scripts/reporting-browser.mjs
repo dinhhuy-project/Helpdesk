@@ -4,7 +4,7 @@ import { join } from 'node:path'
 
 export async function runReportingBrowser(input) {
   const { chromium } = await import(pathToFileURL(process.env.HELPDESK_PLAYWRIGHT_MODULE).href)
-  const browser = await chromium.launch({ channel: process.env.HELPDESK_BROWSER_CHANNEL || 'msedge', headless: true })
+  const browser = await chromium.launch({ channel: process.env.HELPDESK_BROWSER_CHANNEL || undefined, headless: true })
   const pages = [], errors = []
   let closing = false
   try {
@@ -45,6 +45,8 @@ export async function runReportingBrowser(input) {
     }
     const requester = await open(input.requester), agent = await open(input.agent)
     const total = page => page.locator('.report-totals > div').filter({ has: page.locator('dt', { hasText: /^Tổng Ticket$/ }) }).locator('dd')
+    const waitTotal = (page, value) => total(page).filter({ hasText: new RegExp(`^${value}$`) }).waitFor()
+    await waitTotal(requester, 3); await waitTotal(agent, 2)
     assert.equal(await total(requester).textContent(), '3'); assert.equal(await total(agent).textContent(), '2')
     await requester.getByText('Xem bảng số liệu từng ngày', { exact: true }).click()
     const daily = requester.getByRole('table', { name: 'Ticket tạo từng ngày UTC', exact: true })
@@ -65,9 +67,11 @@ export async function runReportingBrowser(input) {
     await requester.getByRole('button', { name: 'Team A', exact: true }).click()
     await requester.getByRole('button', { name: 'Bỏ lọc nhóm', exact: true }).waitFor()
     await requester.getByRole('table', { name: 'Theo nhóm hỗ trợ', exact: true }).waitFor()
+    await waitTotal(requester, 2)
     assert.equal(await total(requester).textContent(), '2')
     await requester.getByRole('button', { name: 'Bỏ lọc nhóm', exact: true }).click()
     await requester.getByRole('table', { name: 'Theo nhóm hỗ trợ', exact: true }).waitFor()
+    await waitTotal(requester, 3)
     assert.equal(await total(requester).textContent(), '3')
     if (process.env.HELPDESK_BROWSER_ARTIFACTS) await requester.screenshot({ path: join(process.env.HELPDESK_BROWSER_ARTIFACTS, 'reports-desktop.png'), fullPage: true })
     await requester.setViewportSize({ width: 390, height: 844 })
@@ -84,6 +88,7 @@ export async function runReportingBrowser(input) {
     await input.setMembership(true)
     await agent.getByRole('button', { name: 'Tải lại số liệu', exact: true }).click()
     await agent.getByRole('table', { name: 'Chỉ số SLA', exact: true }).waitFor()
+    await waitTotal(agent, 2)
     assert.equal(await total(agent).textContent(), '2')
     assert.deepEqual(errors, [])
   } catch (failure) {

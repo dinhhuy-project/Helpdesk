@@ -1,6 +1,6 @@
 # Lộ trình triển khai frontend Helpdesk
 
-Backend đã có API phần 1–17. Frontend đã hoàn thành [bước 1 — nền tảng](frontend-foundation.md), [bước 2 — auth/session](frontend-authentication.md), [bước 3 — khung ứng dụng/quyền giao diện](frontend-shell.md), [bước 4 — danh sách/chi tiết Ticket](frontend-tickets.md), [bước 5 — tạo Ticket](frontend-create-ticket.md), [bước 6 — comment/internal note/activity](frontend-ticket-discussion.md), [bước 7 — quản trị tài khoản/quyền](frontend-accounts.md), [bước 8 — tổ chức/danh mục](frontend-catalogs.md), [bước 9 — phân công/workflow](frontend-ticket-workflow.md), [bước 10 — file đính kèm](frontend-attachments.md), [bước 11 — SLA và quản trị policy](frontend-sla.md), [bước 12 — notification lưu trong database](frontend-notifications.md), [bước 13 — tích hợp SignalR](frontend-realtime.md) và [bước 14 — dashboard/báo cáo](frontend-reporting.md). Bước 15 là phần nghiệm thu toàn luồng và chuẩn bị phát hành tiếp theo.
+Backend đã có API phần 1–17. Frontend đã hoàn thành [bước 1 — nền tảng](frontend-foundation.md), [bước 2 — auth/session](frontend-authentication.md), [bước 3 — khung ứng dụng/quyền giao diện](frontend-shell.md), [bước 4 — danh sách/chi tiết Ticket](frontend-tickets.md), [bước 5 — tạo Ticket](frontend-create-ticket.md), [bước 6 — comment/internal note/activity](frontend-ticket-discussion.md), [bước 7 — quản trị tài khoản/quyền](frontend-accounts.md), [bước 8 — tổ chức/danh mục](frontend-catalogs.md), [bước 9 — phân công/workflow](frontend-ticket-workflow.md), [bước 10 — file đính kèm](frontend-attachments.md), [bước 11 — SLA và quản trị policy](frontend-sla.md), [bước 12 — notification lưu trong database](frontend-notifications.md), [bước 13 — tích hợp SignalR](frontend-realtime.md) và [bước 14 — dashboard/báo cáo](frontend-reporting.md). [Bước 15 — nghiệm thu và chuẩn bị phát hành](frontend-release-acceptance.md) đã có runner browser/CI, kiểm tra accessibility và image HTTPS. Cần hoàn tất backend bước 18 và nghiệm thu staging trước production.
 
 Mục tiêu đầu tiên là chạy được luồng **đăng nhập → tạo Ticket → xem Ticket → trao đổi**. Sau đó hoàn thiện quản trị dữ liệu, phân công/xử lý, file, SLA, notification và báo cáo. Mỗi bước tích hợp API thật và nghiệm thu quyền truy cập trước khi chuyển tiếp.
 
@@ -115,7 +115,7 @@ Trong mỗi feature, tách typed API, Query hooks, types và UI/pages khi cần.
 
 ## 6. Kiểm thử và phạm vi MVP
 
-Kiểm thử đi cùng từng bước, không đợi bước 15 mới bắt đầu. Bước 1 đã thêm Vitest, Happy DOM và Testing Library cho unit/component tests. E2E trình duyệt tự động trên CI sẽ được bổ sung theo luồng auth/Ticket thực tế; browser smoke local chưa thay thế E2E suite.
+Kiểm thử đi cùng từng bước, không đợi bước 15 mới bắt đầu. Bước 1 đã thêm Vitest, Happy DOM và Testing Library cho unit/component tests. Bước 15 đã thêm browser acceptance trên production bundle vào CI với 9 journey/API thật, kiểm tra axe và lỗi mạng/phiên. Xem [cách chạy và phạm vi nghiệm thu](frontend-release-acceptance.md).
 
 - Auth tests: nhiều 401 chỉ refresh một lần, refresh thất bại, logout/refresh chạy đồng thời, user inactive, mất quyền, xóa cache/request cũ khi đổi user.
 - Ticket tests: scope requester/team/all, internal note/file không lộ, cây category phân trang, resolution required, stale version, assignment mất hiệu lực và mutation làm mất read scope.
@@ -133,4 +133,4 @@ Ngoài phạm vi frontend MVP hiện tại: OIDC, đăng ký công khai/quên m�
 - Tổng hợp: [notifications/SignalR](backend-notifications.md), [SLA](backend-sla.md), [dashboard/reporting](backend-reporting.md), [query review](report-query-review.md).
 - Hạ tầng và vận hành: [setup](backend-setup.md), [GitHub Actions](github-actions.md), [backend roadmap — bước 18](backend-roadmap.md).
 
-**Bước triển khai tiếp theo:** bước 15 — nghiệm thu toàn luồng và chuẩn bị phát hành. Các bước 1–14 đã có tích hợp API/hub và kiểm thử; xem tài liệu từng tính năng ở đầu lộ trình.
+**Frontend 1–15 đã có code và bộ nghiệm thu.** Tiếp theo là [backend bước 18 và các cổng trước production](frontend-release-acceptance.md#phối-hợp-backend-bước-18-trước-production), chạy probe/E2E trên URL staging thực trước phát hành.

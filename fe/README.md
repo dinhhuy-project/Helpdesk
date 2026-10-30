@@ -31,7 +31,10 @@ Node 22.12+ trong major 22, Node 24 hoặc 26+ theo `package.json`; `.nvmrc`/CI 
 - [Chuông/inbox/chi tiết notification và đồng bộ trạng thái đọc qua REST](../docs/frontend-notifications.md)
 - [SignalR theo phiên, refresh/reconnect/rewatch và cache/ACL](../docs/frontend-realtime.md)
 - [Dashboard/báo cáo theo cohort và ACL, phân trang group, SLA và daily UTC](../docs/frontend-reporting.md)
+- [Nghiệm thu E2E/axe/CI, image HTTPS và các cổng trước production](../docs/frontend-release-acceptance.md)
 - [Lộ trình và tiêu chí nghiệm thu](../docs/frontend-roadmap.md)
 - [Quy tắc repository](../guides.md)
 
-Production cần SPA fallback và reverse proxy cho `/api`, `/health`, hoặc build với origin API riêng và CORS phù hợp. Dev proxy không thay thế reverse proxy production. Test enum đối chiếu source `be/Domain/Enums` trong cùng monorepo; chạy từ thư mục `fe/`.
+Chạy `../be/tests/Run-FrontendAcceptanceTests.ps1` từ `fe/` sau `npm ci` và `npx playwright install chromium` để nghiệm thu với DB/MinIO tạm. CI chạy browser trên production bundle, không cần server local đang mở. `npm run test:e2e` dùng khi đã có các biến cấu hình DB/storage test riêng.
+
+Image `fe/Dockerfile` có Nginx HTTPS/SPA fallback và reverse proxy `/api`, `/health`, `/hubs`; certificate/key mount lúc chạy, `API_UPSTREAM` thuộc network backend riêng. `npm run verify:deployment -- https://helpdesk.example.com` kiểm tra read-only trên URL thực. Xem tài liệu bước 15 để chạy probe image, cấu hình origin/CORS và phối hợp backend bước 18 trước production. Test enum đối chiếu source `be/Domain/Enums` trong cùng monorepo; chạy từ thư mục `fe/`.

@@ -5,7 +5,7 @@ import { join } from 'node:path'
 
 export async function runAccountBrowser(input) {
   const { chromium } = await import(pathToFileURL(process.env.HELPDESK_PLAYWRIGHT_MODULE).href)
-  const browser = await chromium.launch({ channel: process.env.HELPDESK_BROWSER_CHANNEL || 'msedge', headless: true })
+  const browser = await chromium.launch({ channel: process.env.HELPDESK_BROWSER_CHANNEL || undefined, headless: true })
   let closing = false
   const errors = []
   const pages = []
@@ -22,6 +22,7 @@ export async function runAccountBrowser(input) {
           await route.abort().catch(() => {})
         }
       })
+      await context.route('**/hubs/**', route => route.abort())
       const page = await context.newPage(); pages.push(page); page.on('pageerror', () => errors.push('browser page error'))
       await page.goto(process.env.HELPDESK_FRONTEND_URL + '/login')
       await page.getByRole('textbox', { name: /Email/ }).fill(credentials.email)

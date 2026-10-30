@@ -58,6 +58,6 @@ $env:HELPDESK_BROWSER_CHANNEL = 'msedge'
 ./be/tests/Run-PersistenceTests.ps1 -Filter 'FullyQualifiedName~FrontendReportingJourneyTests'
 ```
 
-Nhánh browser kiểm tra cùng API/database fixture, nhiều tài khoản, timezone America/New_York, điều hướng bàn phím, ngày UTC, bộ lọc nhóm, bảng cuộn 390px và membership bị thu hồi khi report đang mở. Nhánh này cố ý ngắt hub để nghiệm thu REST độc lập; CI hiện chạy nhánh typed client/API, chưa cài browser. Realtime thật được nghiệm thu riêng ở [bước 13](frontend-realtime.md).
+Nhánh browser kiểm tra cùng API/database fixture, nhiều tài khoản, timezone America/New_York, điều hướng bàn phím, ngày UTC, bộ lọc nhóm, bảng cuộn 390px và membership bị thu hồi khi report đang mở. Nhánh này cố ý ngắt hub để nghiệm thu REST độc lập; Bước 14 ban đầu chỉ chạy typed client/API trên CI; [bước 15](frontend-release-acceptance.md) đã thêm Chromium và chạy cả 9 browser journeys trên production bundle. Realtime thật được nghiệm thu riêng ở [bước 13](frontend-realtime.md).
 
-Tiếp theo là **bước 15: nghiệm thu toàn luồng và chuẩn bị phát hành**; CSV/Excel, lịch sử assignment/trạng thái và dashboard toàn tổ chức cho người thiếu quyền nằm ngoài contract MVP.
+[Bước 15: nghiệm thu toàn luồng và chuẩn bị phát hành](frontend-release-acceptance.md) đã có runner browser/CI và kiểm tra image HTTPS; CSV/Excel, lịch sử assignment/trạng thái và dashboard toàn tổ chức cho người thiếu quyền nằm ngoài contract MVP.

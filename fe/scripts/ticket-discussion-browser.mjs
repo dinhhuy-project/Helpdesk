@@ -4,7 +4,7 @@ import { join } from 'node:path'
 
 export async function runDiscussionBrowser(input, admin, agentId) {
   const { chromium } = await import(pathToFileURL(process.env.HELPDESK_PLAYWRIGHT_MODULE).href)
-  const browser = await chromium.launch({ channel: process.env.HELPDESK_BROWSER_CHANNEL || 'msedge', headless: true })
+  const browser = await chromium.launch({ channel: process.env.HELPDESK_BROWSER_CHANNEL || undefined, headless: true })
   const errors = [], ownerResponses = [], ownerRequests = []
   let closing = false
   try {
@@ -25,6 +25,7 @@ export async function runDiscussionBrowser(input, admin, agentId) {
           await route.abort().catch(() => {})
         }
       })
+      await context.route('**/hubs/**', route => route.abort())
       const page = await context.newPage(); page.on('pageerror', () => errors.push('browser page error'))
       await page.goto(process.env.HELPDESK_FRONTEND_URL + '/login')
       await page.getByRole('textbox', { name: /Email/ }).fill(credentials.email)

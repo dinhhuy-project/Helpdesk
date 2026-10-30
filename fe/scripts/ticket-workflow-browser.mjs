@@ -4,7 +4,7 @@ import { join } from 'node:path'
 
 export async function runWorkflowBrowser(input) {
   const { chromium } = await import(pathToFileURL(process.env.HELPDESK_PLAYWRIGHT_MODULE).href)
-  const browser = await chromium.launch({ channel: process.env.HELPDESK_BROWSER_CHANNEL || 'msedge', headless: true })
+  const browser = await chromium.launch({ channel: process.env.HELPDESK_BROWSER_CHANNEL || undefined, headless: true })
   const errors = [], pages = []
   let closing = false
   try {
@@ -20,11 +20,12 @@ export async function runWorkflowBrowser(input) {
           await route.abort().catch(() => {})
         }
       })
+      await context.route('**/hubs/**', route => route.abort())
       const page = await context.newPage(); pages.push(page)
       page.on('pageerror', () => errors.push('browser page error'))
       page.on('console', message => {
         // The stale-version case deliberately receives 409. Chromium also logs that HTTP status to console.
-        if (message.type() === 'error' && !message.text().includes('status of 409')) errors.push('browser console error')
+        if (message.type() === 'error' && !message.location().url.includes('/hubs/') && !message.text().includes('status of 409')) errors.push('browser console error')
       })
       await page.goto(process.env.HELPDESK_FRONTEND_URL + '/login')
       await page.getByRole('textbox', { name: /Email/ }).fill(credentials.email)
@@ -122,6 +123,10 @@ export async function runWorkflowBrowser(input) {
     if (process.env.HELPDESK_BROWSER_ARTIFACTS) {
       await leader.evaluate(() => scrollTo(0, 0))
       await leader.screenshot({ path: join(process.env.HELPDESK_BROWSER_ARTIFACTS, 'workflow-assignment-desktop.png'), fullPage: true })
+    }
+    if (process.env.HELPDESK_RELEASE_ACCEPTANCE === 'true') {
+      const { runReleaseChecks } = await import('./release-acceptance-browser.mjs')
+      await runReleaseChecks(browser, input, [allocator, leader, agent, requester], ticket)
     }
     assert.deepEqual(errors, [])
   } catch (failure) {

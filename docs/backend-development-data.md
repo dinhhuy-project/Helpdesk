@@ -1,5 +1,7 @@
 # Dữ liệu nghiệp vụ mẫu cho Development
 
+Nếu cần nhiều tài khoản và dữ liệu một tuần để trình diễn dashboard/report trên database đã có dữ liệu, dùng [bộ seed demo tuần chạy bằng lệnh riêng](backend-demo-week.md). Bộ startup dưới đây vẫn chỉ dành cho database nghiệp vụ trống.
+
 Profile Visual Studio **Container (Dockerfile)** đã bật `DevelopmentData__SeedOnStartup=true` trong launchSettings. Sau khi các containers sẵn sàng và đã áp dụng đầy đủ tám migrations hiện tại (gồm [SlaMvp phần 16](sla-mvp-review.md)), F5 sẽ chạy lần lượt:
 
 1. Seed role/permission Identity còn thiếu.

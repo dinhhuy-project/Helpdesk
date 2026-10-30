@@ -75,10 +75,12 @@ public class FrontendWorkflowJourneyTests(PostgresFixture fixture)
             try { await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(180)); }
             catch { if (!process.HasExited) process.Kill(entireProcessTree: true); throw; }
             var diagnostic = await error;
-            var location = System.Text.RegularExpressions.Regex.Match(diagnostic, @"ticket-workflow-(?:journey|browser)\.mjs:\d+:\d+").Value;
+            var location = System.Text.RegularExpressions.Regex.Match(diagnostic, @"(?:ticket-workflow-(?:journey|browser)|release-acceptance-browser)\.mjs:\d+:\d+").Value;
             var classification = System.Text.RegularExpressions.Regex.Match(diagnostic, @"status=(?:\d{3}|none), kind=(?:http|network|timeout|cancelled|unexpected|assertion/setup)").Value;
             Assert.True(process.ExitCode == 0, $"Frontend workflow runner failed at {(location.Length > 0 ? location : "module/transport setup")} ({classification}); details omitted.");
             using var result = JsonDocument.Parse(await output);
+            if (Environment.GetEnvironmentVariable("HELPDESK_RELEASE_ACCEPTANCE") == "true")
+                Assert.True(result.RootElement.TryGetProperty("browserVerified", out var browser) && browser.ValueKind == JsonValueKind.True, "Required browser acceptance did not run.");
             Assert.True(result.RootElement.GetProperty("workflowCompleted").GetBoolean());
         }
         finally

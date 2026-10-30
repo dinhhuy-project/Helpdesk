@@ -2,7 +2,7 @@ export interface Environment {
   apiBaseUrl: string
 }
 
-export function readEnvironment(input: { VITE_API_BASE_URL?: string }): Environment {
+export function readEnvironment(input: { VITE_API_BASE_URL?: string }, production = false): Environment {
   const value = input.VITE_API_BASE_URL?.trim() || '/'
   if (value === '/') return { apiBaseUrl: value }
 
@@ -16,7 +16,8 @@ export function readEnvironment(input: { VITE_API_BASE_URL?: string }): Environm
     || url.search || url.hash || url.pathname !== '/') {
     throw new Error('VITE_API_BASE_URL phải là HTTP(S) origin, không chứa credentials, path hoặc query.')
   }
+  if (production && url.protocol !== 'https:') throw new Error('API origin của bản production phải dùng HTTPS.')
   return { apiBaseUrl: url.origin }
 }
 
-export const environment = readEnvironment(import.meta.env)
+export const environment = readEnvironment(import.meta.env, import.meta.env.PROD)
