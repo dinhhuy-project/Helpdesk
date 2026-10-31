@@ -9,6 +9,7 @@ using be.Application.Features.SupportTeams;
 using be.Application.Features.Categories;
 using be.Application.Features.Tickets;
 using be.Application.Features.Sla;
+using be.Application.Features.Community;
 
 namespace be.Api;
 
@@ -18,6 +19,15 @@ public sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger) : I
     {
         var status = exception switch
         {
+            CommunityOperationException community => community.Error switch
+            {
+                CommunityError.InvalidInput or CommunityError.InvalidTransition => 400,
+                CommunityError.NotFound => 404,
+                CommunityError.Unauthenticated => 401,
+                CommunityError.InsufficientScope => 403,
+                CommunityError.SourceDisabled or CommunityError.SourceUnavailable => 503,
+                _ => 409
+            },
             SlaOperationException sla => sla.Error switch
             {
                 SlaError.InvalidInput => 400,
@@ -82,7 +92,17 @@ public sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger) : I
         var problem = new ProblemDetails
         {
             Status = status,
-            Title = exception is SlaOperationException slaFailure ? slaFailure.Error switch
+            Title = exception is CommunityOperationException communityFailure ? communityFailure.Error switch
+            {
+                CommunityError.InvalidInput => "Nội dung cộng đồng chưa hợp lệ. Kiểm tra các trường và xác nhận được phép công khai.",
+                CommunityError.InvalidTransition => "Trạng thái sự cố chưa hợp lệ. Lần xuất bản đầu phải là Đang điều tra; kiểm tra quy tắc chuyển trạng thái.",
+                CommunityError.NotFound => "Không tìm thấy nội dung công khai hoặc nội dung trong phạm vi được phép.",
+                CommunityError.Unauthenticated => "Yêu cầu xác thực.",
+                CommunityError.InsufficientScope => "Bạn chưa có quyền biên soạn hoặc xuất bản nội dung này.",
+                CommunityError.SourceDisabled => "Nguồn tri thức chưa được cấu hình hoặc đang tắt.",
+                CommunityError.SourceUnavailable => "Chưa kết nối được nguồn tri thức. Bạn vẫn có thể tra cứu bài Helpdesk và thử lại sau.",
+                _ => "Nội dung đã thay đổi. Tải lại phiên bản trước khi tiếp tục."
+            } : exception is SlaOperationException slaFailure ? slaFailure.Error switch
             {
                 SlaError.InvalidInput => "Dữ liệu SLA không hợp lệ.",
                 SlaError.NotFound => "Không tìm thấy dữ liệu trong phạm vi được phép.",
@@ -109,6 +129,7 @@ public sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger) : I
         if (exception is CategoryOperationException categoryError) problem.Extensions["code"] = categoryError.Error.ToString();
         if (exception is TicketOperationException ticketError) problem.Extensions["code"] = ticketError.Error.ToString();
         if (exception is SlaOperationException slaError) problem.Extensions["code"] = slaError.Error.ToString();
+        if (exception is CommunityOperationException communityError) problem.Extensions["code"] = communityError.Error.ToString();
         if (status == 401) context.Response.Headers.WWWAuthenticate = "Bearer";
         context.Response.StatusCode = status;
         await context.Response.WriteAsJsonAsync(problem, options: null,

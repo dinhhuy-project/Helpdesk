@@ -39,7 +39,7 @@ Thêm đuôi `@demo.helpdesk.example` vào login trong bảng. Ví dụ `lead.it
 
 | Login | Số lượng | Role | Phạm vi và quyền chính |
 | --- | ---: | --- | --- |
-| `admin` | 1 | `SystemAdmin` | Toàn bộ 17 permission hiện có; đọc toàn bộ Ticket, phân công, quản trị user/role/tổ chức/danh mục/SLA. |
+| `admin` | 1 | `SystemAdmin` | Toàn bộ 17 permission tại thời điểm seed tuần; sau khi cấp thêm quyền cộng đồng có 21 permission, gồm soạn/xuất bản tri thức và sự cố. |
 | `lead.it`, `lead.hr`, `lead.office` | 3 | `TeamLeader` | `Requester` + quyền Agent + `ticket.assign`, `team.manage`; mỗi người có membership leader active ở đúng một team. Không quản trị user/grant toàn hệ thống. |
 | `agent.it.1–2`, `agent.hr.1–2`, `agent.office.1–2` | 6 | `SupportAgent` | Đọc Ticket của mình và team; public/internal comment; xử lý trạng thái trong phạm vi assignment. Không có `ticket.assign` hoặc quyền quản trị tổ chức. |
 | `requester.01–18` | 18 | `Requester` | `ticket.create`, `ticket.read.own`, `ticket.comment.public`, `ticket.confirm`, `ticket.reopen`, `ticket.cancel`; chỉ xem Ticket do mình yêu cầu, không xem internal note. |

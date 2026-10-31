@@ -111,6 +111,137 @@ namespace be.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("be.Domain.Entities.CommunityEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(30000)
+                        .HasColumnType("character varying(30000)")
+                        .HasColumnName("content");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_id");
+
+                    b.Property<bool>("IsPublished")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_published");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("PublicContent")
+                        .HasMaxLength(30000)
+                        .HasColumnType("character varying(30000)")
+                        .HasColumnName("public_content");
+
+                    b.Property<int>("PublicRevision")
+                        .HasColumnType("integer")
+                        .HasColumnName("public_revision");
+
+                    b.Property<string>("PublicStatus")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("public_status");
+
+                    b.Property<string>("PublicSummary")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("public_summary");
+
+                    b.Property<string>("PublicTitle")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("public_title");
+
+                    b.Property<string>("PublicTopic")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("public_topic");
+
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("published_at");
+
+                    b.Property<Guid?>("SourceTicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_ticket_id");
+
+                    b.Property<string>("Status")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Summary")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("summary");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("title");
+
+                    b.Property<string>("Topic")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("topic");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_community_entries");
+
+                    b.HasIndex("CreatedById")
+                        .HasDatabaseName("ix_community_entries_created_by_id");
+
+                    b.HasIndex("SourceTicketId")
+                        .HasDatabaseName("ix_community_entries_source_ticket_id");
+
+                    b.HasIndex("Kind", "PublishedAt", "Id")
+                        .HasDatabaseName("ix_community_entries_kind_published_at_id")
+                        .HasFilter("is_published");
+
+                    b.HasIndex("Kind", "UpdatedAt", "Id")
+                        .HasDatabaseName("ix_community_entries_kind_updated_at_id");
+
+                    b.HasIndex("PublicTitle", "PublicSummary", "PublicContent", "PublicTopic")
+                        .HasDatabaseName("ix_community_entries_public_title_public_summary_public_conten")
+                        .HasFilter("is_published")
+                        .HasAnnotation("Npgsql:TsVectorConfig", "simple");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("PublicTitle", "PublicSummary", "PublicContent", "PublicTopic"), "GIN");
+
+                    b.ToTable("community_entries", "helpdesk", t =>
+                        {
+                            t.HasCheckConstraint("ck_community_entries_kind", "(kind = 'Knowledge' AND status IS NULL) OR (kind = 'Incident' AND status IN ('Investigating','Identified','Monitoring','Resolved') AND status IS NOT NULL AND source_ticket_id IS NULL)");
+
+                            t.HasCheckConstraint("ck_community_entries_published", "NOT is_published OR (public_revision > 0 AND published_at IS NOT NULL AND public_title IS NOT NULL AND public_summary IS NOT NULL AND public_content IS NOT NULL AND public_topic IS NOT NULL AND ((kind = 'Knowledge' AND public_status IS NULL) OR (kind = 'Incident' AND public_status IN ('Investigating','Identified','Monitoring','Resolved') AND public_status IS NOT NULL)))");
+                        });
+                });
+
             modelBuilder.Entity("be.Domain.Entities.Department", b =>
                 {
                     b.Property<Guid>("Id")
@@ -254,6 +385,106 @@ namespace be.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_identity_audit_logs_target_user_id");
 
                     b.ToTable("identity_audit_logs", "identity");
+                });
+
+            modelBuilder.Entity("be.Domain.Entities.IncidentAffectedUser", b =>
+                {
+                    b.Property<Guid>("EntryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("entry_id");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.HasKey("EntryId", "UserId")
+                        .HasName("pk_incident_affected_users");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_incident_affected_users_user_id");
+
+                    b.ToTable("incident_affected_users", "helpdesk");
+                });
+
+            modelBuilder.Entity("be.Domain.Entities.IncidentUpdate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("EntryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("entry_id");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("message");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("integer")
+                        .HasColumnName("revision");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id")
+                        .HasName("pk_incident_updates");
+
+                    b.HasIndex("EntryId", "Revision")
+                        .IsUnique()
+                        .HasDatabaseName("ix_incident_updates_entry_id_revision");
+
+                    b.ToTable("incident_updates", "helpdesk", t =>
+                        {
+                            t.HasCheckConstraint("ck_incident_updates_status", "status IN ('Investigating','Identified','Monitoring','Resolved')");
+                        });
+                });
+
+            modelBuilder.Entity("be.Domain.Entities.KnowledgeFeedback", b =>
+                {
+                    b.Property<Guid>("EntryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("entry_id");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<bool>("Helpful")
+                        .HasColumnType("boolean")
+                        .HasColumnName("helpful");
+
+                    b.Property<bool>("Solved")
+                        .HasColumnType("boolean")
+                        .HasColumnName("solved");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("EntryId", "UserId")
+                        .HasName("pk_knowledge_feedback");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_knowledge_feedback_user_id");
+
+                    b.ToTable("knowledge_feedback", "helpdesk", t =>
+                        {
+                            t.HasCheckConstraint("ck_knowledge_feedback_solved", "NOT solved OR helpful");
+                        });
                 });
 
             modelBuilder.Entity("be.Domain.Entities.Notification", b =>
@@ -1188,6 +1419,22 @@ namespace be.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_attachment_upload_intents_ticket_comments_comment_id_ticket");
                 });
 
+            modelBuilder.Entity("be.Domain.Entities.CommunityEntry", b =>
+                {
+                    b.HasOne("be.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_community_entries_users_created_by_id");
+
+                    b.HasOne("be.Domain.Entities.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("SourceTicketId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_community_entries_tickets_source_ticket_id");
+                });
+
             modelBuilder.Entity("be.Domain.Entities.ExternalIdentity", b =>
                 {
                     b.HasOne("be.Domain.Entities.User", null)
@@ -1217,6 +1464,50 @@ namespace be.Infrastructure.Persistence.Migrations
                         .HasForeignKey("TargetUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_identity_audit_logs_users_target_user_id");
+                });
+
+            modelBuilder.Entity("be.Domain.Entities.IncidentAffectedUser", b =>
+                {
+                    b.HasOne("be.Domain.Entities.CommunityEntry", null)
+                        .WithMany()
+                        .HasForeignKey("EntryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_incident_affected_users_community_entries_entry_id");
+
+                    b.HasOne("be.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_incident_affected_users_users_user_id");
+                });
+
+            modelBuilder.Entity("be.Domain.Entities.IncidentUpdate", b =>
+                {
+                    b.HasOne("be.Domain.Entities.CommunityEntry", null)
+                        .WithMany()
+                        .HasForeignKey("EntryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_incident_updates_community_entries_entry_id");
+                });
+
+            modelBuilder.Entity("be.Domain.Entities.KnowledgeFeedback", b =>
+                {
+                    b.HasOne("be.Domain.Entities.CommunityEntry", null)
+                        .WithMany()
+                        .HasForeignKey("EntryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_knowledge_feedback_community_entries_entry_id");
+
+                    b.HasOne("be.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_knowledge_feedback_users_user_id");
                 });
 
             modelBuilder.Entity("be.Domain.Entities.Notification", b =>

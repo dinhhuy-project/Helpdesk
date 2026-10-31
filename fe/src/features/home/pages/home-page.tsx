@@ -2,6 +2,7 @@ import { ErrorState, LoadingState } from '../../../shared/components/async-state
 import { formatDateTime } from '../../../shared/lib/date-time'
 import { useHealth } from '../hooks/use-health'
 import { PageTitle } from '../../../shared/components/page-title'
+import { Link } from 'react-router-dom'
 
 export function HomePage() {
   const health = useHealth()
@@ -12,6 +13,7 @@ export function HomePage() {
         <p className="eyebrow">Helpdesk / Hỗ trợ nội bộ</p>
         <h1 id="welcome-title">Kết nối hỗ trợ.<br />Tiếp nối công việc.</h1>
         <p className="intro-description">Một nơi để tiếp nhận yêu cầu, phối hợp giữa các bộ phận và theo dõi quá trình giải quyết vấn đề.</p>
+        <div className="community-links"><Link className="button button--primary" to="/knowledge">Tự tra cứu hướng dẫn</Link><Link className="button button--secondary" to="/incidents">Kiểm tra sự cố chung</Link></div>
       </section>
       <div className="information-grid">
         <section className="information-card"><span className="card-number">01 / TIẾP NHẬN</span><h2>Yêu cầu rõ ràng</h2><p>Mô tả vấn đề và thông tin liên quan để bộ phận hỗ trợ có thể bắt đầu đúng hướng.</p></section>

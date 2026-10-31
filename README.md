@@ -33,6 +33,10 @@ Ví dụ, trong công ty có phòng IT, Nhân sự, Kế toán và Kinh doanh. N
 
 ## 2. Trạng thái dự án
 
+**Cổng cộng đồng:** Đã bổ sung kho tri thức và sự cố chung tra cứu trước đăng nhập, quản trị bản soạn/xuất bản, đánh giá hữu ích/tự giải quyết, xác nhận ảnh hưởng và hub realtime công khai. Nguồn có revision/URL để chuẩn bị tích hợp AI. Xem [chức năng và cài đặt](docs/public-community.md) và [review migration PublicCommunity](docs/public-community-review.md).
+
+**Nguồn tri thức bổ sung:** [BookStack và Wikipedia tiếng Việt](docs/knowledge-integrations.md): nhập trang wiki thành bản nháp để duyệt, tra cứu tài liệu tham khảo trước đăng nhập. Khởi tạo wiki cục bộ bằng `.\be\scripts\Initialize-KnowledgeWiki.ps1 -Provision`; cấu hình và dữ liệu wiki độc lập với database Helpdesk.
+
 Tài liệu này mô tả **phạm vi và thiết kế mục tiêu của hệ thống**, không khẳng định mọi chức năng đã được lập trình.
 
 | Hạng mục                                           | Trạng thái tại thời điểm soạn README | Ghi chú                                                                     |

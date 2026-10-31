@@ -20,6 +20,9 @@ import { CatalogRouteBoundary, CatalogListPage, CreateCatalogPage, CatalogDetail
 import { SlaRouteBoundary, SlaPolicyListPage, CreateSlaPolicyPage, SlaPolicyDetailPage } from '../../features/sla/components/sla-route-boundary'
 import { NotificationRouteBoundary, NotificationListPage, NotificationDetailPage } from '../../features/notifications/components/notification-route-boundary'
 import { ReportRouteBoundary, ReportPage } from '../../features/dashboard/components/report-route-boundary'
+import { CommunityPublicBoundary } from '../../features/community/components/community-public-boundary'
+import { CommunityPublicList, CommunityPublicDetail } from '../../features/community/pages/public-community-pages'
+import { CommunityManageList, CommunityManageDetail } from '../../features/community/pages/manage-community-pages'
 
 export const appRoutes: RouteObject[] = [{
   path: '/',
@@ -29,7 +32,23 @@ export const appRoutes: RouteObject[] = [{
     { index: true, element: <HomePage /> },
     { path: 'login', element: <LoginPage /> },
     { path: '403', element: <ForbiddenPage /> },
+    { element: <CommunityPublicBoundary />, children: [
+      { path: 'knowledge', element: <CommunityPublicList kind="knowledge" /> },
+      { path: 'knowledge/:id', element: <CommunityPublicDetail kind="knowledge" /> },
+      { path: 'incidents', element: <CommunityPublicList kind="incidents" /> },
+      { path: 'incidents/:id', element: <CommunityPublicDetail kind="incidents" /> },
+    ] },
     { element: <RequireSession />, children: [
+      { element: <RequirePermission rule={{ anyOf: [Permission.KnowledgeManage, Permission.KnowledgePublish] }} />, children: [
+        { path: 'admin/knowledge', element: <CommunityManageList kind="knowledge" /> },
+        { path: 'admin/knowledge/new', element: <CommunityManageDetail kind="knowledge" /> },
+        { path: 'admin/knowledge/:id', element: <CommunityManageDetail kind="knowledge" /> },
+      ] },
+      { element: <RequirePermission rule={{ anyOf: [Permission.IncidentManage, Permission.IncidentPublish] }} />, children: [
+        { path: 'admin/incidents', element: <CommunityManageList kind="incidents" /> },
+        { path: 'admin/incidents/new', element: <CommunityManageDetail kind="incidents" /> },
+        { path: 'admin/incidents/:id', element: <CommunityManageDetail kind="incidents" /> },
+      ] },
       { element: <ReportRouteBoundary />, children: [
         { path: 'dashboard', element: <ReportPage /> },
         { path: 'reports/tickets', element: <ReportPage reports /> },

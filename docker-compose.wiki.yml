@@ -1,0 +1,54 @@
+# Optional, independent wiki stack; it does not change the core infrastructure command.
+name: ${COMPOSE_PROJECT_NAME:-helpdesk}-wiki
+
+services:
+  bookstack-db:
+    image: mariadb@sha256:d1891ede5a559f1086f55053bb8cc1569b0298338c4d72d71725a7f74f6ba620
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${BOOKSTACK_DB_ROOT_PASSWORD:?Run Initialize-KnowledgeWiki.ps1 first}
+      MARIADB_DATABASE: bookstack
+      MARIADB_USER: bookstack
+      MARIADB_PASSWORD: ${BOOKSTACK_DB_PASSWORD:?Run Initialize-KnowledgeWiki.ps1 first}
+    volumes:
+      - wiki-database:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  bookstack:
+    image: lscr.io/linuxserver/bookstack@sha256:da6324232770050b7d5f6222e8f4e223f1c688363b02ebb3c15a7546dd7133d5
+    restart: unless-stopped
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: Asia/Bangkok
+      APP_URL: ${BOOKSTACK_APP_URL:-http://localhost:6875}
+      APP_KEY: ${BOOKSTACK_APP_KEY:?Run Initialize-KnowledgeWiki.ps1 first}
+      DB_HOST: bookstack-db
+      DB_PORT: "3306"
+      DB_DATABASE: bookstack
+      DB_USERNAME: bookstack
+      DB_PASSWORD: ${BOOKSTACK_DB_PASSWORD:?Run Initialize-KnowledgeWiki.ps1 first}
+      APP_DEBUG: "false"
+    ports:
+      - "127.0.0.1:${BOOKSTACK_PORT:-6875}:80"
+    volumes:
+      - wiki-config:/config
+      - ./deploy/bookstack/bootstrap-local.php:/setup/bootstrap-local.php:ro
+    depends_on:
+      bookstack-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "--output", "/dev/null", "http://127.0.0.1/login"]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+      start_period: 60s
+
+volumes:
+  wiki-database:
+  wiki-config:

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/hooks/use-auth'
+import { TicketKnowledgeSuggestions } from '../../community/components/ticket-knowledge'
 import { hasPermissions, readTicketRule } from '../../auth/lib/permissions'
 import { getFieldError } from '../../../shared/api/api-error'
 import { Button } from '../../../shared/components/button'
@@ -85,6 +86,7 @@ function CreateTicketForm({ onCreated }: { onCreated: (receipt: TicketCreated) =
       <div className="ticket-filter-actions">{canRead && <Link to="/tickets">Kiểm tra danh sách yêu cầu</Link>}
         <Button variant="secondary" onClick={form.allowResubmit}>Tôi đã kiểm tra, cho phép gửi lại</Button></div>
     </div>}
+    <TicketKnowledgeSuggestions title={title} />
     <div className="ticket-create-actions"><Button type="submit" pending={form.pending} disabled={form.disabled}>Gửi yêu cầu</Button>
       <Link to={canRead ? '/tickets' : '/account'}>{canRead ? 'Về danh sách yêu cầu' : 'Về tài khoản'}</Link></div>
   </form>

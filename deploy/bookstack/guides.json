@@ -1,0 +1,10 @@
+[
+  {
+    "name": "Kết nối VPN khi làm việc từ xa",
+    "markdown": "# Kết nối VPN khi làm việc từ xa\n\n1. Kiểm tra kết nối Internet bằng một trang công khai.\n2. Mở ứng dụng VPN được đơn vị cung cấp, kiểm tra ngày giờ thiết bị.\n3. Chọn đúng máy chủ và xác thực MFA; không chia sẻ mã xác thực.\n4. Nếu không kết nối được, ghi mã lỗi và thời điểm để gửi Helpdesk. Không gửi mật khẩu hoặc mã MFA.\n\nHướng dẫn tổng quát do nhóm Helpdesk biên soạn; cần đối chiếu cấu hình của đơn vị trước khi xuất bản."
+  },
+  {
+    "name": "Chuẩn bị đổi điện thoại sử dụng MFA",
+    "markdown": "# Chuẩn bị đổi điện thoại dùng MFA\n\nTrước khi đổi thiết bị, kiểm tra phương thức xác minh dự phòng theo chính sách của đơn vị. Nếu có mã khôi phục, cất ở nơi an toàn và không đưa vào Ticket.\n\nĐăng ký thiết bị mới theo hướng dẫn của nhóm IT, kiểm tra đăng nhập thành công trước khi gỡ thiết bị cũ. Nếu đã mất thiết bị, liên hệ Helpdesk để xác minh danh tính; không tự tắt MFA hoặc chấp nhận yêu cầu xác minh bất thường."
+  }
+]

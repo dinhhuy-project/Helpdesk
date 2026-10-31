@@ -19,6 +19,7 @@ import { TicketWorkflowPanel } from '../components/ticket-workflow-panel'
 import { useTicketAttachmentUpload, type AttachmentUpload } from '../hooks/use-ticket-attachments'
 import { TicketSlaPanel } from '../../sla/components/ticket-sla-panel'
 import { useTicketWatch } from '../../notifications/realtime/use-ticket-watch'
+import { TicketKnowledgeDraft } from '../../community/components/ticket-knowledge'
 
 export function TicketDetailPage() {
   const { id } = useParams()
@@ -109,6 +110,7 @@ function TicketContent({ id, draft, onDraftChange, command, workflow, upload, re
     </section>
     <TicketWorkflowPanel id={id} ticketVersion={ticket.version} actions={workflow} externallyBlocked={command.pending || upload.command.pending} />
     <TicketSlaPanel id={id} onDenied={refreshResource} />
+    {(ticket.status === 4 || ticket.status === 5) && <TicketKnowledgeDraft ticketId={id} />}
     <TicketDiscussion id={id} draft={draft} onDraftChange={onDraftChange}
       command={{ ...command, disabled: command.disabled || upload.command.pending || workflow.command.pending }}
       onDenied={setDiscussionError} upload={upload} filesBlocked={command.pending || workflow.command.pending} refreshResource={refreshResource} />

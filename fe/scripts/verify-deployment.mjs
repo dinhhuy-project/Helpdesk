@@ -13,7 +13,7 @@ try {
   const home = await request('SPA document over trusted HTTPS', origin)
   assert.equal(home.status, 200); assert.match(home.headers.get('content-type') || '', /text\/html/)
   const html = await home.text()
-  for (const path of ['/login', '/tickets/11111111-1111-1111-1111-111111111111', '/reports/tickets', '/admin/users']) {
+  for (const path of ['/login', '/knowledge', '/knowledge/11111111-1111-1111-1111-111111111111', '/incidents', '/tickets/11111111-1111-1111-1111-111111111111', '/reports/tickets', '/admin/users']) {
     const response = await request(`SPA deep link ${path}`, new URL(path, origin))
     assert.equal(response.status, 200); assert.equal(await response.text(), html)
   }
@@ -26,6 +26,13 @@ try {
   const user = await request('API authentication challenge', new URL('/api/v1/users/me', api))
   const hub = await request('Hub authentication challenge', new URL('/hubs/notifications/negotiate?negotiateVersion=1', api), { method: 'POST' })
   for (const response of [user, hub]) { assert.equal(response.status, 401); assert(!/text\/html/.test(response.headers.get('content-type') || '')) }
+  for (const kind of ['knowledge', 'incidents']) {
+    const response = await request(`Anonymous public ${kind}`, new URL(`/api/v1/public/${kind}?pageSize=1`, api))
+    assert.equal(response.status, 200); assert.match(response.headers.get('content-type') || '', /application\/json/)
+    const page = await response.json(); assert(Array.isArray(page.items)); assert(Number.isInteger(page.totalCount))
+  }
+  const community = await request('Anonymous community hub', new URL('/hubs/community/negotiate?negotiateVersion=1', api), { method: 'POST' })
+  assert.equal(community.status, 200); assert.match(community.headers.get('content-type') || '', /application\/json/)
   const preflight = async from => request('CORS preflight', new URL('/api/v1/users/me', api), { method: 'OPTIONS', headers: {
     Origin: from, 'Access-Control-Request-Method': 'GET', 'Access-Control-Request-Headers': 'authorization,content-type',
   } })

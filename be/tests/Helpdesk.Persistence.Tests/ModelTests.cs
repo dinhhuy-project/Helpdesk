@@ -15,7 +15,7 @@ public class ModelTests
     {
         using var context = CreateContext();
         var entities = context.Model.GetEntityTypes().ToArray();
-        Assert.Equal(20, entities.Length);
+        Assert.Equal(24, entities.Length);
         Assert.Equal(new[] { "communication", "helpdesk", "identity", "organization" },
             entities.Select(x => x.GetSchema()).Distinct().OrderBy(x => x));
         foreach (var entity in entities)
@@ -56,7 +56,7 @@ public class ModelTests
         using var context = CreateContext();
         Assert.False(context.Database.HasPendingModelChanges());
         var migrations = context.Database.GetMigrations().ToArray();
-        Assert.Equal(8, migrations.Length);
+        Assert.Equal(9, migrations.Length);
         Assert.EndsWith("_InitialCreate", migrations[0]);
         Assert.EndsWith("_AccountAdministration", migrations[1]);
         Assert.EndsWith("_DepartmentAdministration", migrations[2]);
@@ -65,6 +65,7 @@ public class ModelTests
         Assert.EndsWith("_AttachmentStorage", migrations[5]);
         Assert.EndsWith("_NotificationDelivery", migrations[6]);
         Assert.EndsWith("_SlaMvp", migrations[7]);
+        Assert.EndsWith("_PublicCommunity", migrations[8]);
         var migrator = context.GetService<IMigrator>();
         var forward = migrator.GenerateScript("0", migrations[0], MigrationsSqlGenerationOptions.Idempotent);
         var rollback = migrator.GenerateScript(migrations[0], "0");
@@ -98,6 +99,9 @@ public class ModelTests
             NormalizeSql(ReadSql("SlaMvp.sql")));
         Assert.Equal(NormalizeSql(migrator.GenerateScript(migrations[7], migrations[6])),
             NormalizeSql(ReadSql("SlaMvp.Rollback.sql")));
+        Assert.Equal(NormalizeSql(migrator.GenerateScript(migrations[7], migrations[8], MigrationsSqlGenerationOptions.Idempotent)),
+            NormalizeSql(ReadSql("PublicCommunity.sql")));
+        Assert.Equal(NormalizeSql(migrator.GenerateScript(migrations[8], migrations[7])), NormalizeSql(ReadSql("PublicCommunity.Rollback.sql")));
     }
 
     internal static string ReadSql(string fileName) =>

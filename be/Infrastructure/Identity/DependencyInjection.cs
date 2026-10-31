@@ -13,6 +13,7 @@ public static class DependencyInjection
         services.AddScoped<IdentityInitializer>();
         services.AddScoped<DevelopmentDataInitializer>();
         services.AddScoped<DemoWeekInitializer>();
+        services.AddScoped<CommunityDemoInitializer>();
         services.AddHostedService<IdentityStartupSeeder>();
         return services;
     }

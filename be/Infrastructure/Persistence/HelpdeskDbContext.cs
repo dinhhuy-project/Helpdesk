@@ -25,6 +25,10 @@ public class HelpdeskDbContext(DbContextOptions<HelpdeskDbContext> options) : Db
     public DbSet<SlaPolicy> SlaPolicies => Set<SlaPolicy>();
     public DbSet<TicketSla> TicketSlas => Set<TicketSla>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<CommunityEntry> CommunityEntries => Set<CommunityEntry>();
+    public DbSet<IncidentUpdate> IncidentUpdates => Set<IncidentUpdate>();
+    public DbSet<IncidentAffectedUser> IncidentAffectedUsers => Set<IncidentAffectedUser>();
+    public DbSet<KnowledgeFeedback> KnowledgeFeedback => Set<KnowledgeFeedback>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {

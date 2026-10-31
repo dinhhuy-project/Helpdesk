@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Navigate, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import { getFieldError } from '../../../shared/api/api-error'
 import { Button } from '../../../shared/components/button'
 import { FormField, Input } from '../../../shared/components/form-field'
@@ -23,6 +23,7 @@ export function LoginPage() {
       <PageTitle title="Đăng nhập" />
       <p className="eyebrow">Tài khoản Helpdesk</p><h1 id="login-title">Đăng nhập</h1>
       <p className="auth-description">Đăng nhập bằng tài khoản do doanh nghiệp cung cấp.</p>
+      <p className="auth-footnote">Bạn có thể <Link to="/knowledge">tra cứu hướng dẫn</Link> và <Link to="/incidents">xem sự cố chung</Link> trước khi đăng nhập.</p>
       <SessionNotice />
       <form aria-label="Đăng nhập" onSubmit={event => {
         event.preventDefault()

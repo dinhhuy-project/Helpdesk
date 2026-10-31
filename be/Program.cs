@@ -22,6 +22,8 @@ using be.Application.Features.Reporting;
 using be.Infrastructure.Reporting;
 using Microsoft.OpenApi.Models;
 using be.Infrastructure.Seeding;
+using be.Application.Features.Community;
+using be.Infrastructure.Community;
 
 namespace be
 {
@@ -67,6 +69,10 @@ namespace be
             builder.Services.AddScoped<ITicketDiscussionStore, TicketDiscussionStore>();
             builder.Services.AddScoped<TicketDiscussionService>();
             builder.Services.AddScoped<TicketWriteGuard>();
+            builder.Services.AddScoped<ICommunityStore, CommunityStore>();
+            builder.Services.AddScoped<CommunityService>();
+            builder.Services.AddKnowledgeSources(builder.Configuration);
+            builder.Logging.AddFilter("System.Net.Http.HttpClient.KnowledgeSources", LogLevel.Warning);
             // Framework diagnostics include raw exceptions; our handler emits safe trace-based logs.
             builder.Logging.AddFilter("Microsoft.AspNetCore.Diagnostics.ExceptionHandlerMiddleware", LogLevel.None);
             builder.Logging.AddFilter("Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerHandler", LogLevel.None);
@@ -131,6 +137,7 @@ namespace be
 
             app.MapControllers();
             app.MapHub<NotificationsHub>(NotificationsHub.Path, options => options.CloseOnAuthenticationExpiration = true);
+            app.MapHub<PublicCommunityHub>(PublicCommunityHub.Path).RequireRateLimiting(ApiPolicies.CommunityPublic);
             app.MapHealthChecks("/health/live");
 
             await app.RunAsync();

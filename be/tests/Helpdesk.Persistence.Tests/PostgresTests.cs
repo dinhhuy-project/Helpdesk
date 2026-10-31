@@ -102,7 +102,7 @@ public class PostgresTests(PostgresFixture fixture)
         await using var command = new NpgsqlCommand(ModelTests.ReadSql("InitialCreate.sql"), connection);
         await command.ExecuteNonQueryAsync();
         await command.ExecuteNonQueryAsync();
-        Assert.Equal(8, (await context.Database.GetAppliedMigrationsAsync()).Count());
+        Assert.Equal(9, (await context.Database.GetAppliedMigrationsAsync()).Count());
         context.ChangeTracker.Clear();
         var loaded = await context.Tickets.SingleAsync(x => x.Id == ticket.Id);
         Assert.Equal(ticket.TicketNumber, loaded.TicketNumber);

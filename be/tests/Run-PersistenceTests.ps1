@@ -1,8 +1,8 @@
-param([string]$Filter = '')
+param([string]$Filter = '', [ValidateSet('Debug', 'Release')][string]$Configuration = 'Debug')
 
 $ErrorActionPreference = 'Stop'
 $frontendRoot = Join-Path $PSScriptRoot '../../fe'
-if ((-not $Filter -or $env:HELPDESK_BROWSER_ACCEPTANCE -eq 'true' -or $Filter -match 'Frontend(?:Discussion|Account|Catalog|Workflow|Attachment|Sla|Notification|Realtime|Reporting)Journey|SignalRJavaScript') -and (-not (Get-Command node -ErrorAction SilentlyContinue) -or
+if ((-not $Filter -or $env:HELPDESK_BROWSER_ACCEPTANCE -eq 'true' -or $Filter -match 'Frontend(?:Discussion|Account|Catalog|Workflow|Attachment|Sla|Notification|Realtime|Reporting|Community)Journey|SignalRJavaScript') -and (-not (Get-Command node -ErrorAction SilentlyContinue) -or
     -not (Test-Path -LiteralPath (Join-Path $frontendRoot 'node_modules/@microsoft/signalr/package.json')))) {
     throw 'Node.js and frontend dependencies are required for frontend API/SignalR integration tests. Run npm ci in fe/ first.'
 }
@@ -66,20 +66,24 @@ try {
         Start-Sleep -Seconds 1
     }
     if (-not $storageReady) { throw 'MinIO test container did not become ready.' }
-    if ($env:HELPDESK_BROWSER_ACCEPTANCE -eq 'true') { node (Join-Path $frontendRoot 'scripts/run-browser-acceptance.mjs') }
-    elseif ($Filter) { dotnet test (Join-Path $PSScriptRoot '../be.sln') --no-restore --filter $Filter }
-    else { dotnet test (Join-Path $PSScriptRoot '../be.sln') --no-restore }
+    if ($env:HELPDESK_BROWSER_ACCEPTANCE -eq 'true') {
+        $browserArgs = @((Join-Path $frontendRoot 'scripts/run-browser-acceptance.mjs'))
+        if ($Configuration -eq 'Release') { $browserArgs += '--release' }
+        node @browserArgs
+    }
+    elseif ($Filter) { dotnet test (Join-Path $PSScriptRoot '../be.sln') --configuration $Configuration --no-restore --filter $Filter }
+    else { dotnet test (Join-Path $PSScriptRoot '../be.sln') --configuration $Configuration --no-restore }
     if ($LASTEXITCODE -ne 0) { throw 'Persistence tests failed.' }
 
     # Exercise the real CLI entry point only against this test container.
     $env:ConnectionStrings__Helpdesk = $env:HELPDESK_TEST_CONNECTION
-    dotnet run --project (Join-Path $PSScriptRoot '../be.csproj') --no-build --no-launch-profile -- seed-identity
+    dotnet run --project (Join-Path $PSScriptRoot '../be.csproj') --configuration $Configuration --no-build --no-launch-profile -- seed-identity
     if ($LASTEXITCODE -ne 0) { throw 'Identity seed CLI smoke check failed.' }
-    dotnet run --project (Join-Path $PSScriptRoot '../be.csproj') --no-build --no-launch-profile -- grant-team-leadership
+    dotnet run --project (Join-Path $PSScriptRoot '../be.csproj') --configuration $Configuration --no-build --no-launch-profile -- grant-team-leadership
     if ($LASTEXITCODE -ne 0) { throw 'Team leadership grant CLI smoke check failed.' }
-    dotnet run --project (Join-Path $PSScriptRoot '../be.csproj') --no-build --no-launch-profile -- grant-category-administration
+    dotnet run --project (Join-Path $PSScriptRoot '../be.csproj') --configuration $Configuration --no-build --no-launch-profile -- grant-category-administration
     if ($LASTEXITCODE -ne 0) { throw 'Category administration grant CLI smoke check failed.' }
-    dotnet run --project (Join-Path $PSScriptRoot '../be.csproj') --no-build --no-launch-profile -- grant-ticket-workflow
+    dotnet run --project (Join-Path $PSScriptRoot '../be.csproj') --configuration $Configuration --no-build --no-launch-profile -- grant-ticket-workflow
     if ($LASTEXITCODE -ne 0) { throw 'Ticket workflow grant CLI smoke check failed.' }
 }
 finally {

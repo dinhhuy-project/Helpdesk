@@ -77,6 +77,10 @@ public sealed class IdentityInitializer(HelpdeskDbContext database, IPasswordHas
     public async Task GrantCategoryAdministrationAsync(CancellationToken cancellationToken = default)
         => await GrantAdministrationAsync([PermissionCodes.CategoryManage], "CategoryAdministrationEnabled", cancellationToken);
 
+    public async Task GrantCommunityAdministrationAsync(CancellationToken cancellationToken = default)
+        => await GrantAdministrationAsync([PermissionCodes.KnowledgeManage, PermissionCodes.KnowledgePublish,
+            PermissionCodes.IncidentManage, PermissionCodes.IncidentPublish], "CommunityAdministrationEnabled", cancellationToken);
+
     public async Task GrantTicketWorkflowAsync(CancellationToken cancellationToken = default)
     {
         await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);

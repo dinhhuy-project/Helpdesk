@@ -32,7 +32,7 @@ try {
   server = await preview({ root: frontend, server: { proxy: {} }, preview: { host: 'localhost', port: 0, strictPort: true, proxy: {} } })
   const address = server.httpServer.address()
   if (!address || typeof address === 'string') throw new Error('Cannot resolve acceptance server port.')
-  const journeys = ['Discussion', 'Account', 'Catalog', 'Workflow', 'Attachment', 'Sla', 'Notification', 'Realtime', 'Reporting']
+  const journeys = ['Discussion', 'Account', 'Catalog', 'Workflow', 'Attachment', 'Sla', 'Notification', 'Realtime', 'Reporting', 'Community']
   const selected = process.env.HELPDESK_ACCEPTANCE_JOURNEYS?.split(',') || journeys
   if (!selected.length || selected.some(name => !journeys.includes(name))) throw new Error('Invalid acceptance journey selection.')
   const filters = selected.map(name => `FullyQualifiedName~Frontend${name}JourneyTests`).join('|')

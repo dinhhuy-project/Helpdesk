@@ -6,6 +6,7 @@ export const Permission = {
   TicketCommentPublic: 'ticket.comment.public', TicketCommentInternal: 'ticket.comment.internal',
   TicketManageSla: 'ticket.manage.sla', UserManage: 'user.manage', RoleManage: 'role.manage',
   TeamManage: 'team.manage', DepartmentManage: 'department.manage', CategoryManage: 'category.manage',
+  KnowledgeManage: 'knowledge.manage', KnowledgePublish: 'knowledge.publish', IncidentManage: 'incident.manage', IncidentPublish: 'incident.publish',
 } as const
 export type PermissionCode = typeof Permission[keyof typeof Permission]
 export interface PermissionRule { anyOf?: readonly PermissionCode[]; allOf?: readonly PermissionCode[] }

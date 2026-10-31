@@ -108,6 +108,14 @@ services:
       Minio__SecretKey: ${MINIO_APP_SECRET_KEY:-}
       Minio__Bucket: helpdesk-attachments
       Minio__UseSsl: "false"
+      KnowledgeSources__WikipediaEnabled: ${KNOWLEDGE_WIKIPEDIA_ENABLED:-true}
+      KnowledgeSources__BookStack__Enabled: ${BOOKSTACK_CONNECTOR_ENABLED:-false}
+      KnowledgeSources__BookStack__SourceId: ${BOOKSTACK_SOURCE_ID:-support-wiki}
+      KnowledgeSources__BookStack__BaseUrl: ${BOOKSTACK_BASE_URL:-http://host.docker.internal:6875/}
+      KnowledgeSources__BookStack__AllowHttp: "true"
+      KnowledgeSources__BookStack__BookId: ${BOOKSTACK_BOOK_ID:-0}
+      KnowledgeSources__BookStack__TokenId: ${BOOKSTACK_TOKEN_ID:-}
+      KnowledgeSources__BookStack__TokenSecret: ${BOOKSTACK_TOKEN_SECRET:-}
     ports:
       - "127.0.0.1:${API_PORT:-5000}:8080"
     depends_on:
