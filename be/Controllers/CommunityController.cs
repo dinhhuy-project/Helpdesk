@@ -22,7 +22,7 @@ public sealed class PublicCommunityController(CommunityService community) : Cont
     public Task<be.Application.Features.Accounts.PagedResult<PublicCommunityEntry>> List(string kind, [FromQuery] CommunitySearch request, CancellationToken ct) =>
         community.PublicListAsync(CommunityService.Kind(kind), request, ct);
     [HttpGet("{id:guid}")]
-    public Task<PublicCommunityEntry> Get(string kind, Guid id, CancellationToken ct) => community.PublicGetAsync(CommunityService.Kind(kind), id, ct);
+    public Task<PublicCommunityEntry> Get(string kind, Guid id, CancellationToken ct, [FromQuery] string dataset = "operational") => community.PublicGetAsync(CommunityService.Kind(kind), id, ct, dataset);
     [HttpGet("{id:guid}/updates")]
     public Task<be.Application.Features.Accounts.PagedResult<PublicIncidentUpdate>> Updates(string kind, Guid id, [FromQuery] CommunitySearch request, CancellationToken ct)
     {

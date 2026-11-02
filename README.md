@@ -4,6 +4,18 @@
 >
 > **Frontend:** React `^19.3.1` · **Backend:** ASP.NET Core (`net8.0`) · **Database:** PostgreSQL · **Realtime:** SignalR · **Cache:** Redis · **File Storage:** MinIO · **Triển khai:** Docker
 
+**Bắt đầu chạy project:** [Cài đặt, khởi tạo và các câu lệnh chạy Helpdesk](docs/installation-and-running.md) — hướng dẫn từ máy mới, migration/seed, Visual Studio/CLI/Compose, frontend, wiki và xử lý lỗi.
+
+**Chạy hằng ngày:** bật Docker Desktop → `powershell -NoProfile -ExecutionPolicy Bypass -File .\Start-Development.ps1` → terminal khác chạy `npm --prefix fe run dev` → Visual Studio chọn **Container (Dockerfile)** và F5. Script bật hạ tầng + Wiki/AI đã enable, đồng bộ user-secrets và kiểm tra migration; xem [hướng dẫn chạy nhanh](docs/installation-and-running.md#chạy-hằng-ngày-với-visual-studio).
+
+**Chuẩn bị tài liệu cho AI:** Đã có [chuẩn biên tập hướng dẫn](docs/knowledge-authoring.md), metadata/snapshot và tách nguồn thực tế/demo; 8 bản nháp ứng viên được tạo bằng CLI riêng, không tự publish. Cần [review/apply KnowledgeStandardization](docs/knowledge-standardization-review.md) trước khi chạy API mới.
+
+**Truy xuất tài liệu:** [Tìm đúng đoạn hướng dẫn](docs/knowledge-retrieval.md) hỗ trợ không dấu, từ viết tắt và nhóm từ đồng nghĩa, chỉ dùng snapshot thực tế đã được duyệt. Review/apply [KnowledgeRetrieval](docs/knowledge-retrieval-review.md) trước khi dùng endpoint mới; chưa cần dịch vụ AI.
+
+**Trợ lý AI local:** [Cài Ollama và dùng API trợ lý public](docs/public-assistant.md) — miễn phí, chọn đoạn đã duyệt, trả lời nguyên văn kèm nguồn và hướng dẫn liên hệ khi thiếu thông tin. Khởi tạo bằng `be/scripts/Initialize-LocalAssistant.ps1`; không có migration mới.
+
+**Đồng bộ chỉ mục:** [ID/revision, đối soát manifest và phục hồi](docs/knowledge-index-synchronization.md) — publish/withdraw cập nhật GIN cùng transaction; CLI kiểm tra và dựng lại an toàn, không cần migration mới.
+
 ## 1. Giới thiệu
 
 **Helpdesk Management System** là ứng dụng web giúp doanh nghiệp tiếp nhận, phân loại, phân công, xử lý và theo dõi các yêu cầu hỗ trợ (_ticket_) từ nhân viên/người dùng nội bộ. Thay vì gửi yêu cầu rời rạc qua email, tin nhắn hoặc điện thoại, người dùng tạo ticket tại một nơi duy nhất và theo dõi được toàn bộ quá trình giải quyết.

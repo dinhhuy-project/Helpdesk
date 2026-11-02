@@ -360,3 +360,11 @@ a.navigation-item:hover { background: #f0f5f2; }
 .knowledge-reference-list .button { text-align: start; white-space: normal; max-width: 100%; }
 .knowledge-source-preview { margin-block-start: 1.25rem; padding-block-start: 1rem; border-top: 1px solid var(--color-border, #c7d4d1); }
 .knowledge-source-preview .community-content { max-height: 24rem; overflow: auto; }
+.knowledge-guide-fields { display: grid; gap: 1rem; min-width: 0; border: 1px solid #9ab4ad; border-radius: .75rem; padding: 1rem; }
+.knowledge-guide-fields legend { font-weight: 700; padding-inline: .4rem; }
+.community-demo-notice { padding: 1rem; background: #fff4d8; color: #654400; border: 1px solid #b68a2e; border-radius: .75rem; overflow-wrap: anywhere; }
+/* Public retrieval excerpts keep long error codes and URLs within narrow screens. */
+.community-retrieval { margin-block: 1.5rem 2rem; min-width: 0; }
+.community-retrieval .community-filters { grid-template-columns: minmax(0, 1fr) auto; align-items: end; }
+.community-retrieval blockquote { margin: 1rem 0; padding-left: 1rem; border-left: 3px solid var(--color-primary, #126555); overflow-wrap: anywhere; }
+@media (max-width: 600px) { .community-retrieval .community-filters { grid-template-columns: minmax(0, 1fr); } }

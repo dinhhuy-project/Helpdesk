@@ -1,5 +1,9 @@
 # Helpdesk frontend
 
+[Hướng dẫn cài đặt và chạy toàn bộ project](../docs/installation-and-running.md) bao gồm hạ tầng, backend, frontend, dữ liệu demo và wiki.
+
+Chạy hằng ngày từ root repository: `powershell -NoProfile -ExecutionPolicy Bypass -File .\Start-Development.ps1` để bật hạ tầng; terminal khác chạy **`npm --prefix fe run dev`**; backend chọn **Container (Dockerfile)** rồi F5 trong Visual Studio. Cài dependencies bằng `npm --prefix fe ci` một lần khi mới clone hoặc khi cần đồng bộ lockfile.
+
 React 19.3.1 + TypeScript + Vite. Đã có nền tảng, auth/session, shell/permission, Ticket list/detail/create/discussion/workflow/attachments/SLA, quản trị tài khoản/role/grant/audit, phòng ban/team/membership/category và SLA policy theo scope/permission server. Có notification/SignalR và dashboard/báo cáo dùng aggregation server theo cùng cohort/ACL/filter. File upload/download qua Bearer API, giữ ACL Ticket/comment và visibility.
 
 ```powershell

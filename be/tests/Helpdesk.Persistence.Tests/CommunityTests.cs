@@ -150,7 +150,7 @@ public class CommunityTests(PostgresFixture fixture)
         for (var repeat = 0; repeat < 2; repeat++) Assert.Equal(HttpStatusCode.OK, (await user.PutAsJsonAsync(path, new { value = true })).StatusCode);
         var visible = (await guest.GetFromJsonAsync<PublicCommunityEntry>($"/api/v1/public/incidents/{row.Id}"))!;
         Assert.Equal(1, visible.AffectedCount);
-        using var save = await admin.PutAsJsonAsync($"/api/v1/community/incidents/{row.Id}", new SaveCommunityEntry(row.Title, row.Summary, row.Content, row.Topic, "Resolved", row.Version));
+        using var save = await admin.PutAsJsonAsync($"/api/v1/community/incidents/{row.Id}", new SaveCommunityEntry(row.Title, row.Summary, row.Content, row.Topic, "Resolved", row.Version, row.Classification));
         var edited = (await save.Content.ReadFromJsonAsync<ManagedCommunityEntry>())!;
         Assert.Equal("Investigating", (await guest.GetFromJsonAsync<PublicCommunityEntry>($"/api/v1/public/incidents/{row.Id}"))!.Status);
         row = await PublishAsync(admin, "incidents", edited);
@@ -219,10 +219,13 @@ public class CommunityTests(PostgresFixture fixture)
 
     internal static async Task<ManagedCommunityEntry> CreateAsync(HttpClient client, string kind, string status = "Investigating")
     {
-        using var response = await client.PostAsJsonAsync($"/api/v1/community/{kind}", new SaveCommunityEntry("Published VPN guide", "Safe public summary", "Step 1: check VPN settings. Step 2: reconnect.", "Network", kind == "incidents" ? status : null));
+        using var response = await client.PostAsJsonAsync($"/api/v1/community/{kind}", new SaveCommunityEntry("Published VPN guide", "Safe public summary", "1. Check VPN settings.\n2. Reconnect.", "Network", kind == "incidents" ? status : null,
+            Classification: "Operational", Guide: kind == "knowledge" ? Guide() : null));
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         return (await response.Content.ReadFromJsonAsync<ManagedCommunityEntry>())!;
     }
+    internal static KnowledgeGuide Guide() => new("Supported VPN client on the approved workstation.", "Internet access and an existing account.",
+        "VPN connects successfully.", "Contact Helpdesk with the error code, never a password.", "Reviewed internal support procedure");
     internal static async Task<ManagedCommunityEntry> PublishAsync(HttpClient client, string kind, ManagedCommunityEntry row)
     {
         using var response = await client.PostAsJsonAsync($"/api/v1/community/{kind}/{row.Id}/publish", new PublishCommunityEntry(row.Version, true, "Public progress update"));

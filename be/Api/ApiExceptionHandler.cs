@@ -21,7 +21,7 @@ public sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger) : I
         {
             CommunityOperationException community => community.Error switch
             {
-                CommunityError.InvalidInput or CommunityError.InvalidTransition => 400,
+                CommunityError.InvalidInput or CommunityError.InvalidTransition or CommunityError.ClassificationRequired or CommunityError.IncompleteGuide => 400,
                 CommunityError.NotFound => 404,
                 CommunityError.Unauthenticated => 401,
                 CommunityError.InsufficientScope => 403,
@@ -95,6 +95,8 @@ public sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger) : I
             Title = exception is CommunityOperationException communityFailure ? communityFailure.Error switch
             {
                 CommunityError.InvalidInput => "Nội dung cộng đồng chưa hợp lệ. Kiểm tra các trường và xác nhận được phép công khai.",
+                CommunityError.ClassificationRequired => "Cần phân loại nội dung Thực tế hoặc Minh họa trước khi xuất bản.",
+                CommunityError.IncompleteGuide => "Cần hoàn thiện phạm vi, điều kiện, kết quả, cách yêu cầu hỗ trợ, nguồn và các bước đánh số liên tục từ 1 trước khi xuất bản hướng dẫn.",
                 CommunityError.InvalidTransition => "Trạng thái sự cố chưa hợp lệ. Lần xuất bản đầu phải là Đang điều tra; kiểm tra quy tắc chuyển trạng thái.",
                 CommunityError.NotFound => "Không tìm thấy nội dung công khai hoặc nội dung trong phạm vi được phép.",
                 CommunityError.Unauthenticated => "Yêu cầu xác thực.",

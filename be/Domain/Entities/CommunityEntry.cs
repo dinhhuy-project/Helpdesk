@@ -2,6 +2,10 @@ namespace be.Domain.Entities;
 
 public enum CommunityKind { Knowledge, Incident }
 public enum IncidentStatus { Investigating, Identified, Monitoring, Resolved }
+public enum CommunityClassification { Unclassified, Operational, Demo }
+
+public sealed record KnowledgeGuide(string Applicability, string Prerequisites, string ExpectedOutcome, string Escalation,
+    string SourceName, string? SourceUrl = null, DateOnly? SourceUpdatedOn = null);
 
 // Draft and published snapshots are separate: editing never silently republishes content.
 public class CommunityEntry
@@ -26,6 +30,10 @@ public class CommunityEntry
     public int PublicRevision { get; set; }
     public DateTime? PublishedAt { get; set; }
     public uint Version { get; set; }
+    public CommunityClassification Classification { get; set; }
+    public CommunityClassification PublicClassification { get; set; }
+    public KnowledgeGuide? Guide { get; set; }
+    public KnowledgeGuide? PublicGuide { get; set; }
 }
 
 public class IncidentUpdate

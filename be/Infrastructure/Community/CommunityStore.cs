@@ -34,7 +34,7 @@ public sealed class CommunityStore(HelpdeskDbContext database, IAuthSessionStore
         }
         var row = new CommunityEntry { Id = draft.Id, Kind = CommunityKind.Knowledge, Title = draft.Title,
             Summary = "Bản nháp nhập từ BookStack; cần kiểm tra nội dung, ghi công và quyền công khai trước khi xuất bản.",
-            Content = draft.Content, Topic = "Hướng dẫn", CreatedById = actor.UserId, CreatedAt = Now, UpdatedAt = Now };
+            Content = draft.Content, Topic = "Hướng dẫn", Guide = KnowledgeGuideRules.Normalize(draft.Guide, DateOnly.FromDateTime(Now)), CreatedById = actor.UserId, CreatedAt = Now, UpdatedAt = Now };
         database.CommunityEntries.Add(row);
         database.IdentityAuditLogs.Add(new IdentityAuditLog { ActorId = actor.UserId, Action = "KnowledgeImported", CreatedAt = Now,
             Data = JsonSerializer.Serialize(new { EntryId = row.Id, Source = "BookStack", draft.SourceId, draft.PageId, draft.Revision }) });
@@ -45,7 +45,8 @@ public sealed class CommunityStore(HelpdeskDbContext database, IAuthSessionStore
 
     public async Task<PagedResult<PublicCommunityEntry>> PublicListAsync(CommunityKind kind, CommunitySearch search, CancellationToken ct)
     {
-        var query = Published(kind);
+        var classification = search.Dataset == "demo" ? CommunityClassification.Demo : CommunityClassification.Operational;
+        var query = Published(kind).Where(x => x.PublicClassification == classification);
         if (!string.IsNullOrEmpty(search.Search)) query = query.Where(x => EF.Functions.ToTsVector("simple",
             (x.PublicTitle ?? "") + " " + (x.PublicSummary ?? "") + " " + (x.PublicContent ?? "") + " " + (x.PublicTopic ?? ""))
             .Matches(EF.Functions.PlainToTsQuery("simple", search.Search)));
@@ -57,11 +58,13 @@ public sealed class CommunityStore(HelpdeskDbContext database, IAuthSessionStore
             .Skip((search.Page - 1) * search.PageSize).Take(search.PageSize), false).ToListAsync(ct);
         return new(items, search.Page, search.PageSize, count);
     }
-    public async Task<PublicCommunityEntry> PublicGetAsync(CommunityKind kind, Guid id, CancellationToken ct) =>
-        await PublicProjection(Published(kind).Where(x => x.Id == id), true).SingleOrDefaultAsync(ct) ?? throw Error(CommunityError.NotFound);
+    public async Task<PublicCommunityEntry> PublicGetAsync(CommunityKind kind, Guid id, CancellationToken ct, string dataset = "operational") =>
+        await PublicProjection(Published(kind).Where(x => x.Id == id && x.PublicClassification ==
+            (dataset == "demo" ? CommunityClassification.Demo : CommunityClassification.Operational)), true).SingleOrDefaultAsync(ct) ?? throw Error(CommunityError.NotFound);
     public async Task<PagedResult<PublicIncidentUpdate>> UpdatesAsync(Guid id, CommunitySearch search, CancellationToken ct)
     {
-        var published = Published(CommunityKind.Incident).Where(x => x.Id == id).Select(x => x.Id);
+        var classification = search.Dataset == "demo" ? CommunityClassification.Demo : CommunityClassification.Operational;
+        var published = Published(CommunityKind.Incident).Where(x => x.Id == id && x.PublicClassification == classification).Select(x => x.Id);
         if (!await published.AnyAsync(ct)) throw Error(CommunityError.NotFound);
         var query = database.IncidentUpdates.AsNoTracking().Where(x => published.Contains(x.EntryId));
         return new(await query.OrderByDescending(x => x.Revision).Skip((search.Page - 1) * search.PageSize).Take(search.PageSize)
@@ -72,6 +75,11 @@ public sealed class CommunityStore(HelpdeskDbContext database, IAuthSessionStore
     {
         await RequireAsync(actor, kind, null, ct);
         var query = database.CommunityEntries.AsNoTracking().Where(x => x.Kind == kind);
+        if (search.Classification is not null)
+        {
+            var selected = KnowledgeGuideRules.Classification(search.Classification);
+            query = query.Where(x => x.Classification == selected);
+        }
         if (!string.IsNullOrEmpty(search.Search)) query = query.Where(x => x.Title.ToLower().Contains(search.Search.ToLower()));
         var count = await query.CountAsync(ct);
         var rows = await query.OrderByDescending(x => x.UpdatedAt).ThenBy(x => x.Id).Skip((search.Page - 1) * search.PageSize).Take(search.PageSize).ToListAsync(ct);
@@ -92,6 +100,7 @@ public sealed class CommunityStore(HelpdeskDbContext database, IAuthSessionStore
             Topic = command.Topic, CreatedById = actor.UserId, CreatedAt = Now } : await LockAsync(kind, id.Value, command.Version, ct);
         row.Title = command.Title; row.Summary = command.Summary; row.Content = command.Content; row.Topic = command.Topic;
         row.Status = kind == CommunityKind.Incident ? Enum.Parse<IncidentStatus>(command.Status!) : null;
+        row.Classification = KnowledgeGuideRules.Classification(command.Classification); row.Guide = command.Guide;
         row.UpdatedAt = Now;
         if (id is null) database.CommunityEntries.Add(row);
         Audit(actor, "CommunityDraftSaved", row);
@@ -108,7 +117,8 @@ public sealed class CommunityStore(HelpdeskDbContext database, IAuthSessionStore
         // Ticket titles allow 300 UTF-16 units; the public editor contract allows 200.
         var title = ticket.Title.Length <= 200 ? ticket.Title : ticket.Title[..(char.IsHighSurrogate(ticket.Title[199]) ? 199 : 200)];
         var row = new CommunityEntry { Kind = CommunityKind.Knowledge, Title = title, Summary = "Bản nháp từ kết quả xử lý Ticket; cần biên soạn và duyệt lại trước khi công khai.",
-            Content = ticket.ResolutionSummary, Topic = "Hướng dẫn", SourceTicketId = ticket.Id, CreatedById = actor.UserId, CreatedAt = Now, UpdatedAt = Now };
+            Content = ticket.ResolutionSummary, Topic = "Hướng dẫn", SourceTicketId = ticket.Id, CreatedById = actor.UserId, CreatedAt = Now, UpdatedAt = Now,
+            Guide = new KnowledgeGuide("", "", "", "", "Biên soạn từ kết quả xử lý đã được phép chia sẻ") };
         database.CommunityEntries.Add(row);
         Audit(actor, "KnowledgeDraftFromTicket", row);
         await database.SaveChangesAsync(ct);
@@ -119,8 +129,11 @@ public sealed class CommunityStore(HelpdeskDbContext database, IAuthSessionStore
     {
         await using var tx = await BeginAsync(actor, kind, Publish(kind), ct);
         var row = await LockAsync(kind, id, command.Version, ct);
+        if (row.Classification == CommunityClassification.Unclassified) throw Error(CommunityError.ClassificationRequired);
+        if (kind == CommunityKind.Knowledge && !KnowledgeGuideRules.Complete(row.Guide, row.Content)) throw Error(CommunityError.IncompleteGuide);
         if (kind == CommunityKind.Incident && !CanTransition(row.PublicStatus, row.Status)) throw Error(CommunityError.InvalidTransition);
         row.PublicTitle = row.Title; row.PublicSummary = row.Summary; row.PublicContent = row.Content; row.PublicTopic = row.Topic;
+        row.PublicGuide = row.Guide; row.PublicClassification = row.Classification;
         row.PublicStatus = row.Status; row.IsPublished = true; row.PublicRevision++; row.PublishedAt = Now; row.UpdatedAt = Now;
         if (kind == CommunityKind.Incident) database.IncidentUpdates.Add(new IncidentUpdate { EntryId = id,
             Message = string.IsNullOrWhiteSpace(command.Message) ? row.Summary : command.Message, Status = row.Status!.Value, Revision = row.PublicRevision, CreatedAt = Now });
@@ -151,7 +164,7 @@ public sealed class CommunityStore(HelpdeskDbContext database, IAuthSessionStore
     public async Task<CommunityParticipation> ParticipateAsync(AccountActor actor, CommunityKind kind, Guid id, bool value, bool solved, CancellationToken ct)
     {
         await using var tx = await BeginAsync(actor, kind, null, ct, sessionOnly: true);
-        var row = await database.CommunityEntries.SingleOrDefaultAsync(x => x.Id == id && x.Kind == kind && x.IsPublished, ct) ?? throw Error(CommunityError.NotFound);
+        var row = await database.CommunityEntries.SingleOrDefaultAsync(x => x.Id == id && x.Kind == kind && x.IsPublished && x.PublicClassification != CommunityClassification.Unclassified, ct) ?? throw Error(CommunityError.NotFound);
         if (kind == CommunityKind.Incident)
         {
             var previous = await database.IncidentAffectedUsers.SingleOrDefaultAsync(x => x.EntryId == id && x.UserId == actor.UserId, ct);
@@ -174,15 +187,16 @@ public sealed class CommunityStore(HelpdeskDbContext database, IAuthSessionStore
         return await ParticipationAsync(actor, kind, id, ct);
     }
 
-    private IQueryable<CommunityEntry> Published(CommunityKind kind) => database.CommunityEntries.AsNoTracking().Where(x => x.Kind == kind && x.IsPublished);
+    private IQueryable<CommunityEntry> Published(CommunityKind kind) => database.CommunityEntries.AsNoTracking().Where(x => x.Kind == kind && x.IsPublished && x.PublicClassification != CommunityClassification.Unclassified);
     private IQueryable<PublicCommunityEntry> PublicProjection(IQueryable<CommunityEntry> query, bool content) => query.Select(x => new PublicCommunityEntry(
         x.Id, x.Kind.ToString(), x.PublicTitle!, x.PublicSummary!, content ? x.PublicContent : null, x.PublicTopic!,
         x.PublicStatus == null ? null : x.PublicStatus.ToString(), x.PublicRevision, x.PublishedAt!.Value,
-        (x.Kind == CommunityKind.Knowledge ? "/knowledge/" : "/incidents/") + x.Id,
+        (x.Kind == CommunityKind.Knowledge ? "/knowledge/" : "/incidents/") + x.Id + (x.PublicClassification == CommunityClassification.Demo ? "?dataset=demo" : ""),
         database.IncidentAffectedUsers.Count(a => a.EntryId == x.Id), database.KnowledgeFeedback.Count(f => f.EntryId == x.Id && f.Helpful),
-        database.KnowledgeFeedback.Count(f => f.EntryId == x.Id && f.Solved)));
+        database.KnowledgeFeedback.Count(f => f.EntryId == x.Id && f.Solved), x.PublicClassification.ToString(), content ? x.PublicGuide : null));
     private static ManagedCommunityEntry Managed(CommunityEntry x) => new(x.Id, x.Kind.ToString(), x.Title, x.Summary, x.Content, x.Topic,
-        x.Status?.ToString(), x.IsPublished, x.PublicRevision, x.PublishedAt, x.Version, x.SourceTicketId, x.UpdatedAt);
+        x.Status?.ToString(), x.IsPublished, x.PublicRevision, x.PublishedAt, x.Version, x.SourceTicketId, x.UpdatedAt,
+        x.Classification.ToString(), x.Guide, x.PublicClassification.ToString());
     private async Task<CommunityEntry> LockAsync(CommunityKind kind, Guid id, uint version, CancellationToken ct)
     {
         var row = await database.CommunityEntries.FromSqlInterpolated($"SELECT *, xmin FROM helpdesk.community_entries WHERE id = {id} FOR UPDATE")
@@ -216,7 +230,8 @@ public sealed class CommunityStore(HelpdeskDbContext database, IAuthSessionStore
         catch { await tx.DisposeAsync(); throw; }
     }
     private void Audit(AccountActor actor, string action, CommunityEntry entry) => database.IdentityAuditLogs.Add(new IdentityAuditLog
-    { ActorId = actor.UserId, Action = action, CreatedAt = Now, Data = JsonSerializer.Serialize(new { EntryId = entry.Id, Kind = entry.Kind.ToString(), entry.PublicRevision }) });
+    { ActorId = actor.UserId, Action = action, CreatedAt = Now, Data = JsonSerializer.Serialize(new { EntryId = entry.Id, Kind = entry.Kind.ToString(), entry.PublicRevision,
+        Classification = entry.Classification.ToString(), PublicClassification = entry.PublicClassification.ToString() }) });
     private async Task ChangedAsync(CommunityKind kind, Guid id)
     {
         try { await hub.Clients.Group(PublicCommunityHub.Group).SendAsync("CommunityChanged", new { Kind = kind.ToString(), Id = id }, CancellationToken.None); }

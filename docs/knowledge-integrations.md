@@ -1,5 +1,9 @@
 # BookStack và tài liệu tham khảo Wikipedia
 
+Để cài đặt và chạy toàn bộ ứng dụng từ máy mới, xem [hướng dẫn cài đặt, khởi tạo và câu lệnh chạy project](installation-and-running.md).
+
+**Chuẩn hóa trước khi xuất bản:** bản nhập mới để Unclassified, có metadata nguồn/ngày nếu được cung cấp; biên tập đầy đủ theo [chuẩn hướng dẫn](knowledge-authoring.md), chọn phân loại và duyệt trước khi dùng thực tế. [KnowledgeStandardization](knowledge-standardization-review.md) là migration tiếp theo, khác với lần triển khai connector không thêm migration bên dưới. Nguồn demo xem qua `?dataset=demo`.
+
 Đã tích hợp hai nguồn bổ sung cho [kho tri thức công khai](public-community.md): **BookStack** để nhóm biên soạn tài liệu riêng rồi nhập thành bản nháp, và **Wikipedia tiếng Việt** để mọi người tra cứu trước đăng nhập tại `/knowledge`.
 
 Không cần migration mới, tài khoản Wikipedia hoặc package trả phí. BookStack là phần mềm MIT miễn phí tự host; vẫn cần tài nguyên máy chủ và backup. Xem [giới thiệu BookStack](https://www.bookstackapp.com/), [REST API](https://demo.bookstackapp.com/api/docs) và [Wikimedia API](https://developer.wikimedia.org/use-content/content/).

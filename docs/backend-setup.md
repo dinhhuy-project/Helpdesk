@@ -1,5 +1,7 @@
 # Khởi tạo backend với Docker Compose
 
+Để cài đặt từ máy mới và chạy đầy đủ backend/frontend/wiki, xem [hướng dẫn cài đặt, khởi tạo và các câu lệnh](installation-and-running.md). Tài liệu này tập trung vào hạ tầng backend và các profile chạy.
+
 Hạ tầng local cho backend ASP.NET Core .NET 8 hiện có. Backend đã có Domain, EF Core/Npgsql, Identity/auth, quản trị tổ chức và API Ticket đến phần 14. Xem [persistence](backend-persistence.md), [nền tảng Identity](backend-identity-foundation.md) và [roadmap](backend-roadmap.md). MinIO client đã có cho attachments; Redis chưa tích hợp nghiệp vụ. Storage mặc định tắt đến khi [review/apply AttachmentStorage](attachment-storage-review.md) và hoàn tất [cấu hình bucket/app credentials](backend-attachments.md).
 
 ## Chuẩn bị

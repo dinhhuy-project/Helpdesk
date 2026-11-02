@@ -10,21 +10,26 @@ import { formatDateTime } from '../../../shared/lib/date-time'
 import { isGuid } from '../../../shared/lib/identifier'
 import { useApiCommand } from '../../../shared/hooks/use-api-command'
 import { useAuth } from '../../auth/hooks/use-auth'
-import { communityLabels, incidentLabels, publicCommunityApi, type CommunityKind, type PublicEntry } from '../api/community-api'
+import { classificationLabels, communityLabels, incidentLabels, publicCommunityApi, type CommunityDataset, type CommunityKind, type PublicEntry } from '../api/community-api'
 import { communityReadOptions, publicCommunityKey, useCommunityApi, usePublicEntries, usePublicEntry } from '../hooks/use-community'
 import { WikipediaReferences } from '../components/knowledge-sources'
+import { KnowledgeGuideContext, KnowledgeGuideOutcome } from '../components/knowledge-guide'
+import { KnowledgeRetrieval } from '../components/knowledge-retrieval'
 
 export function CommunityPublicList({ kind }: { kind: CommunityKind }) {
   const [params, setParams] = useSearchParams()
   const rawPage = Number(params.get('page') || 1)
   const page = Number.isSafeInteger(rawPage) && rawPage > 0 && rawPage <= 100000 ? rawPage : 1
-  const search = { page, search: params.get('search') ?? '', topic: params.get('topic') ?? '', active: params.get('active') ?? (kind === 'incidents' ? 'true' : '') }
+  const dataset: CommunityDataset = params.get('dataset') === 'demo' ? 'demo' : 'operational'
+  const search = { page, search: params.get('search') ?? '', topic: params.get('topic') ?? '', active: params.get('active') ?? (kind === 'incidents' ? 'true' : ''), dataset }
   const query = usePublicEntries(kind, search)
   return <section className="community-page"><PageTitle title={communityLabels[kind]} />
     <header className="community-heading"><p className="eyebrow">Cộng đồng Helpdesk · Tra cứu mở</p><h1>{communityLabels[kind]}</h1>
       <p>{kind === 'knowledge' ? 'Tìm hướng dẫn đã được duyệt và tự giải quyết trước khi gửi yêu cầu hỗ trợ.' : 'Theo dõi sự cố đang ảnh hưởng đến cộng đồng và các cập nhật từ nhóm hỗ trợ.'}</p>
       <nav className="community-links" aria-label="Tra cứu cộng đồng"><Link to="/knowledge">Kho tri thức</Link><Link to="/incidents">Sự cố chung</Link><Link to="/login">Đăng nhập để gửi yêu cầu</Link></nav></header>
+    {kind === 'knowledge' && dataset === 'operational' && <KnowledgeRetrieval key={params.get('question') ?? ''} />}
     <PublicSearch key={`${kind}:${params}`} kind={kind} initial={search} onApply={next => setParams(next)} />
+    {dataset === 'demo' && <DemoNotice />}
     {query.isPending ? <LoadingState /> : query.error ? <ErrorState error={query.error} onRetry={() => { void query.refetch() }} /> : <>
       <p className="field-hint" role="status">{query.data.totalCount} kết quả · Tự cập nhật khi có thay đổi.</p>
       {!query.data.items.length ? <EmptyState title="Chưa có nội dung phù hợp" description="Thử từ khóa khác hoặc xem lại sau. Chỉ nội dung đã xuất bản được hiển thị tại đây." /> :
@@ -34,40 +39,47 @@ export function CommunityPublicList({ kind }: { kind: CommunityKind }) {
     {kind === 'knowledge' && <WikipediaReferences />}
   </section>
 }
-function PublicSearch({ kind, initial, onApply }: { kind: CommunityKind; initial: { search: string; topic: string; active: string }; onApply: (params: URLSearchParams) => void }) {
+function PublicSearch({ kind, initial, onApply }: { kind: CommunityKind; initial: { search: string; topic: string; active: string; dataset: CommunityDataset }; onApply: (params: URLSearchParams) => void }) {
   const [search, setSearch] = useState(initial.search)
   const [topic, setTopic] = useState(initial.topic)
   const [active, setActive] = useState(initial.active)
+  const [dataset, setDataset] = useState(initial.dataset)
   return <form className="community-filters" role="search" aria-label="Tra cứu nội dung công khai" onSubmit={event => {
-    event.preventDefault(); const p = new URLSearchParams(); if (search.trim()) p.set('search', search.trim()); if (topic.trim()) p.set('topic', topic.trim()); if (kind === 'incidents') p.set('active', active); onApply(p)
+    event.preventDefault(); const p = new URLSearchParams(); if (search.trim()) p.set('search', search.trim()); if (topic.trim()) p.set('topic', topic.trim()); if (kind === 'incidents') p.set('active', active); if (dataset === 'demo') p.set('dataset', 'demo'); onApply(p)
   }}>
     <FormField label="Tìm kiếm hướng dẫn hoặc sự cố">{props => <Input {...props} type="search" value={search} maxLength={200} onChange={event => setSearch(event.target.value)} placeholder="Ví dụ: VPN, email, máy in…" />}</FormField>
     <FormField label="Chủ đề">{props => <Input {...props} value={topic} maxLength={100} onChange={event => setTopic(event.target.value)} placeholder="Tên chủ đề đầy đủ" />}</FormField>
+    <FormField label="Nguồn nội dung">{props => <Select {...props} value={dataset} onChange={event => setDataset(event.target.value as CommunityDataset)}><option value="operational">Phục vụ thực tế</option><option value="demo">Dữ liệu minh họa</option></Select>}</FormField>
     {kind === 'incidents' && <FormField label="Tình trạng">{props => <Select {...props} value={active} onChange={event => setActive(event.target.value)}><option value="true">Đang diễn ra</option><option value="false">Đã khắc phục</option><option value="">Tất cả</option></Select>}</FormField>}
     <Button type="submit">Tra cứu</Button>
   </form>
 }
 function EntryCard({ row, kind }: { row: PublicEntry; kind: CommunityKind }) {
-  return <article className="community-card"><div className="community-links"><span className="ticket-badge">{row.topic}</span>{row.status && <span className="ticket-badge">{incidentLabels[row.status]}</span>}</div>
-    <h2><Link to={`/${kind}/${row.id}`}>{row.title}</Link></h2><p>{row.summary}</p>
+  return <article className="community-card"><div className="community-links"><span className="ticket-badge">{row.topic}</span><span className="ticket-badge">{classificationLabels[row.classification]}</span>{row.status && <span className="ticket-badge">{incidentLabels[row.status]}</span>}</div>
+    <h2><Link to={`/${kind}/${row.id}${row.classification === 'Demo' ? '?dataset=demo' : ''}`}>{row.title}</Link></h2><p>{row.summary}</p>
     <p className="field-hint">{formatDateTime(row.publishedAt)} · {kind === 'incidents' ? `${row.affectedCount} người xác nhận bị ảnh hưởng` : `${row.helpfulCount} đánh giá hữu ích`}</p></article>
 }
 export function CommunityPublicDetail({ kind }: { kind: CommunityKind }) {
   const { id = '' } = useParams()
-  return isGuid(id) ? <PublicDetail key={`${kind}:${id}`} kind={kind} id={id} /> : <EmptyState title="Không tìm thấy nội dung" />
+  const [params] = useSearchParams()
+  const dataset: CommunityDataset = params.get('dataset') === 'demo' ? 'demo' : 'operational'
+  return isGuid(id) ? <PublicDetail key={`${kind}:${id}:${dataset}`} kind={kind} id={id} dataset={dataset} /> : <EmptyState title="Không tìm thấy nội dung" />
 }
-function PublicDetail({ kind, id }: { kind: CommunityKind; id: string }) {
-  const query = usePublicEntry(kind, id)
+function PublicDetail({ kind, id, dataset }: { kind: CommunityKind; id: string; dataset: CommunityDataset }) {
+  const query = usePublicEntry(kind, id, dataset)
   if (query.isPending) return <LoadingState />
   if (query.error) return <ErrorState error={query.error} onRetry={() => { void query.refetch() }} />
   const row = query.data
-  return <article className="community-page"><PageTitle title={row.title} /><Link to={`/${kind}`}>← {communityLabels[kind]}</Link>
+  return <article className="community-page"><PageTitle title={row.title} /><Link to={`/${kind}${dataset === 'demo' ? '?dataset=demo' : ''}`}>← {communityLabels[kind]}</Link>
+    {row.classification === 'Demo' && <DemoNotice />}
     <header className="community-heading"><p className="eyebrow">{row.topic}</p><h1>{row.title}</h1><p>{row.summary}</p>
-      <p className="field-hint">Cập nhật {formatDateTime(row.publishedAt)} · Phiên bản công khai {row.revision}</p>
+      <p className="field-hint">Rà soát và xuất bản {formatDateTime(row.publishedAt)} · Phiên bản công khai {row.revision} · {classificationLabels[row.classification]}</p>
       {row.status && <p className="ticket-badge">{incidentLabels[row.status]}</p>}</header>
-    <div className="community-content">{row.content}</div>
+    {row.guide && <KnowledgeGuideContext guide={row.guide} />}
+    {kind === 'knowledge' && <h2>Các bước thực hiện</h2>}<div className="community-content">{row.content}</div>
+    {row.guide && <KnowledgeGuideOutcome guide={row.guide} />}
     <CommunityParticipationPanel kind={kind} row={row} />
-    {kind === 'incidents' && <IncidentTimeline id={id} />}
+    {kind === 'incidents' && <IncidentTimeline id={id} dataset={dataset} />}
   </article>
 }
 function CommunityParticipationPanel({ kind, row }: { kind: CommunityKind; row: PublicEntry }) {
@@ -96,9 +108,10 @@ function SignedInParticipation({ kind, row }: { kind: CommunityKind; row: Public
     {command.error && <ErrorState error={command.error} />}{command.uncertain && <p role="alert">Chưa xác định được kết quả. Tải lại trang để kiểm tra trước khi gửi tiếp.</p>}
   </section>
 }
-function IncidentTimeline({ id }: { id: string }) {
+function DemoNotice() { return <p className="community-demo-notice" role="note">Đang xem dữ liệu minh họa của đồ án. Không xem đây là quy trình đã xác minh hoặc thông báo sự cố thực tế; nội dung này không dùng làm nguồn trả lời AI phục vụ thực tế.</p> }
+function IncidentTimeline({ id, dataset }: { id: string; dataset: CommunityDataset }) {
   const [page, setPage] = useState(1)
-  const query = useQuery({ ...communityReadOptions, queryKey: [...publicCommunityKey, 'updates', id, page], queryFn: ({ signal }) => publicCommunityApi.updates(id, page, signal), refetchInterval: 30000 })
+  const query = useQuery({ ...communityReadOptions, queryKey: [...publicCommunityKey, 'updates', id, page, dataset], queryFn: ({ signal }) => publicCommunityApi.updates(id, page, signal, dataset), refetchInterval: 30000 })
   return <section className="community-card"><h2>Tiến trình xử lý</h2>{query.isPending ? <LoadingState /> : query.error ? <ErrorState error={query.error} /> : <>
     <ol className="community-timeline">{query.data.items.map(update => <li key={update.id}><p><strong>{incidentLabels[update.status]}</strong> · {formatDateTime(update.createdAt)}</p><p className="community-content">{update.message}</p></li>)}</ol>
     <Pagination page={page} pageSize={query.data.pageSize} totalCount={query.data.totalCount} onPageChange={setPage} />

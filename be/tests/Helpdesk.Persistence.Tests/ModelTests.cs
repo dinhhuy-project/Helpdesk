@@ -56,7 +56,7 @@ public class ModelTests
         using var context = CreateContext();
         Assert.False(context.Database.HasPendingModelChanges());
         var migrations = context.Database.GetMigrations().ToArray();
-        Assert.Equal(9, migrations.Length);
+        Assert.Equal(11, migrations.Length);
         Assert.EndsWith("_InitialCreate", migrations[0]);
         Assert.EndsWith("_AccountAdministration", migrations[1]);
         Assert.EndsWith("_DepartmentAdministration", migrations[2]);
@@ -66,6 +66,8 @@ public class ModelTests
         Assert.EndsWith("_NotificationDelivery", migrations[6]);
         Assert.EndsWith("_SlaMvp", migrations[7]);
         Assert.EndsWith("_PublicCommunity", migrations[8]);
+        Assert.EndsWith("_KnowledgeStandardization", migrations[9]);
+        Assert.EndsWith("_KnowledgeRetrieval", migrations[10]);
         var migrator = context.GetService<IMigrator>();
         var forward = migrator.GenerateScript("0", migrations[0], MigrationsSqlGenerationOptions.Idempotent);
         var rollback = migrator.GenerateScript(migrations[0], "0");
@@ -102,6 +104,10 @@ public class ModelTests
         Assert.Equal(NormalizeSql(migrator.GenerateScript(migrations[7], migrations[8], MigrationsSqlGenerationOptions.Idempotent)),
             NormalizeSql(ReadSql("PublicCommunity.sql")));
         Assert.Equal(NormalizeSql(migrator.GenerateScript(migrations[8], migrations[7])), NormalizeSql(ReadSql("PublicCommunity.Rollback.sql")));
+        Assert.Equal(NormalizeSql(migrator.GenerateScript(migrations[8], migrations[9], MigrationsSqlGenerationOptions.Idempotent)), NormalizeSql(ReadSql("KnowledgeStandardization.sql")));
+        Assert.Equal(NormalizeSql(migrator.GenerateScript(migrations[9], migrations[8])), NormalizeSql(ReadSql("KnowledgeStandardization.Rollback.sql")));
+        Assert.Equal(NormalizeSql(migrator.GenerateScript(migrations[9], migrations[10], MigrationsSqlGenerationOptions.Idempotent)), NormalizeSql(ReadSql("KnowledgeRetrieval.sql")));
+        Assert.Equal(NormalizeSql(migrator.GenerateScript(migrations[10], migrations[9])), NormalizeSql(ReadSql("KnowledgeRetrieval.Rollback.sql")));
     }
 
     internal static string ReadSql(string fileName) =>

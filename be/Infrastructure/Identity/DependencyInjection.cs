@@ -14,6 +14,7 @@ public static class DependencyInjection
         services.AddScoped<DevelopmentDataInitializer>();
         services.AddScoped<DemoWeekInitializer>();
         services.AddScoped<CommunityDemoInitializer>();
+        services.AddScoped<KnowledgeDraftInitializer>();
         services.AddHostedService<IdentityStartupSeeder>();
         return services;
     }

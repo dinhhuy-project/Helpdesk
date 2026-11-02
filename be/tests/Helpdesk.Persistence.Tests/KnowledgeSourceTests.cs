@@ -148,8 +148,12 @@ public class KnowledgeImportTests(PostgresFixture fixture)
         var imported = (await response.Content.ReadFromJsonAsync<KnowledgeImportResult>())!;
         Assert.False(imported.AlreadyImported); Assert.False(imported.Entry.IsPublished);
         Assert.Contains("Nguồn biên soạn: BookStack", imported.Entry.Content);
+        Assert.Equal("Unclassified", imported.Entry.Classification);
         Assert.Equal(HttpStatusCode.NotFound, (await guest.GetAsync($"/api/v1/public/knowledge/{imported.Entry.Id}")).StatusCode);
-        var published = await CommunityTests.PublishAsync(admin, "knowledge", imported.Entry);
+        using var normalized = await admin.PutAsJsonAsync($"/api/v1/community/knowledge/{imported.Entry.Id}", new SaveCommunityEntry(imported.Entry.Title,
+            imported.Entry.Summary, "1. Review the wiki steps and confirm they apply.", imported.Entry.Topic, Version: imported.Entry.Version, Classification: "Operational", Guide: CommunityTests.Guide()));
+        Assert.Equal(HttpStatusCode.OK, normalized.StatusCode);
+        var published = await CommunityTests.PublishAsync(admin, "knowledge", (await normalized.Content.ReadFromJsonAsync<ManagedCommunityEntry>())!);
         using var save = await admin.PutAsJsonAsync($"/api/v1/community/knowledge/{published.Id}", new SaveCommunityEntry("Editor owns this title", "Summary", "Private new draft", "VPN", Version: published.Version));
         Assert.Equal(HttpStatusCode.OK, save.StatusCode);
         using var repeat = await admin.PostAsJsonAsync("/api/v1/community/knowledge-sources/bookstack/imports", new { pageId = 12 });

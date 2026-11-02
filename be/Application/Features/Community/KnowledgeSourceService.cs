@@ -2,6 +2,7 @@ using be.Application.Common.Authorization;
 using be.Application.Features.Accounts;
 using be.Application.Features.Auth;
 using be.Domain.Constants;
+using be.Domain.Entities;
 
 namespace be.Application.Features.Community;
 
@@ -10,8 +11,8 @@ public sealed record WikiReference(string Title, string Url, DateTime? UpdatedAt
 public sealed record WikipediaSearchResult(IReadOnlyList<WikiReference> Items, int? NextOffset);
 public sealed record BookStackPage(int Id, string Title, string? UpdatedAt);
 public sealed record BookStackPreview(int PageId, string Title, string Content, string Revision, string? SourceUrl,
-    string Attribution, string License);
-public sealed record ImportedKnowledgeDraft(Guid Id, string Title, string Content, string SourceId, int PageId, string Revision);
+    string Attribution, string License, DateOnly? SourceUpdatedOn = null);
+public sealed record ImportedKnowledgeDraft(Guid Id, string Title, string Content, string SourceId, int PageId, string Revision, KnowledgeGuide? Guide = null);
 public sealed record KnowledgeImportResult(ManagedCommunityEntry Entry, bool AlreadyImported);
 
 public interface IKnowledgeSources

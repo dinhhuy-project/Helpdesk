@@ -39,7 +39,8 @@
         "Identity__BootstrapAdminOnStartup": "true",
         "DevelopmentData__SeedOnStartup": "true",
         "Database__HostOverride": "host.docker.internal",
-        "Minio__HostOverride": "host.docker.internal"
+        "Minio__HostOverride": "host.docker.internal",
+        "LocalAssistant__BaseUrl": "http://host.docker.internal:11434/"
       },
       "httpPort": 5000,
       "publishAllPorts": false,

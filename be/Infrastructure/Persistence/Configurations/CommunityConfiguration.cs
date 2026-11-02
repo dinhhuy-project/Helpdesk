@@ -13,6 +13,8 @@ public class CommunityConfiguration : IEntityTypeConfiguration<CommunityEntry>, 
         {
             t.HasCheckConstraint("ck_community_entries_kind", "(kind = 'Knowledge' AND status IS NULL) OR (kind = 'Incident' AND status IN ('Investigating','Identified','Monitoring','Resolved') AND status IS NOT NULL AND source_ticket_id IS NULL)");
             t.HasCheckConstraint("ck_community_entries_published", "NOT is_published OR (public_revision > 0 AND published_at IS NOT NULL AND public_title IS NOT NULL AND public_summary IS NOT NULL AND public_content IS NOT NULL AND public_topic IS NOT NULL AND ((kind = 'Knowledge' AND public_status IS NULL) OR (kind = 'Incident' AND public_status IN ('Investigating','Identified','Monitoring','Resolved') AND public_status IS NOT NULL)))");
+            t.HasCheckConstraint("ck_community_entries_classification", "classification IN ('Unclassified','Operational','Demo') AND public_classification IN ('Unclassified','Operational','Demo')");
+            t.HasCheckConstraint("ck_community_entries_guide", "(guide IS NULL OR jsonb_typeof(guide) = 'object') AND (public_guide IS NULL OR jsonb_typeof(public_guide) = 'object') AND (kind = 'Knowledge' OR (guide IS NULL AND public_guide IS NULL)) AND (NOT is_published OR public_classification = 'Unclassified' OR kind <> 'Knowledge' OR public_guide IS NOT NULL)");
         });
         b.HasKey(x => x.Id);
         b.Property(x => x.Id).ValueGeneratedNever();
@@ -20,6 +22,10 @@ public class CommunityConfiguration : IEntityTypeConfiguration<CommunityEntry>, 
         b.Property(x => x.Kind).HasConversion<string>().HasMaxLength(20);
         b.Property(x => x.Status).HasConversion<string>().HasMaxLength(30);
         b.Property(x => x.PublicStatus).HasConversion<string>().HasMaxLength(30);
+        b.Property(x => x.Classification).HasConversion<string>().HasMaxLength(20).HasDefaultValue(CommunityClassification.Unclassified);
+        b.Property(x => x.PublicClassification).HasConversion<string>().HasMaxLength(20).HasDefaultValue(CommunityClassification.Unclassified);
+        b.Property(x => x.Guide).HasConversion(KnowledgeGuideJson.Converter).HasColumnType("jsonb").Metadata.SetValueComparer(KnowledgeGuideJson.Comparer);
+        b.Property(x => x.PublicGuide).HasConversion(KnowledgeGuideJson.Converter).HasColumnType("jsonb").Metadata.SetValueComparer(KnowledgeGuideJson.Comparer);
         b.Property(x => x.Title).HasMaxLength(200).IsRequired();
         b.Property(x => x.Summary).HasMaxLength(1000).IsRequired();
         b.Property(x => x.Content).HasMaxLength(30000).IsRequired();

@@ -117,6 +117,14 @@ namespace be.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<string>("Classification")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("Unclassified")
+                        .HasColumnName("classification");
+
                     b.Property<string>("Content")
                         .IsRequired()
                         .HasMaxLength(30000)
@@ -131,6 +139,10 @@ namespace be.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("created_by_id");
 
+                    b.Property<string>("Guide")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("guide");
+
                     b.Property<bool>("IsPublished")
                         .HasColumnType("boolean")
                         .HasColumnName("is_published");
@@ -141,10 +153,22 @@ namespace be.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(20)")
                         .HasColumnName("kind");
 
+                    b.Property<string>("PublicClassification")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("Unclassified")
+                        .HasColumnName("public_classification");
+
                     b.Property<string>("PublicContent")
                         .HasMaxLength(30000)
                         .HasColumnType("character varying(30000)")
                         .HasColumnName("public_content");
+
+                    b.Property<string>("PublicGuide")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("public_guide");
 
                     b.Property<int>("PublicRevision")
                         .HasColumnType("integer")
@@ -236,6 +260,10 @@ namespace be.Infrastructure.Persistence.Migrations
 
                     b.ToTable("community_entries", "helpdesk", t =>
                         {
+                            t.HasCheckConstraint("ck_community_entries_classification", "classification IN ('Unclassified','Operational','Demo') AND public_classification IN ('Unclassified','Operational','Demo')");
+
+                            t.HasCheckConstraint("ck_community_entries_guide", "(guide IS NULL OR jsonb_typeof(guide) = 'object') AND (public_guide IS NULL OR jsonb_typeof(public_guide) = 'object') AND (kind = 'Knowledge' OR (guide IS NULL AND public_guide IS NULL)) AND (NOT is_published OR public_classification = 'Unclassified' OR kind <> 'Knowledge' OR public_guide IS NOT NULL)");
+
                             t.HasCheckConstraint("ck_community_entries_kind", "(kind = 'Knowledge' AND status IS NULL) OR (kind = 'Incident' AND status IN ('Investigating','Identified','Monitoring','Resolved') AND status IS NOT NULL AND source_ticket_id IS NULL)");
 
                             t.HasCheckConstraint("ck_community_entries_published", "NOT is_published OR (public_revision > 0 AND published_at IS NOT NULL AND public_title IS NOT NULL AND public_summary IS NOT NULL AND public_content IS NOT NULL AND public_topic IS NOT NULL AND ((kind = 'Knowledge' AND public_status IS NULL) OR (kind = 'Incident' AND public_status IN ('Investigating','Identified','Monitoring','Resolved') AND public_status IS NOT NULL)))");

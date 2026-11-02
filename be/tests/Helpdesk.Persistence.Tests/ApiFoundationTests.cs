@@ -32,7 +32,8 @@ public sealed class ApiFactory(string environment = "Development") : WebApplicat
             ["Minio:Enabled"] = "false", ["Minio:CleanupEnabled"] = "false",
             ["DevelopmentData:SeedOnStartup"] = "false",
             ["Notifications:DispatchEnabled"] = "false",
-            ["Sla:WorkerEnabled"] = "false"
+            ["Sla:WorkerEnabled"] = "false",
+            ["LocalAssistant:Enabled"] = "false"
         }));
         builder.ConfigureTestServices(services => services.AddControllers().AddApplicationPart(typeof(FoundationTestController).Assembly));
     }

@@ -2,7 +2,7 @@ namespace be.Infrastructure.Identity;
 
 public static class IdentityCommands
 {
-    public static bool IsCommand(string[] args) => args.Length > 0 && args[0] is "seed-identity" or "bootstrap-admin" or "grant-account-administration" or "grant-department-administration" or "grant-team-leadership" or "grant-category-administration" or "grant-ticket-workflow" or "grant-community-administration" or "seed-community-demo";
+    public static bool IsCommand(string[] args) => args.Length > 0 && args[0] is "seed-identity" or "bootstrap-admin" or "grant-account-administration" or "grant-department-administration" or "grant-team-leadership" or "grant-category-administration" or "grant-ticket-workflow" or "grant-community-administration" or "seed-community-demo" or "seed-knowledge-drafts";
 
     public static async Task<int> ExecuteAsync(string[] args, IServiceProvider services, IConfiguration configuration)
     {
@@ -17,7 +17,13 @@ public static class IdentityCommands
         {
             await using var scope = services.CreateAsyncScope();
             var initializer = scope.ServiceProvider.GetRequiredService<IdentityInitializer>();
-            if (args[0] == "seed-community-demo")
+            if (args[0] == "seed-knowledge-drafts")
+            {
+                if (!configuration.GetValue<bool>("KnowledgeDraftSeed:Enabled")) throw new IdentityInitializationException("Set KnowledgeDraftSeed:Enabled=true to prepare eight unpublished reference drafts.");
+                var created = await scope.ServiceProvider.GetRequiredService<be.Infrastructure.Seeding.KnowledgeDraftInitializer>().SeedAsync();
+                logger.LogInformation(created ? "Eight reference knowledge drafts prepared. No content was published or classified as operational." : "Reference drafts already prepared; no changes.");
+            }
+            else if (args[0] == "seed-community-demo")
             {
                 if (!configuration.GetValue<bool>("CommunityDemoSeed:Enabled"))
                     throw new IdentityInitializationException("Set CommunityDemoSeed:Enabled=true to explicitly publish the six curated guides and two clearly marked demo incidents.");

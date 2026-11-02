@@ -13,9 +13,11 @@ try {
   services = createAppServices({ baseURL: input.baseUrl }); await services.session.login(input.admin)
   const api = createCommunityApi(services.client), publicApi = createPublicCommunityApi(createHttpClient({ baseURL: input.baseUrl }))
   const signal = () => new AbortController().signal
-  const articles = await publicApi.list('knowledge', { page: 1, search: '' }, signal()); assert.equal(articles.totalCount, 6)
-  assert.equal((await publicApi.list('knowledge', { page: 1, search: 'VPN' }, signal())).totalCount, 1)
-  const draft = await api.save('knowledge', undefined, { title: 'Community journey VPN', summary: 'Public safe summary', content: 'Public safe instructions', topic: 'Network', status: null, version: 0 }, signal())
+  assert.equal((await publicApi.list('knowledge', { page: 1, search: '' }, signal())).totalCount, 0)
+  const articles = await publicApi.list('knowledge', { page: 1, search: '', dataset: 'demo' }, signal()); assert.equal(articles.totalCount, 6)
+  assert.equal((await publicApi.list('knowledge', { page: 1, search: 'VPN', dataset: 'demo' }, signal())).totalCount, 1)
+  const draft = await api.save('knowledge', undefined, { title: 'Community journey VPN', summary: 'Public safe summary', content: '1. Check the approved VPN client.', topic: 'Network', status: null, version: 0,
+    classification: 'Operational', guide: { applicability: 'Approved VPN client', prerequisites: 'Internet connection', expectedOutcome: 'Connection restored', escalation: 'Create a Ticket with the error code', sourceName: 'Reviewed test procedure', sourceUrl: null, sourceUpdatedOn: null } }, signal())
   await assert.rejects(publicApi.get('knowledge', draft.id, signal()), e => e.status === 404)
   connection = new HubConnectionBuilder().withUrl(input.baseUrl + '/hubs/community', { transport: HttpTransportType.LongPolling }).configureLogging(LogLevel.None).build()
   let resolveEvent
@@ -29,9 +31,9 @@ try {
   assert.equal((await publicApi.get('knowledge', row.id, signal())).revision, 1)
   row = await api.save('knowledge', row.id, { ...row, title: 'private-draft-never-public' }, signal())
   assert.equal((await publicApi.get('knowledge', row.id, signal())).title, 'Community journey VPN')
-  const incident = (await publicApi.list('incidents', { page: 1, search: '', active: 'true' }, signal())).items[0]; assert(incident)
+  const incident = (await publicApi.list('incidents', { page: 1, search: '', active: 'true', dataset: 'demo' }, signal())).items[0]; assert(incident)
   await api.participate('incidents', incident.id, true, false, signal()); await api.participate('incidents', incident.id, true, false, signal())
-  assert.equal((await publicApi.get('incidents', incident.id, signal())).affectedCount, 1)
+  assert.equal((await publicApi.get('incidents', incident.id, signal(), 'demo')).affectedCount, 1)
   await api.participate('knowledge', row.id, true, true, signal())
   assert.equal((await publicApi.get('knowledge', row.id, signal())).solvedCount, 1)
   await api.withdraw('knowledge', row, signal()); await assert.rejects(publicApi.get('knowledge', row.id, signal()), e => e.status === 404)

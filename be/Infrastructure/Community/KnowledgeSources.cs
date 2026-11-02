@@ -79,9 +79,9 @@ public sealed class KnowledgeSources(IHttpClientFactory clients, IOptions<Knowle
         if (metadata != after) throw new CommunityOperationException(CommunityError.VersionConflict);
         if (string.IsNullOrWhiteSpace(content) || content.Contains('\0') || content.Length > 28000) throw new CommunityOperationException(CommunityError.InvalidInput);
         var publicUrl = string.IsNullOrWhiteSpace(Settings.BookStack.PublicBaseUrl) ? null : Settings.BookStack.PublicBaseUrl.TrimEnd('/') + "/link/" + pageId;
-        return new(pageId, Cut(metadata.Title, 200), content, metadata.Revision, publicUrl, Settings.BookStack.Attribution, Settings.BookStack.License);
+        return new(pageId, Cut(metadata.Title, 200), content, metadata.Revision, publicUrl, Settings.BookStack.Attribution, Settings.BookStack.License, metadata.UpdatedOn);
     }
-    private async Task<(string Title, string Revision)> MetadataAsync(int id, CancellationToken ct)
+    private async Task<(string Title, string Revision, DateOnly? UpdatedOn)> MetadataAsync(int id, CancellationToken ct)
     {
         using var data = await JsonAsync(BookStackUrl($"api/pages/{id}"), true, ct);
         try
@@ -90,8 +90,10 @@ public sealed class KnowledgeSources(IHttpClientFactory clients, IOptions<Knowle
             if (root.GetProperty("id").GetInt32() != id || root.GetProperty("book_id").GetInt32() != Settings.BookStack.BookId ||
                 root.GetProperty("draft").GetBoolean() || root.GetProperty("template").GetBoolean())
                 throw new CommunityOperationException(CommunityError.NotFound);
-            return (root.GetProperty("name").GetString() ?? throw Unavailable(),
-                root.GetProperty("revision_count").GetInt32() + " · " + root.GetProperty("updated_at").GetString());
+            var date = root.GetProperty("updated_at").GetString();
+            DateOnly? updated = DateTimeOffset.TryParse(date, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var parsed)
+                ? DateOnly.FromDateTime(parsed.UtcDateTime) : null;
+            return (root.GetProperty("name").GetString() ?? throw Unavailable(), root.GetProperty("revision_count").GetInt32() + " · " + date, updated);
         }
         catch (Exception error) when (error is KeyNotFoundException or InvalidOperationException or FormatException) { throw Unavailable(); }
     }
@@ -104,7 +106,9 @@ public sealed class KnowledgeSources(IHttpClientFactory clients, IOptions<Knowle
             + (preview.SourceUrl is null ? "" : "\nBài gốc: " + preview.SourceUrl);
         if (string.IsNullOrWhiteSpace(preview.Title) || preview.Title.Contains('\0') || preview.Content.Length + footer.Length > 30000)
             throw new CommunityOperationException(CommunityError.InvalidInput);
-        return new(id, preview.Title, preview.Content + footer, Settings.BookStack.SourceId, preview.PageId, preview.Revision);
+        return new(id, preview.Title, preview.Content + footer, Settings.BookStack.SourceId, preview.PageId, preview.Revision,
+            new be.Domain.Entities.KnowledgeGuide("", "", "", "", Cut("BookStack · Trang " + preview.PageId + " · " + preview.Revision, 500),
+                preview.SourceUrl, preview.SourceUpdatedOn));
     }
     private void RequireBookStack()
     {

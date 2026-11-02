@@ -34,7 +34,8 @@ namespace be
             var isIdentityCommand = IdentityCommands.IsCommand(args);
             var isStorageCommand = args.Length > 0 && args[0] == "initialize-storage";
             var isDemoWeekCommand = args.Length > 0 && args[0] == "seed-demo-week";
-            var builder = WebApplication.CreateBuilder(isIdentityCommand || isStorageCommand || isDemoWeekCommand ? [] : args);
+            var isKnowledgeIndexCommand = args.Length > 0 && args[0] == "knowledge-index";
+            var builder = WebApplication.CreateBuilder(isIdentityCommand || isStorageCommand || isDemoWeekCommand || isKnowledgeIndexCommand ? [] : args);
 
             // Add services to the container.
 
@@ -71,7 +72,12 @@ namespace be
             builder.Services.AddScoped<TicketWriteGuard>();
             builder.Services.AddScoped<ICommunityStore, CommunityStore>();
             builder.Services.AddScoped<CommunityService>();
+            builder.Services.AddScoped<IKnowledgeRetrievalStore, KnowledgeRetrievalStore>();
+            builder.Services.AddScoped<KnowledgeRetrievalService>();
+            builder.Services.AddScoped<KnowledgeIndexMaintenance>();
             builder.Services.AddKnowledgeSources(builder.Configuration);
+            builder.Services.AddLocalKnowledgeAssistant(builder.Configuration);
+            builder.Logging.AddFilter("System.Net.Http.HttpClient.LocalKnowledgeAssistant", LogLevel.Warning);
             builder.Logging.AddFilter("System.Net.Http.HttpClient.KnowledgeSources", LogLevel.Warning);
             // Framework diagnostics include raw exceptions; our handler emits safe trace-based logs.
             builder.Logging.AddFilter("Microsoft.AspNetCore.Diagnostics.ExceptionHandlerMiddleware", LogLevel.None);
@@ -93,6 +99,12 @@ namespace be
             });
 
             var app = builder.Build();
+
+            if (isKnowledgeIndexCommand)
+            {
+                await using (app)
+                    return await KnowledgeIndexCommands.ExecuteAsync(args, app.Services);
+            }
 
             if (isDemoWeekCommand)
             {

@@ -18,6 +18,7 @@
     <ProjectReference Include="../../be.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <None Update="Knowledge/*.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../../Infrastructure/Persistence/Migrations/Sql/*.sql"
           Link="Sql/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

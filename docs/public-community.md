@@ -1,5 +1,7 @@
 # Kho tri thức và sự cố chung công khai
 
+**Cập nhật chuẩn hóa tài liệu:** cần [review/apply KnowledgeStandardization](knowledge-standardization-review.md) cho API mới. [Hướng dẫn biên tập](knowledge-authoring.md) bổ sung metadata, bước đánh số và phân loại draft/public; public mặc định chỉ Operational, mẫu cần `?dataset=demo`, Unclassified chỉ ở quản trị. Các số liệu kích hoạt PublicCommunity bên dưới là kết quả trước lần chuẩn hóa này.
+
 Cổng tra cứu hoạt động **trước khi đăng nhập** tại `/knowledge` và `/incidents`. Trang chủ, header công khai và trang đăng nhập đều có đường dẫn truy cập. Người đã đăng nhập dùng cùng nội dung công khai, có thêm đánh giá hữu ích/tự giải quyết và xác nhận ảnh hưởng.
 
 ## Cài đặt và dữ liệu ban đầu

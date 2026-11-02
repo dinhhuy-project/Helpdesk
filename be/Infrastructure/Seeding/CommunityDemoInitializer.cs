@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using be.Domain.Constants;
 using be.Domain.Entities;
 using be.Infrastructure.Identity;
@@ -38,9 +39,17 @@ public sealed class CommunityDemoInitializer(HelpdeskDbContext database, TimePro
         for (var i = 0; i < articles.Length; i++)
         {
             var a = articles[i]; var at = now.AddDays(-2).AddHours(i);
+            var content = string.Join('\n', a.Content.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                .Select((step, index) => $"{index + 1}. " + Regex.Replace(step.Trim(), @"^\d+[.)]\s*", "")));
+            var guide = new KnowledgeGuide("Tình huống minh họa; cần đối chiếu hệ thống và chính sách của đơn vị trước khi áp dụng.",
+                "Dùng môi trường thử nghiệm; không chia sẻ mật khẩu, OTP hoặc dữ liệu cá nhân.",
+                "Hiểu các bước tự kiểm tra và thông tin cần cung cấp cho nhóm hỗ trợ.",
+                "Nếu chưa giải quyết được, đăng nhập Helpdesk và tạo Ticket qua kênh có phân quyền.",
+                "Bộ mẫu community-demo-v1, biên soạn phục vụ nghiệm thu", SourceUpdatedOn: DateOnly.FromDateTime(at));
             database.CommunityEntries.Add(new CommunityEntry { Id = Id($"article:{i}"), Kind = CommunityKind.Knowledge,
-                Title = a.Title, Summary = a.Summary, Content = a.Content, Topic = a.Topic,
-                PublicTitle = a.Title, PublicSummary = a.Summary, PublicContent = a.Content, PublicTopic = a.Topic,
+                Title = a.Title, Summary = a.Summary, Content = content, Topic = a.Topic,
+                PublicTitle = a.Title, PublicSummary = a.Summary, PublicContent = content, PublicTopic = a.Topic,
+                Classification = CommunityClassification.Demo, PublicClassification = CommunityClassification.Demo, Guide = guide, PublicGuide = guide,
                 CreatedById = admin, CreatedAt = at, UpdatedAt = at, IsPublished = true, PublicRevision = 1, PublishedAt = at });
         }
         foreach (var resolved in new[] { false, true })
@@ -50,6 +59,7 @@ public sealed class CommunityDemoInitializer(HelpdeskDbContext database, TimePro
             var summary = "Tình huống minh họa của đồ án, không phải thông báo sự cố thực tế.";
             var status = resolved ? IncidentStatus.Resolved : IncidentStatus.Investigating;
             var entry = new CommunityEntry { Id = Id($"incident:{key}"), Kind = CommunityKind.Incident, Title = title, Summary = summary,
+                Classification = CommunityClassification.Demo, PublicClassification = CommunityClassification.Demo,
                 Content = "Nội dung mô phỏng phục vụ nghiệm thu. Theo dõi timeline để hiểu cách nhóm hỗ trợ cập nhật tình trạng dịch vụ.", Topic = "Minh họa",
                 Status = status, PublicTitle = title, PublicSummary = summary, PublicTopic = "Minh họa", PublicStatus = status,
                 CreatedById = admin, CreatedAt = at, UpdatedAt = resolved ? at.AddHours(1) : at, IsPublished = true,

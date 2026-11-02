@@ -109,6 +109,10 @@ services:
       Minio__Bucket: helpdesk-attachments
       Minio__UseSsl: "false"
       KnowledgeSources__WikipediaEnabled: ${KNOWLEDGE_WIKIPEDIA_ENABLED:-true}
+      LocalAssistant__Enabled: ${LOCAL_ASSISTANT_ENABLED:-false}
+      LocalAssistant__BaseUrl: ${LOCAL_ASSISTANT_BASE_URL:-http://host.docker.internal:11434/}
+      LocalAssistant__Model: ${LOCAL_ASSISTANT_MODEL:-qwen3:1.7b}
+      LocalAssistant__TimeoutSeconds: ${LOCAL_ASSISTANT_TIMEOUT_SECONDS:-60}
       KnowledgeSources__BookStack__Enabled: ${BOOKSTACK_CONNECTOR_ENABLED:-false}
       KnowledgeSources__BookStack__SourceId: ${BOOKSTACK_SOURCE_ID:-support-wiki}
       KnowledgeSources__BookStack__BaseUrl: ${BOOKSTACK_BASE_URL:-http://host.docker.internal:6875/}

@@ -15,15 +15,16 @@ import { CommunityManageDetail } from './manage-community-pages'
 import { publicCommunityKey } from '../hooks/use-community'
 
 const id = '72000000-0000-0000-0000-000000000001'
+const guide = { applicability: 'Ứng dụng VPN được đơn vị phê duyệt', prerequisites: 'Có kết nối Internet', expectedOutcome: 'Kết nối được VPN', escalation: 'Gửi Ticket kèm mã lỗi', sourceName: 'Nhóm IT biên soạn', sourceUrl: null, sourceUpdatedOn: '2026-10-30' }
 const published: PublicEntry = { id, kind: 'Knowledge', title: 'Hướng dẫn VPN đã duyệt', summary: 'Hướng dẫn công khai', content: '<img src=x onerror=alert(1)> Nội dung văn bản an toàn', topic: 'Mạng',
-  status: null, revision: 1, publishedAt: '2026-10-30T00:00:00Z', sourceUrl: `/knowledge/${id}`, affectedCount: 0, helpfulCount: 2, solvedCount: 1 }
-const draft: ManagedEntry = { id, kind: 'Knowledge', title: 'Bài nháp VPN', summary: 'Tóm tắt bản soạn', content: 'Nội dung đang biên soạn', topic: 'Mạng', status: null,
-  isPublished: false, publicRevision: 0, publishedAt: null, version: 41, sourceTicketId: null, updatedAt: published.publishedAt }
+  status: null, revision: 1, publishedAt: '2026-10-30T00:00:00Z', sourceUrl: `/knowledge/${id}`, affectedCount: 0, helpfulCount: 2, solvedCount: 1, classification: 'Operational', guide }
+const draft: ManagedEntry = { id, kind: 'Knowledge', title: 'Bài nháp VPN', summary: 'Tóm tắt bản soạn', content: '1. Nội dung đang biên soạn', topic: 'Mạng', status: null,
+  isPublished: false, publicRevision: 0, publishedAt: null, version: 41, sourceTicketId: null, updatedAt: published.publishedAt, classification: 'Operational', publicClassification: 'Unclassified', guide }
 const dispose: (() => void)[] = []
 afterEach(() => { cleanup(); for (const fn of dispose.splice(0)) fn(); vi.restoreAllMocks() })
-async function open(path = `/knowledge/${id}`, grants?: string[]) {
+async function open(path = `/knowledge/${id}`, grants?: string[], initial: Partial<ManagedEntry> = {}) {
   const requests: InternalAxiosRequestConfig[] = []
-  const backend = { row: structuredClone(draft), conflict: false }
+  const backend = { row: structuredClone({ ...draft, ...initial }), conflict: false }
   const profile = { ...userA, permissions: grants ?? [] }
   const adapter: AxiosAdapter = async config => {
     requests.push(config)
@@ -51,6 +52,38 @@ async function open(path = `/knowledge/${id}`, grants?: string[]) {
 }
 
 describe('public community portal and controlled publishing', () => {
+  it('shows applicability, prerequisites, source date and the reviewed outcome', async () => {
+    vi.spyOn(publicCommunityApi, 'get').mockResolvedValue(published)
+    await open()
+    expect(await screen.findByText(guide.applicability)).toBeInTheDocument()
+    expect(screen.getByText(guide.sourceName)).toBeInTheDocument()
+    expect(screen.getByText(/30\/10\/2026/)).toBeInTheDocument()
+    expect(screen.getByText(guide.escalation)).toBeInTheDocument()
+  })
+  it('keeps demo searches explicit in the URL and request while showing a clear notice', async () => {
+    const list = vi.spyOn(publicCommunityApi, 'list').mockResolvedValue({ items: [{ ...published, classification: 'Demo' }], page: 1, pageSize: 12, totalCount: 1 })
+    const test = await open('/knowledge?dataset=demo')
+    await screen.findByRole('link', { name: published.title })
+    expect(screen.getByRole('note')).toHaveTextContent('Không xem đây là quy trình đã xác minh')
+    expect(screen.getByRole('link', { name: published.title })).toHaveAttribute('href', `/knowledge/${id}?dataset=demo`)
+    expect(list).toHaveBeenCalledWith('knowledge', expect.objectContaining({ dataset: 'demo' }), expect.any(AbortSignal))
+    await userEvent.selectOptions(screen.getByLabelText('Nguồn nội dung'), 'operational')
+    await userEvent.click(screen.getByRole('button', { name: 'Tra cứu' }))
+    await waitFor(() => expect(test.router.state.location.search).not.toContain('dataset=demo'))
+    expect(screen.queryByRole('note')).not.toBeInTheDocument()
+  })
+  it('saves incomplete imported material as a draft but blocks publishing until normalized', async () => {
+    const test = await open(`/admin/knowledge/${id}`, [Permission.KnowledgeManage, Permission.KnowledgePublish], { classification: 'Unclassified', guide: null })
+    await screen.findByDisplayValue(draft.title)
+    await userEvent.click(screen.getByLabelText(/Tôi đã kiểm tra nội dung/))
+    expect(screen.getByRole('button', { name: 'Xuất bản công khai' })).toBeDisabled()
+    await userEvent.type(screen.getByRole('textbox', { name: 'Phạm vi áp dụng' }), 'Cần xác minh thêm')
+    expect(screen.getByLabelText(/Tôi đã kiểm tra nội dung/)).not.toBeChecked()
+    await userEvent.click(screen.getByRole('button', { name: 'Lưu bản soạn' }))
+    await screen.findByText('Đã lưu bản soạn. Nội dung chỉ công khai sau khi xuất bản.')
+    expect(test.backend.row.guide?.applicability).toBe('Cần xác minh thêm')
+    expect(test.requests.some(x => x.url?.endsWith('/publish'))).toBe(false)
+  })
   it('allows anonymous detail lookup and renders content as text without executing HTML', async () => {
     vi.spyOn(publicCommunityApi, 'get').mockResolvedValue(published)
     const test = await open()
