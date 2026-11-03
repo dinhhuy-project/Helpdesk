@@ -40,6 +40,7 @@ namespace be
             // Add services to the container.
 
             builder.Services.AddApiFoundation(builder.Configuration);
+            builder.Services.AddTrustedProxy(builder.Configuration);
             builder.Services.AddPersistence(builder.Configuration);
             builder.Services.AddIdentityInitialization();
             builder.Services.AddHelpdeskAuthentication();
@@ -124,6 +125,7 @@ namespace be
                     return await IdentityCommands.ExecuteAsync(args, app.Services, builder.Configuration);
             }
 
+            app.UseForwardedHeaders();
             app.UseExceptionHandler();
             app.UseStatusCodePages();
 

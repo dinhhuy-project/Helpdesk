@@ -1,0 +1,117 @@
+# Self-hosted Internet DEMO only. Always use -p helpdesk-demo and the dedicated env file.
+name: helpdesk-demo
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "10m", max-file: "3" }
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      POSTGRES_DB: helpdesk_demo
+      POSTGRES_USER: helpdesk_demo
+      POSTGRES_PASSWORD: ${DEMO_DB_PASSWORD:?Initialize the dedicated demo configuration first}
+    volumes: ["demo-postgres:/var/lib/postgresql/data"]
+    networks:
+      demo: { ipv4_address: 172.29.240.10 }
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U helpdesk_demo -d helpdesk_demo"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  minio:
+    build: { context: ./deploy/minio }
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      MINIO_ROOT_USER: helpdesk-demo-root
+      MINIO_ROOT_PASSWORD: ${DEMO_MINIO_ROOT_PASSWORD:?Initialize demo configuration}
+      MINIO_ENABLED: "true"
+      MINIO_APP_ACCESS_KEY: helpdesk-demo-api
+      MINIO_APP_SECRET_KEY: ${DEMO_MINIO_APP_SECRET:?Initialize demo configuration}
+    command: ["server", "/data", "--console-address", ":9001"]
+    volumes: ["demo-minio:/data"]
+    networks:
+      demo: { ipv4_address: 172.29.240.11 }
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /tmp/helpdesk-minio-ready && curl --fail --silent http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+  api:
+    image: helpdesk-api:self-host-demo
+    build: { context: ./be }
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_HTTP_PORTS: "8080"
+      AllowedHosts: "*.trycloudflare.com;localhost;127.0.0.1"
+      ConnectionStrings__Helpdesk: "Host=postgres;Port=5432;Database=helpdesk_demo;Username=helpdesk_demo;Password=${DEMO_DB_PASSWORD:?Initialize demo configuration}"
+      Database__HostOverride: ""
+      Jwt__Issuer: Helpdesk.Demo.Api
+      Jwt__Audience: Helpdesk.Demo.Web
+      Jwt__SigningKey: ${DEMO_JWT_KEY:?Initialize demo configuration}
+      Jwt__AccessTokenMinutes: "15"
+      Jwt__RefreshTokenDays: "7"
+      Identity__SeedOnStartup: "false"
+      Identity__BootstrapAdminOnStartup: "false"
+      DevelopmentData__SeedOnStartup: "false"
+      Minio__Enabled: "true"
+      Minio__Endpoint: minio:9000
+      Minio__HostOverride: ""
+      Minio__AccessKey: helpdesk-demo-api
+      Minio__SecretKey: ${DEMO_MINIO_APP_SECRET:?Initialize demo configuration}
+      Minio__Bucket: helpdesk-attachments
+      Minio__UseSsl: "false"
+      ReverseProxy__Enabled: "true"
+      ReverseProxy__KnownProxies__0: 172.29.240.2
+      LocalAssistant__Enabled: ${DEMO_AI_ENABLED:-false}
+      LocalAssistant__BaseUrl: http://host.docker.internal:11434/
+      LocalAssistant__Model: ${DEMO_AI_MODEL:-qwen3:1.7b}
+      LocalAssistant__TimeoutSeconds: "120"
+      KnowledgeSources__BookStack__Enabled: "false"
+      Logging__LogLevel__Microsoft.EntityFrameworkCore.Database.Command: Warning
+    networks: [demo]
+    depends_on:
+      postgres: { condition: service_healthy }
+      minio: { condition: service_healthy }
+  web:
+    image: helpdesk-web:self-host-demo
+    build:
+      context: ./fe
+      args:
+        VITE_API_BASE_URL: /
+        NGINX_TEMPLATE: demo-tunnel.conf.template
+    restart: unless-stopped
+    logging: *logging
+    environment: { API_UPSTREAM: "http://api:8080" }
+    ports: ["127.0.0.1:${DEMO_LOCAL_PORT:-8090}:8080"]
+    networks:
+      demo: { ipv4_address: 172.29.240.2 }
+    depends_on: [api]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  tunnel:
+    profiles: [public]
+    # Pinned manifest resolved from Cloudflare's official image on 2026-11-03.
+    image: cloudflare/cloudflared@sha256:4955524aeaa379e154023d5a027c250f7b35041a2e7e950cf13f144bc9b9c5ba
+    restart: "no"
+    logging: *logging
+    command: ["tunnel", "--no-autoupdate", "--url", "http://web:8080", "--protocol", "http2", "--loglevel", "info"]
+    networks:
+      demo: { ipv4_address: 172.29.240.4 }
+    depends_on:
+      web: { condition: service_healthy }
+networks:
+  demo:
+    ipam:
+      config: [{ subnet: 172.29.240.0/24, ip_range: 172.29.240.128/25 }]
+volumes:
+  demo-postgres:
+  demo-minio:

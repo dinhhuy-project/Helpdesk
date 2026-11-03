@@ -6,6 +6,8 @@
 
 **Bắt đầu chạy project:** [Cài đặt, khởi tạo và các câu lệnh chạy Helpdesk](docs/installation-and-running.md) — hướng dẫn từ máy mới, migration/seed, Visual Studio/CLI/Compose, frontend, wiki và xử lý lỗi.
 
+**Demo Internet bằng máy cá nhân, chưa có tên miền:** [Docker + Cloudflare Quick Tunnel](docs/self-host-demo.md), stack/data/secrets riêng, frontend/API không cần Visual Studio hoặc Vite. Khởi tạo một lần, sau đó chạy `Start-SelfHostDemo.ps1 -Public` để lấy URL HTTPS tạm; `-Stop` để kết thúc.
+
 **Chạy hằng ngày:** bật Docker Desktop → `powershell -NoProfile -ExecutionPolicy Bypass -File .\Start-Development.ps1` → terminal khác chạy `npm --prefix fe run dev` → Visual Studio chọn **Container (Dockerfile)** và F5. Script bật hạ tầng + Wiki/AI đã enable, đồng bộ user-secrets và kiểm tra migration; xem [hướng dẫn chạy nhanh](docs/installation-and-running.md#chạy-hằng-ngày-với-visual-studio).
 
 **Chuẩn bị tài liệu cho AI:** Đã có [chuẩn biên tập hướng dẫn](docs/knowledge-authoring.md), metadata/snapshot và tách nguồn thực tế/demo; 8 bản nháp ứng viên được tạo bằng CLI riêng, không tự publish. Cần [review/apply KnowledgeStandardization](docs/knowledge-standardization-review.md) trước khi chạy API mới.

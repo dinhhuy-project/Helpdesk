@@ -17,7 +17,7 @@ const upstream = createServer(async (req, res) => {
   requests.push({ url: req.url, method: req.method, authorization: req.headers.authorization, forwardedProto: req.headers['x-forwarded-proto'], body })
   const status = req.method === 'OPTIONS' ? 204 : req.url === '/api/v1/users/me' || req.url.startsWith('/hubs/notifications/negotiate') ? 401 : req.url.startsWith('/api/missing') ? 404 : 200
   res.writeHead(status, { 'Content-Type': 'application/json' })
-  res.end(JSON.stringify({ ok: true }))
+  res.end(JSON.stringify(req.url.startsWith('/api/v1/public/') ? { items: [], totalCount: 0 } : { ok: true }))
 })
 upstream.on('upgrade', (req, socket) => {
   requests.push({ url: req.url, upgrade: req.headers.upgrade })

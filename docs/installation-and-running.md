@@ -6,6 +6,8 @@ Tất cả lệnh mặc định chạy ở **root repository**, nơi có `docker
 
 ## Chạy hằng ngày với Visual Studio
 
+Nếu muốn dùng máy tính này làm nơi deploy cho người khác truy cập qua Internet, xem [hướng dẫn demo bằng Cloudflare Quick Tunnel](self-host-demo.md). Bản đó dùng stack/data/secrets riêng và chạy frontend/backend bằng Docker; các lệnh F5/Vite dưới đây vẫn là môi trường phát triển.
+
 Sau khi đã cấu hình `.env`, cài dependencies frontend (`npm --prefix fe ci`) và review/apply các migration, chỉ cần:
 
 1. Bật **Docker Desktop**, chờ Linux engine sẵn sàng. Tại root repository chạy một lệnh:

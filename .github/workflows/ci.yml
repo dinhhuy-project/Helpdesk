@@ -191,6 +191,14 @@ jobs:
       - name: Build backend image
         run: docker build --file be/Dockerfile --tag helpdesk-api:ci be
 
+      - name: Validate isolated self-host demo Compose
+        env:
+          DEMO_DB_PASSWORD: ci-test-only
+          DEMO_JWT_KEY: ci-compose-validation-only-not-a-runtime-signing-key
+          DEMO_MINIO_ROOT_PASSWORD: ci-test-only
+          DEMO_MINIO_APP_SECRET: ci-test-only
+        run: docker compose -p helpdesk-demo --env-file deploy/self-host-demo.example.env -f docker-compose.demo.yml --profile public config --quiet
+
       - name: Set up Node.js for web image acceptance
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:

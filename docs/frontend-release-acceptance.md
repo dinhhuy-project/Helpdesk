@@ -110,7 +110,7 @@ Probe chỉ đọc document/assets/health, thử challenge 401 và OPTIONS CORS,
 
 | Cổng vận hành | Việc còn phải xác minh trên môi trường đích |
 | --- | --- |
-| Proxy/HTTPS | Backend phải xử lý ForwardedHeaders **chỉ từ proxy/network tin cậy**, trước HTTPS redirection/rate-limit; source hiện chưa có middleware này. Kiểm tra không redirect loop, IP người dùng đúng, không tin header giả từ kết nối ngoài. Chốt HSTS/certificate renewal. |
+| Proxy/HTTPS | Đã có ForwardedHeaders opt-in qua `ReverseProxy:Enabled/KnownProxies`, chỉ nhận IP cụ thể trước HTTPS redirection/rate-limit; [bản demo tunnel](self-host-demo.md) cấu hình proxy riêng. Kiểm tra lại IP/header và không redirect loop trên môi trường đích; chốt HSTS/certificate renewal cho production dài hạn. |
 | Cấu hình | Production environment, signing key/DB/storage secrets qua secret store; tắt development seed/admin mẫu, không expose Swagger hoặc database/MinIO console ra public. Chốt origin API/hub và CORS thực. |
 | Readiness | `/health/live` hiện chỉ chứng minh process sống. Cần readiness theo DB/migration/storage và chiến lược worker; không coi live=ready để chuyển traffic. |
 | Dữ liệu | Review/apply migration bằng quy trình riêng, backup PostgreSQL và object storage, thử restore có evidence; chốt retention phiên/audit/attachment cleanup, không xóa lịch sử để “dọn” trước release. |
