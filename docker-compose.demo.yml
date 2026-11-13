@@ -41,7 +41,7 @@ services:
       retries: 20
       start_period: 30s
   api:
-    image: helpdesk-api:self-host-demo
+    image: helpdesk-api:${DEMO_IMAGE_TAG:-self-host-demo}
     build: { context: ./be }
     restart: unless-stopped
     logging: *logging
@@ -79,7 +79,7 @@ services:
       postgres: { condition: service_healthy }
       minio: { condition: service_healthy }
   web:
-    image: helpdesk-web:self-host-demo
+    image: helpdesk-web:${DEMO_IMAGE_TAG:-self-host-demo}
     build:
       context: ./fe
       args:

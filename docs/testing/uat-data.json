@@ -1,0 +1,99 @@
+{
+  "formatVersion": 1,
+  "purpose": "Manual UAT fixture blueprint, not a database import or executed test result",
+  "runKey": "UAT-20261104-A",
+  "environment": "Isolated UAT database only; replace runKey and emails for another run",
+  "mockPassword": "Uat-Only!2026-PasswordAlpha",
+  "mockChangedPassword": "Uat-Only!2026-PasswordBravo",
+  "passwordNotice": "Fictional local UAT passwords; never use these on an Internet-facing demo or production",
+  "existingAdmin": {
+    "key": "A1",
+    "email": "<existing-bootstrap-admin-email>",
+    "credentialSource": "Existing private credentials file; do not copy its contents into this fixture"
+  },
+  "users": [
+    { "key": "A2", "email": "uat.20261104.a.admin2@example.test", "displayName": "UAT Admin dự phòng", "roles": ["SystemAdmin"], "departmentKey": null },
+    { "key": "LA", "email": "uat.20261104.a.lead.it@example.test", "displayName": "UAT Trưởng nhóm IT", "roles": ["TeamLeader"], "departmentKey": "D-IT" },
+    { "key": "LB", "email": "uat.20261104.a.lead.hr@example.test", "displayName": "UAT Trưởng nhóm HR", "roles": ["TeamLeader"], "departmentKey": "D-HR" },
+    { "key": "AA", "email": "uat.20261104.a.agent.it1@example.test", "displayName": "UAT Agent IT 1", "roles": ["SupportAgent"], "departmentKey": "D-IT" },
+    { "key": "AA2", "email": "uat.20261104.a.agent.it2@example.test", "displayName": "UAT Agent IT 2", "roles": ["SupportAgent"], "departmentKey": "D-IT" },
+    { "key": "AB", "email": "uat.20261104.a.agent.hr@example.test", "displayName": "UAT Agent HR", "roles": ["SupportAgent"], "departmentKey": "D-HR" },
+    { "key": "R1", "email": "uat.20261104.a.requester1@example.test", "displayName": "UAT Nguyễn An", "roles": ["Requester"], "departmentKey": "D-IT" },
+    { "key": "R2", "email": "uat.20261104.a.requester2@example.test", "displayName": "UAT Trần Bình", "roles": ["Requester"], "departmentKey": "D-HR" }
+  ],
+  "departments": [
+    { "key": "D-IT", "name": "UAT-20261104-A Công nghệ thông tin", "description": "Phòng IT giả lập, không dùng vận hành" },
+    { "key": "D-HR", "name": "UAT-20261104-A Nhân sự", "description": "Phòng nhân sự giả lập, không dùng vận hành" }
+  ],
+  "teams": [
+    { "key": "TA", "name": "UAT-20261104-A Hỗ trợ IT", "departmentKey": "D-IT", "members": [ { "userKey": "LA", "isLeader": true }, { "userKey": "AA", "isLeader": false }, { "userKey": "AA2", "isLeader": false } ] },
+    { "key": "TB", "name": "UAT-20261104-A Hỗ trợ HR", "departmentKey": "D-HR", "members": [ { "userKey": "LB", "isLeader": true }, { "userKey": "AB", "isLeader": false } ] }
+  ],
+  "categories": [
+    { "key": "C-NET", "name": "UAT-20261104-A Mạng", "parentKey": null },
+    { "key": "C-VPN", "name": "UAT-20261104-A VPN", "parentKey": "C-NET" },
+    { "key": "C-OFF", "name": "UAT-20261104-A Văn phòng", "parentKey": null },
+    { "key": "C-PRINT", "name": "UAT-20261104-A Máy in", "parentKey": "C-OFF" }
+  ],
+  "enums": {
+    "status": { "New": 1, "InProgress": 2, "WaitingForRequester": 3, "Resolved": 4, "Closed": 5, "Cancelled": 6, "Reopened": 7 },
+    "priority": { "Low": 1, "Normal": 2, "High": 3, "Urgent": 4 }
+  },
+  "reportFixture": {
+    "requirement": "Create these four tickets before any other tickets and before active SLA policies, in an isolated UAT database. Final status/assignment is reached through commands, never assigned by the create DTO.",
+    "tickets": [
+      { "key": "RPT1", "title": "UAT-20261104-A RPT1 VPN mới", "requesterKey": "R1", "categoryKey": "C-VPN", "priority": 2, "finalStatus": 1, "teamKey": null, "agentKey": null },
+      { "key": "RPT2", "title": "UAT-20261104-A RPT2 VPN đang xử lý", "requesterKey": "R1", "categoryKey": "C-VPN", "priority": 3, "finalStatus": 2, "teamKey": "TA", "agentKey": "AA" },
+      { "key": "RPT3", "title": "UAT-20261104-A RPT3 Máy in đã giải quyết", "requesterKey": "R2", "categoryKey": "C-PRINT", "priority": 2, "finalStatus": 4, "teamKey": "TB", "agentKey": "AB" },
+      { "key": "RPT4", "title": "UAT-20261104-A RPT4 VPN đã đóng", "requesterKey": "R2", "categoryKey": "C-VPN", "priority": 4, "finalStatus": 5, "teamKey": "TA", "agentKey": "AA" }
+    ],
+    "description": "Dữ liệu kiểm thử báo cáo UAT; không phải sự cố thực tế.",
+    "resolutionSummary": "Đã xác minh tình huống giả lập và hoàn tất kiểm tra UAT.",
+    "expected": {
+      "total": 4,
+      "byUserReadScope": { "A1": 4, "A2": 4, "R1": 2, "R2": 2, "AA": 2, "AA2": 2, "LA": 2, "AB": 1 },
+      "byStatus": { "New": 1, "InProgress": 1, "WaitingForRequester": 0, "Resolved": 1, "Closed": 1, "Cancelled": 0, "Reopened": 0 },
+      "byPriority": { "Low": 0, "Normal": 2, "High": 1, "Urgent": 1 },
+      "byTeam": { "TA": 2, "TB": 1, "unassigned": 1 },
+      "byAgent": { "AA": 2, "AB": 1, "unassigned": 1 },
+      "ticketsWithSla": 0,
+      "slaMeasuredSamples": 0,
+      "slaComplianceRate": null
+    }
+  },
+  "slaPoliciesAfterReportFixture": [
+    { "key": "S-LOW", "name": "UAT-20261104-A Low", "priority": 1, "firstResponseMinutes": 60, "resolutionMinutes": 240 },
+    { "key": "S-NORMAL", "name": "UAT-20261104-A Normal", "priority": 2, "firstResponseMinutes": 30, "resolutionMinutes": 120 },
+    { "key": "S-HIGH", "name": "UAT-20261104-A High", "priority": 3, "firstResponseMinutes": 15, "resolutionMinutes": 60 },
+    { "key": "S-URGENT", "name": "UAT-20261104-A Urgent", "priority": 4, "firstResponseMinutes": 5, "resolutionMinutes": 30 }
+  ],
+  "mainTicket": {
+    "key": "T-MAIN", "requesterKey": "R1", "categoryKey": "C-VPN", "teamKey": "TA", "agentKey": "AA", "priority": 2,
+    "title": "UAT-20261104-A Không kết nối được VPN thử nghiệm",
+    "description": "Môi trường lab: ứng dụng UAT-VPN trả mã UAT-401 khi kết nối. Xảy ra trong mạng thử nghiệm. Không có tài khoản, IP hay thông tin cá nhân thực tế.",
+    "publicCommentRequester": "UAT-PUBLIC-R1: Tôi đã thử lại trên mạng lab, mã lỗi vẫn còn.",
+    "publicCommentAgent": "UAT-PUBLIC-AA: Tôi đã tiếp nhận và đang kiểm tra hồ sơ VPN thử nghiệm.",
+    "internalNote": "UAT-INTERNAL-ONLY-20261104-A: Kiểm tra cấu hình lab với nhóm IT. Không gửi nội dung này cho requester.",
+    "resolutionSummary": "Đã sửa hồ sơ VPN trong lab và xác minh kết nối thử nghiệm thành công. Người dùng có thể kiểm tra lại."
+  },
+  "knowledge": [
+    { "key": "K-DEMO", "dataset": "Demo", "title": "[UAT fixture] Hướng dẫn VPN demo", "topic": "VPN", "summary": "Bản mẫu tách khỏi corpus vận hành và trợ lý.", "content": "1. Mở ứng dụng VPN lab.\n2. Chọn hồ sơ UAT-VPN trên mạng thử nghiệm.\n3. Ghi lại mã lỗi UAT nếu chưa kết nối được.", "applicability": "Chỉ môi trường UAT giả lập", "prerequisites": "Có ứng dụng và hồ sơ VPN lab giả lập", "expectedOutcome": "Hoàn tất thao tác thử nghiệm, không thay đổi hệ thống thật", "escalation": "Tạo Ticket UAT kèm mã lỗi giả lập", "sourceName": "UAT fixture, không dùng cho vận hành", "sourceUrl": null, "sourceUpdatedOn": "2026-11-04" },
+    { "key": "K-OPS-UAT", "dataset": "Operational", "isolatedUatOnly": true, "title": "[UAT fixture] Khắc phục VPN lab", "topic": "VPN", "summary": "Hướng dẫn thực nghiệm có kiểm soát, chỉ publish trong database UAT riêng.", "content": "1. Mở ứng dụng VPN lab.\n2. Chọn hồ sơ UAT-VPN rồi kết nối mạng thử nghiệm.\n3. Ghi lại mã lỗi UAT và liên hệ nhóm hỗ trợ lab nếu chưa kết nối được.", "applicability": "Chỉ người tham gia nghiệm thu trong lab UAT", "prerequisites": "Có ứng dụng VPN lab và kết nối mạng thử nghiệm", "expectedOutcome": "Kết nối VPN lab hoặc có mã lỗi để báo hỗ trợ", "escalation": "Tạo Ticket UAT với mã lỗi giả lập; không gửi mật khẩu", "sourceName": "UAT fixture, không dùng cho vận hành", "sourceUrl": null, "sourceUpdatedOn": "2026-11-04" }
+  ],
+  "incident": {
+    "key": "I-LAB", "dataset": "Demo", "title": "[UAT fixture] Gián đoạn dịch vụ lab", "topic": "VPN", "summary": "Tình huống giả lập; không có gián đoạn dịch vụ thực tế.", "content": "Đang kiểm tra hiện tượng kết nối chậm trong hệ thống lab UAT.",
+    "timeline": [ { "status": "Investigating", "message": "Đang kiểm tra tình huống UAT." }, { "status": "Identified", "message": "Đã xác định cấu hình lab cần điều chỉnh." }, { "status": "Monitoring", "message": "Đang theo dõi sau điều chỉnh giả lập." }, { "status": "Resolved", "message": "Hoàn tất xác minh tình huống UAT." } ]
+  },
+  "retrievalQueries": [ "VPN lab", "không kết nối VPN", "khong ket noi vpn", "không vào được VPN", "lỗi VPN", "quy trình hoàn thuế tàu vũ trụ UAT không tồn tại" ],
+  "files": [
+    { "name": "uat-public.txt", "purpose": "Valid public upload and byte-for-byte download" },
+    { "name": "uat-internal.txt", "purpose": "Internal ACL and cache leak checks" },
+    { "name": "uat-image.png", "purpose": "Valid PNG upload" },
+    { "name": "uat-empty.txt", "purpose": "Reject zero length" },
+    { "name": "uat-invalid-utf8.txt", "purpose": "Reject invalid UTF-8 text" },
+    { "name": "uat-fake.pdf", "purpose": "Reject PDF extension/MIME with invalid signature" },
+    { "name": "uat-blocked.exe", "purpose": "Reject disallowed extension; contents are inert text" },
+    { "name": "uat-oversize.txt", "purpose": "Reject MaxFileBytes + 1; generator defaults to 10 MiB limit" }
+  ],
+  "captureAfterCreation": [ "actual IDs for all keys", "latest version before each mutation", "TicketNumber from server", "report createdFrom/createdTo and asOf", "SLA deadlines", "public revision", "notification and attachment IDs" ]
+}

@@ -1,4 +1,4 @@
-param([switch]$ApplyReviewedMigrations)
+param([switch]$ApplyReviewedMigrations, [switch]$EmptyDatabaseOnly, [switch]$PrepareForStartup, [switch]$SkipBuild)
 
 . (Join-Path $PSScriptRoot 'deploy/SelfHostDemo.Common.ps1')
 Assert-DemoEngine
@@ -30,17 +30,21 @@ if (-not (Test-Path -LiteralPath $demoEnvironment)) {
 }
 $configuration = Get-DemoConfiguration
 
-if (-not $ApplyReviewedMigrations) {
+if (-not $ApplyReviewedMigrations -and -not $EmptyDatabaseOnly) {
     Write-Output 'Building a dedicated demo and preparing SQL for review. Development data/secrets are not copied.'
-    & docker @demoCompose build api web minio
-    if ($LASTEXITCODE -ne 0) { throw 'Demo image build failed.' }
+    if (-not $SkipBuild) {
+        & docker @demoCompose build api web minio
+        if ($LASTEXITCODE -ne 0) { throw 'Demo image build failed.' }
+    }
     dotnet ef migrations script 0 --idempotent --configuration Release --project (Join-Path $demoRepository 'be') --startup-project (Join-Path $demoRepository 'be') --output $sqlPath *> (Join-Path $demoPrivate 'migration-generation.log')
     if ($LASTEXITCODE -ne 0) { throw 'Cannot prepare migration SQL. Check .NET 8 SDK/EF 8 tools and the private migration-generation.log.' }
     $sourceIds = @(Get-ChildItem -LiteralPath (Join-Path $demoRepository 'be/Infrastructure/Persistence/Migrations') -Filter '*.cs' -File |
         Where-Object { $_.BaseName -match '^\d{14}_[A-Za-z0-9_]+$' } | ForEach-Object { $_.BaseName } | Sort-Object)
     [IO.File]::WriteAllText($reviewPath, (@{ sha256 = (Get-FileHash -LiteralPath $sqlPath -Algorithm SHA256).Hash; migrations = $sourceIds } | ConvertTo-Json), $utf8)
     Write-Output 'Prepared. Read .local/self-host-demo/migrations.sql and verify the target helpdesk-demo/helpdesk_demo.'
-    Write-Output 'After reviewing SQL: powershell -NoProfile -ExecutionPolicy Bypass -File .\Initialize-SelfHostDemo.ps1 -ApplyReviewedMigrations'
+    if (-not $PrepareForStartup) {
+        Write-Output 'After reviewing SQL: powershell -NoProfile -ExecutionPolicy Bypass -File .\Initialize-SelfHostDemo.ps1 -ApplyReviewedMigrations'
+    }
     return
 }
 
@@ -58,6 +62,7 @@ $query = "SELECT COALESCE((SELECT string_agg(table_schema || '.' || table_name, 
 $probe = Invoke-DemoDocker -Arguments ($demoCompose + @('exec', '-T', 'postgres', 'psql', '-X', '-A', '-t', '-U', 'helpdesk_demo', '-d', 'helpdesk_demo', '-v', 'ON_ERROR_STOP=1', '-c', $query))
 if ($probe.ExitCode -ne 0) { throw 'Cannot inspect dedicated demo database.' }
 $tables = ($probe.Lines -join '').Trim()
+if ($EmptyDatabaseOnly -and $tables) { throw 'Automatic first-run setup requires an empty demo database. Existing tables were found; no migration or seed was applied.' }
 if ($tables -and $tables -notmatch 'helpdesk\.__ef_migrations_history') { throw 'Existing unrelated schema found. Refusing to apply demo setup.' }
 & docker @demoCompose stop api web
 if ($LASTEXITCODE -ne 0) { throw 'Cannot stop demo API/web for migration.' }

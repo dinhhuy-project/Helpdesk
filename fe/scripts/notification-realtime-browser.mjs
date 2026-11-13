@@ -79,6 +79,9 @@ export async function runRealtimeBrowser(input) {
     await secondRequester.getByRole('link', { name: `Thông báo: ${before} chưa đọc`, exact: true }).waitFor()
     const row = requester.locator('.notification-item').filter({ has: requester.locator(`a[href="/notifications/${selected.id}"]`) })
     await row.getByRole('button', { name: /Đánh dấu đã đọc/ }).click()
+    // Clicking dispatches the mutation; wait for its database commit before manually
+    // running the dispatcher (the test fixture intentionally disables its background worker).
+    await until(async () => (await input.services.requester.inbox.detail(selected.id, input.signal())).readAt !== null)
     await input.control(input.services.coordinator, 'dispatch')
     await secondRequester.getByRole('link', { name: `Thông báo: ${before - 1} chưa đọc`, exact: true }).waitFor()
     const oldIds = (await input.registry(input.services.requester)).map(row => row.id)

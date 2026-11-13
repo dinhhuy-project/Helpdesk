@@ -199,6 +199,10 @@ jobs:
           DEMO_MINIO_APP_SECRET: ci-test-only
         run: docker compose -p helpdesk-demo --env-file deploy/self-host-demo.example.env -f docker-compose.demo.yml --profile public config --quiet
 
+      - name: Test local auto-deploy guards and rollback
+        shell: pwsh
+        run: ./be/tests/Run-SelfHostAutoDeployTests.ps1
+
       - name: Set up Node.js for web image acceptance
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:

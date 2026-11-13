@@ -4,6 +4,37 @@ Phù hợp khi bảo vệ đồ án/thử nghiệm, **chưa có tên miền**. M
 
 Đây là bản **demo public**, không phải hoàn thành toàn bộ yêu cầu production bước 18. Quick Tunnel không có cam kết uptime, đổi hostname khi tạo lại, tối đa 200 request đồng thời và không hỗ trợ SSE. SignalR của project có thể dùng WebSocket; trợ lý hiện không stream SSE. Xem [tài liệu Cloudflare](https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/).
 
+## Chỉ một lệnh để deploy từ đầu
+
+Bật Docker Desktop, chờ Linux engine sẵn sàng; tại root repository chạy:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\Deploy-SelfHostDemo.ps1
+```
+
+Đây là lệnh dùng cho cả lần đầu và những lần chạy sau, kể cả khi containers/images/volumes đã bị xóa. Không cần tự chạy lần lượt initializer và Start. Script tự tạo secrets demo còn thiếu, build API/frontend/MinIO khi thiếu image, bật hạ tầng, tạo schema + admin nếu database demo **trống**, khởi động ứng dụng rồi mở tunnel HTTPS. URL chỉ in sau khi kiểm tra thành công và nằm ở **dòng cuối cùng**:
+
+```text
+[1/5] Preparing dedicated demo configuration...
+...
+DEPLOY READY
+Administrator credentials (private): ...\credentials.txt
+Keep Docker Desktop running and the computer awake during the demo.
+Stop: powershell ... -File .\Start-SelfHostDemo.ps1 -Stop
+
+URL: https://example.trycloudflare.com
+```
+
+Lần đầu hoặc sau khi xóa images có thể mất vài phút để tải/build. Log chi tiết từng bước nằm trong `.local/self-host-demo/deploy-*.log`, không tràn terminal hoặc in password. Tạo SQL lần đầu cần .NET SDK/runtime 8 và `dotnet-ef` 8.x như phần phần mềm của project. Không cần chạy Visual Studio hoặc Vite.
+
+Việc tự khởi tạo schema ở lệnh này được giới hạn cho database demo riêng `helpdesk_demo` đang trống; kiểm tra lại trước khi áp dụng SQL. Đây là luồng khởi tạo demo mới đã được yêu cầu, không tự nâng schema database có dữ liệu. Nếu database đã có bảng, script giữ dữ liệu/secrets, chạy kiểm tra hiện tại và vẫn yêu cầu review/apply riêng khi có migration mới hoặc schema bất thường. Không tạo lại dữ liệu nghiệp vụ đã mất cùng volume; phục hồi từ backup nếu cần.
+
+Nếu agent auto deploy đang chạy, script yêu cầu agent tạm dừng an toàn rồi bật lại sau khi xong, kể cả khi một bước lỗi. Agent chưa được cài thì không bắt buộc cài chỉ để deploy; muốn tự cập nhật sau push, xem [hướng dẫn auto deploy](self-host-auto-deploy.md).
+
+Chỉ muốn khởi tạo/chạy preview trên máy, không mở Internet: dùng cùng lệnh với `-Local`. Khi không có tunnel cũ, lựa chọn này không tạo tunnel; nếu tunnel đang chạy từ trước thì vẫn cần lệnh Stop để đóng nó. URL preview cũng nằm ở dòng cuối. Các lệnh initializer/Start dưới đây vẫn giữ để review migration, bảo trì và chẩn đoán riêng.
+
+Đã kiểm tra ngày 03/11/2026: lệnh mới build image còn thiếu, khởi tạo database demo trống và mở URL public thành công; chạy lại giữ nguyên hash file secrets/credentials, không khởi tạo lại schema. Đã xác nhận URL là dòng cuối, tiến trình deploy trả quyền điều khiển về terminal, agent nền được tiếp tục, probe login/me/logout và SignalR WebSocket qua URL thật pass. Bộ kiểm thử PowerShell hiện có 17 trường hợp auto deploy và 4 chẩn đoán startup đều pass. Những kiểm tra này không xóa volume chứa dữ liệu để tạo fixture.
+
 ## Bố trí
 
 ```text
@@ -51,6 +82,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\Start-SelfHostDemo.ps1
 
 Mở `http://127.0.0.1:8090`, đăng nhập bằng admin demo, chuẩn bị tài khoản/nội dung phù hợp. Lệnh kiểm tra DB/migration/index, bật PostgreSQL/MinIO/API/frontend và chờ web healthy. Không auto-build hoặc auto-migrate trong lệnh chạy hằng ngày. Không cần F5 và không cần `npm run dev` cho bản deploy.
 
+Nếu dùng riêng lệnh Start sau khi volume PostgreSQL demo bị xóa/tạo lại, container healthy vẫn có thể chứa database trống và Start sẽ báo `helpdesk_demo is empty`. Chạy `Deploy-SelfHostDemo.ps1` để tự chuẩn bị/khởi tạo database demo trống trong một lệnh, hoặc dùng quy trình SQL review/apply thủ công ở trên. Việc này không khôi phục Ticket/file/tài khoản đã mất cùng volumes; muốn lấy lại dữ liệu nghiệp vụ phải restore backup. Khi có bảng nhưng thiếu history, dừng để rà soát schema thay vì tự reset. Nếu schema có history nhưng preflight vẫn lỗi, đọc log riêng `.local/self-host-demo/startup-preflight.log`, không chia sẻ nguyên log khi chưa kiểm tra secrets.
+
 Khi sẵn sàng chia sẻ:
 
 ```powershell
@@ -84,6 +117,8 @@ Demo API dùng `http://host.docker.internal:11434/`, timeout 120 giây; Nginx ch
 BookStack connector tắt mặc định để không tự đưa Wiki Development vào bản public. Wikipedia vẫn là panel tham khảo riêng. Muốn đưa wiki riêng vào bản deploy cần chốt quyền nguồn, endpoint và phạm vi export trước; không tunnel MinIO Console, Wiki admin hay Docker socket.
 
 ## Cập nhật và backup
+
+Muốn **tự cập nhật sau mỗi push lên develop**, dùng [agent auto deploy trên máy cá nhân](self-host-auto-deploy.md). Agent đợi CI pass, build riêng, giữ tunnel/data/secrets và chặn migration mới để review. Dừng agent trước khi thực hiện quy trình cập nhật thủ công bên dưới.
 
 Khi đổi source:
 

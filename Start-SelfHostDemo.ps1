@@ -11,8 +11,12 @@ if ($Stop) {
 }
 & docker @demoCompose up -d --wait postgres minio
 if ($LASTEXITCODE -ne 0) { throw 'Demo database/storage did not become healthy.' }
+Assert-DemoDatabaseInitialized
 $check = Invoke-DemoDocker -Arguments ($demoCompose + @('run', '--rm', '--no-deps', 'api', 'knowledge-index', 'check', '--manifest', '/tmp/demo-knowledge-manifest.json'))
-if ($check.ExitCode -ne 0) { throw 'Demo database is not ready or its reviewed index/migrations differ. Initialize the demo first; this command does not migrate.' }
+if ($check.ExitCode -ne 0) {
+    [IO.File]::WriteAllText((Join-Path $demoPrivate 'startup-preflight.log'),($check.Lines -join "`n"),(New-Object Text.UTF8Encoding($false)))
+    throw 'Demo tables exist, but the selected API image failed its database/index preflight. Inspect .local/self-host-demo/startup-preflight.log privately and check reviewed migrations, index definition and connection configuration. No migration was applied.'
+}
 & docker @demoCompose up -d --wait api web
 if ($LASTEXITCODE -ne 0) { throw 'Demo API/frontend did not become healthy.' }
 $port = [int]$configuration.services.web.ports[0].published
@@ -66,6 +70,7 @@ if (-not $reachable) {
     throw "The temporary URL did not pass an HTTPS health check ($lastFailure). Tunnel stopped; check outbound Internet/DNS and rerun -Public."
 }
 [IO.File]::WriteAllText((Join-Path $demoPrivate 'public-url.txt'), $url, (New-Object Text.UTF8Encoding($false)))
-Write-Output ('Internet DEMO URL: ' + $url)
 Write-Output 'This is public: share only demo accounts/data. Keep Windows awake, Docker running and the Internet connected.'
 Write-Output 'Stop all demo services: powershell -NoProfile -ExecutionPolicy Bypass -File .\Start-SelfHostDemo.ps1 -Stop'
+Write-Output ''
+Write-Output ('URL: ' + $url)
